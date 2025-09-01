@@ -1,11 +1,16 @@
-'use server'
+"use server"
 
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from "@/utils/supabase/server"
 
-export async function login(formData: FormData) {
+export type AuthFormState = {
+  error?: string
+  message?: string
+}
+
+export async function login(_prevState: AuthFormState | void, formData: FormData): Promise<AuthFormState> {
   const supabase = await createClient()
 
   // type-casting here for convenience
@@ -18,14 +23,17 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    redirect('/error')
+    // Inline error: return a message instead of redirecting
+    return { error: error.message || "Credenciales inválidas" }
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/')
+  revalidatePath("/", "layout")
+  redirect("/")
+  // Unreachable, but satisfies return type for TypeScript
+  return {}
 }
 
-export async function signup(formData: FormData) {
+export async function signup(_prevState: AuthFormState | void, formData: FormData): Promise<AuthFormState> {
   const supabase = await createClient()
 
   // type-casting here for convenience
@@ -35,14 +43,24 @@ export async function signup(formData: FormData) {
     password: formData.get('password') as string,
   }
 
-  const { error } = await supabase.auth.signUp(data)
+  const { data: signUpData, error } = await supabase.auth.signUp(data)
 
   if (error) {
-    redirect('/error')
+    return { error: error.message || 'No se pudo crear la cuenta' }
   }
 
+  // If email confirmation is enabled, session will be null and Supabase will send a verification email.
+  if (!signUpData?.session) {
+    return {
+      message:
+        'Te enviamos un correo de confirmación. Revisa tu bandeja de entrada y sigue el enlace para activar tu cuenta.',
+    }
+  }
+
+  // If a session is returned (confirmation disabled), log in and redirect.
   revalidatePath('/', 'layout')
   redirect('/')
+  return {}
 }
 
 export async function signout() {

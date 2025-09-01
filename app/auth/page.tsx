@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useActionState } from "react"
+import { useFormStatus } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,12 +11,16 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { login, signup } from "./actions"
+import { login, signup, type AuthFormState } from "./actions"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   // Server Actions (login/signup) are imported and used as form actions.
+  const initialState: AuthFormState = { error: undefined, message: undefined }
+  const [loginState, loginAction] = useActionState(login, initialState)
+  const [signupState, signupAction] = useActionState(signup, initialState)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center p-4">
@@ -53,7 +58,13 @@ export default function AuthPage() {
 
               {/* Login Tab */}
               <TabsContent value="login" className="space-y-4">
-                <form action={login} className="space-y-4">
+        {loginState?.error && (
+                  <Alert variant="destructive">
+                    <AlertTitle>Error al iniciar sesión</AlertTitle>
+          <AlertDescription>Revise por favor sus credenciales</AlertDescription>
+                  </Alert>
+                )}
+        <form action={loginAction} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email" className="text-sm font-medium text-slate-700">
                       Correo electrónico
@@ -105,15 +116,25 @@ export default function AuthPage() {
                     </Link>
                   </div>
 
-                  <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">
-                    Iniciar Sesión
-                  </Button>
+                  <SubmitButton />
                 </form>
               </TabsContent>
 
               {/* Register Tab */}
               <TabsContent value="register" className="space-y-4">
-                <form action={signup} className="space-y-4">
+                {signupState?.message && (
+                  <Alert>
+                    <AlertTitle>Verifica tu correo</AlertTitle>
+                    <AlertDescription>{signupState.message}</AlertDescription>
+                  </Alert>
+                )}
+                {signupState?.error && (
+                  <Alert variant="destructive">
+                    <AlertTitle>No se pudo crear la cuenta</AlertTitle>
+                    <AlertDescription>{signupState.error}</AlertDescription>
+                  </Alert>
+                )}
+                <form action={signupAction} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="register-name" className="text-sm font-medium text-slate-700">
@@ -243,5 +264,14 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus()
+  return (
+    <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={pending}>
+      {pending ? "Ingresando..." : "Iniciar Sesión"}
+    </Button>
   )
 }
