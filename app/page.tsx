@@ -7,39 +7,7 @@ import Link from "next/link"
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <MapPin className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">JackeMate</h1>
-                <p className="text-sm text-muted-foreground">Mejoremos nuestra ciudad juntos</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
-                <Link href="/dashboard">Mi Dashboard</Link>
-              </Button>
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
-                <Link href="/auth">
-                  <span className="hidden sm:inline">Iniciar Sesión</span>
-                  <span className="sm:hidden">Entrar</span>
-                </Link>
-              </Button>
-              <Button size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
-                <Link href="/auth">
-                  <span className="hidden sm:inline">Registrarse</span>
-                  <span className="sm:hidden">Registro</span>
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+  {/* Header now provided by RootLayout */}
 
       {/* Hero Section */}
       <section className="py-16 px-4">

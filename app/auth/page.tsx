@@ -8,41 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { login, signup } from "./actions"
 
 export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-
-    // Simular autenticación
-    setTimeout(() => {
-      setIsLoading(false)
-      // Aquí iría la lógica real de autenticación
-      console.log("[v0] Login attempt")
-    }, 1500)
-  }
-
-  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-
-    // Simular registro
-    setTimeout(() => {
-      setIsLoading(false)
-      // Aquí iría la lógica real de registro
-      console.log("[v0] Register attempt")
-    }, 1500)
-  }
+  // Server Actions (login/signup) are imported and used as form actions.
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center p-4">
@@ -78,22 +51,23 @@ export default function AuthPage() {
                 </TabsTrigger>
               </TabsList>
 
-              {error && (
-                <Alert className="mb-4 border-red-200 bg-red-50">
-                  <AlertDescription className="text-red-700">{error}</AlertDescription>
-                </Alert>
-              )}
-
               {/* Login Tab */}
               <TabsContent value="login" className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form action={login} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email" className="text-sm font-medium text-slate-700">
                       Correo electrónico
                     </Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                      <Input id="login-email" type="email" placeholder="tu@email.com" className="pl-10" required />
+                      <Input
+                        id="login-email"
+                        name="email"
+                        type="email"
+                        placeholder="tu@email.com"
+                        className="pl-10"
+                        required
+                      />
                     </div>
                   </div>
 
@@ -105,6 +79,7 @@ export default function AuthPage() {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                       <Input
                         id="login-password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         className="pl-10 pr-10"
@@ -130,15 +105,15 @@ export default function AuthPage() {
                     </Link>
                   </div>
 
-                  <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
-                    {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
+                  <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">
+                    Iniciar Sesión
                   </Button>
                 </form>
               </TabsContent>
 
               {/* Register Tab */}
               <TabsContent value="register" className="space-y-4">
-                <form onSubmit={handleRegister} className="space-y-4">
+                <form action={signup} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="register-name" className="text-sm font-medium text-slate-700">
@@ -164,7 +139,14 @@ export default function AuthPage() {
                     </Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                      <Input id="register-email" type="email" placeholder="tu@email.com" className="pl-10" required />
+                      <Input
+                        id="register-email"
+                        name="email"
+                        type="email"
+                        placeholder="tu@email.com"
+                        className="pl-10"
+                        required
+                      />
                     </div>
                   </div>
 
@@ -186,6 +168,7 @@ export default function AuthPage() {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                       <Input
                         id="register-password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         className="pl-10 pr-10"
@@ -240,8 +223,8 @@ export default function AuthPage() {
                     </label>
                   </div>
 
-                  <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
-                    {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
+                  <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700">
+                    Crear Cuenta
                   </Button>
                 </form>
               </TabsContent>
