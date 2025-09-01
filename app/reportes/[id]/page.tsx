@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MapPin, ArrowLeft, Calendar, Flag, Share2, Plus, CheckCircle } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from "@/hooks/useAuth"
 
 // Mock data for individual report
 const mockReport = {
@@ -86,7 +85,6 @@ const getStatusColor = (status: string) => {
 }
 
 export default function ReporteDetallePage({ params }: { params: { id: string } }) {
-  const { user, loading } = useAuth()
   const [timeline, setTimeline] = useState(mockReport.timeline)
   const [showUpdateForm, setShowUpdateForm] = useState(false)
   const [newUpdate, setNewUpdate] = useState({
@@ -95,7 +93,6 @@ export default function ReporteDetallePage({ params }: { params: { id: string } 
   })
 
   const handleAddUpdate = () => {
-    if (!user) return
     if (newUpdate.status && newUpdate.description) {
       const update = {
         id: timeline.length + 1,
@@ -103,8 +100,8 @@ export default function ReporteDetallePage({ params }: { params: { id: string } 
         status: newUpdate.status,
         description: newUpdate.description,
         date: new Date().toISOString(),
-        author: (user.user_metadata?.full_name as string) || user.email || "Usuario",
-        authorInitials: ((user.user_metadata?.full_name as string) || user.email || "U").slice(0, 2).toUpperCase(),
+        author: "Usuario Actual", // This would come from auth
+        authorInitials: "UC",
       }
       setTimeline([...timeline, update])
       setNewUpdate({ status: "", description: "" })
@@ -213,22 +210,14 @@ export default function ReporteDetallePage({ params }: { params: { id: string } 
                     <CardTitle>Cronología del Reporte</CardTitle>
                     <CardDescription>Seguimiento de las actualizaciones y progreso del reporte</CardDescription>
                   </div>
-                  {!loading && user ? (
-                    <Button variant="outline" size="sm" onClick={() => setShowUpdateForm(!showUpdateForm)}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Agregar Actualización
-                    </Button>
-                  ) : (
-                    !loading && (
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href="/auth">Iniciar Sesión para actualizar</Link>
-                      </Button>
-                    )
-                  )}
+                  <Button variant="outline" size="sm" onClick={() => setShowUpdateForm(!showUpdateForm)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Agregar Actualización
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                {showUpdateForm && user && (
+                {showUpdateForm && (
                   <div className="mb-6 p-4 border rounded-lg bg-muted/30">
                     <h4 className="font-medium mb-4">Agregar Nueva Actualización</h4>
                     <div className="space-y-4">

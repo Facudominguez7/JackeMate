@@ -4,11 +4,9 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, List, Layers, Plus } from "lucide-react"
+import { MapPin, List, Layers } from "lucide-react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { useAuth } from "@/hooks/useAuth"
-import { LogoutButton } from "@/components/logout-button"
 
 // Importar el mapa solo en el cliente para evitar "window is not defined"
 const MapContainer = dynamic(
@@ -92,7 +90,6 @@ const mockReports = [
 
 export default function MapaPage() {
   const [showSidebar, setShowSidebar] = useState(true)
-  const { user, loading } = useAuth()
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -148,25 +145,9 @@ export default function MapaPage() {
                   Vista Lista
                 </Link>
               </Button>
-              {!loading && user && (
-                <>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/dashboard">Mi Dashboard</Link>
-                  </Button>
-                  <Button size="sm" asChild>
-                    <Link href="/reportes/nuevo">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nuevo Reporte
-                    </Link>
-                  </Button>
-                  <LogoutButton size="sm" />
-                </>
-              )}
-              {!loading && !user && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/auth">Iniciar Sesión</Link>
-                </Button>
-              )}
+              <Button variant="outline" size="sm">
+                Iniciar Sesión
+              </Button>
             </div>
           </div>
         </div>

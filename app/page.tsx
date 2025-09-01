@@ -1,14 +1,10 @@
-"use client"
-import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Plus, Search, Filter, Map } from "lucide-react"
 import Link from "next/link"
-import { LogoutButton } from "@/components/logout-button"
 
 export default function HomePage() {
-  const { user, loading } = useAuth()
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -25,36 +21,21 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-        {!loading && user && (
-                <>
-                  <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
-                    <Link href="/dashboard">Mi Dashboard</Link>
-                  </Button>
-                  <Button size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
-                    <Link href="/reportes/nuevo">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nuevo Reporte
-                    </Link>
-                  </Button>
-          <LogoutButton size="sm" />
-                </>
-              )}
-              {!loading && !user && (
-                <>
-                  <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
-                    <Link href="/auth">
-                      <span className="hidden sm:inline">Iniciar Sesión</span>
-                      <span className="sm:hidden">Entrar</span>
-                    </Link>
-                  </Button>
-                  <Button size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
-                    <Link href="/auth">
-                      <span className="hidden sm:inline">Registrarse</span>
-                      <span className="sm:hidden">Registro</span>
-                    </Link>
-                  </Button>
-                </>
-              )}
+              <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
+                <Link href="/dashboard">Mi Dashboard</Link>
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
+                <Link href="/auth">
+                  <span className="hidden sm:inline">Iniciar Sesión</span>
+                  <span className="sm:hidden">Entrar</span>
+                </Link>
+              </Button>
+              <Button size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
+                <Link href="/auth">
+                  <span className="hidden sm:inline">Registrarse</span>
+                  <span className="sm:hidden">Registro</span>
+                </Link>
+              </Button>
             </div>
           </div>
         </div>

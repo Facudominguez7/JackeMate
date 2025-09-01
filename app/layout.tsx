@@ -4,7 +4,7 @@ import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'PosaCalles',
+  title: 'JackeMate',
   description: 'Created by Facundo y Octavio',
   generator: 'v0.app',
 }
