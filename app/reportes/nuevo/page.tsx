@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,6 +22,55 @@ export default function NuevoReportePage() {
     location: "",
     images: [] as File[],
   })
+
+  const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([])
+  const [prioridades, setPrioridades] = useState<{ id: number; nombre: string }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+
+  const supabase = createClient()
+  
+  useEffect(() => {
+    const checkUserAndLoadData = async () => {
+      try {
+        // Verificar autenticación del usuario
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError || !user) {
+          setLoading(false)
+          return
+        }
+
+        setUser(user)
+
+        // Cargar categorías
+        const { data: categoriasData, error: categoriasError } = await supabase
+          .from('categorias')
+          .select('id, nombre')
+          .order('nombre')
+
+        if (!categoriasError) {
+          setCategorias(categoriasData || [])
+        }
+
+        // Cargar prioridades
+        const { data: prioridadesData, error: prioridadesError } = await supabase
+          .from('prioridades')
+          .select('id, nombre')
+          .order('nombre')
+
+        if (!prioridadesError) {
+          setPrioridades(prioridadesData || [])
+        }
+      } catch (error) {
+        // Manejar error silenciosamente
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkUserAndLoadData()
+  }, [])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -98,36 +148,46 @@ export default function NuevoReportePage() {
 
               {/* Category and Priority */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-2 w-full">
                   <Label>Categoría *</Label>
-                  <Select onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vialidad">Vialidad</SelectItem>
-                      <SelectItem value="transito">Tránsito</SelectItem>
-                      <SelectItem value="alumbrado">Alumbrado Público</SelectItem>
-                      <SelectItem value="limpieza">Limpieza Urbana</SelectItem>
-                      <SelectItem value="seguridad">Seguridad</SelectItem>
-                      <SelectItem value="espacios-verdes">Espacios Verdes</SelectItem>
-                      <SelectItem value="otros">Otros</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-full">
+                    <Select
+                      disabled={loading}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={categorias.length > 0 ? "Selecciona una categoría" : "Cargando categorías..."} />
+                      </SelectTrigger>
+                      <SelectContent className="w-full">
+                        {categorias.map((categoria) => (
+                          <SelectItem key={categoria.id} value={categoria.id.toString()}>
+                            {categoria.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 w-full">
                   <Label>Prioridad *</Label>
-                  <Select onValueChange={(value) => setFormData((prev) => ({ ...prev, priority: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Nivel de urgencia" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="urgente">Urgente</SelectItem>
-                      <SelectItem value="media">Media</SelectItem>
-                      <SelectItem value="baja">Baja</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-full">
+                    <Select
+                      disabled={loading}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, priority: value }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={prioridades.length > 0 ? "Nivel de urgencia" : "Cargando prioridades..."} />
+                      </SelectTrigger>
+                      <SelectContent className="w-full">
+                        {prioridades.map((prioridad) => (
+                          <SelectItem key={prioridad.id} value={prioridad.id.toString()}>
+                            {prioridad.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
