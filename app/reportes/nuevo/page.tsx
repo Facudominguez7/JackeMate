@@ -19,14 +19,16 @@ export default function NuevoReportePage() {
     description: "",
     category: "",
     priority: "",
-    location: "",
     images: [] as File[],
+    lat: null as number | null,
+    lon: null as number | null,
   })
 
   const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([])
   const [prioridades, setPrioridades] = useState<{ id: number; nombre: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [geoStatus, setGeoStatus] = useState<"pending" | "ok" | "error">("pending")
 
   const supabase = createClient()
   
@@ -70,6 +72,30 @@ export default function NuevoReportePage() {
     }
 
     checkUserAndLoadData()
+  }, [])
+
+  // Obtener ubicación automáticamente del dispositivo del usuario
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (!("geolocation" in navigator)) {
+      setGeoStatus("error")
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData((prev) => ({
+          ...prev,
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+        }))
+        setGeoStatus("ok")
+      },
+      () => {
+        setGeoStatus("error")
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
   }, [])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,24 +217,21 @@ export default function NuevoReportePage() {
                 </div>
               </div>
 
-              {/* Location */}
+              {/* Location (auto) */}
               <div className="space-y-2">
-                <Label htmlFor="location">Ubicación *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="location"
-                    placeholder="Ej: Av. Quaranta y López y Planes, Centro"
-                    value={formData.location}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-                    required
-                  />
-                  <Button type="button" variant="outline" size="icon">
-                    <MapPin className="w-4 h-4" />
-                  </Button>
+                <Label>Ubicación (automática)</Label>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="w-4 h-4" />
+                  {geoStatus === "ok" && (
+                    <span>
+                      Lat: {formData.lat?.toFixed(5)}, Lon: {formData.lon?.toFixed(5)}
+                    </span>
+                  )}
+                  {geoStatus === "pending" && <span>Detectando ubicación…</span>}
+                  {geoStatus === "error" && (
+                    <span>No se pudo obtener tu ubicación. Permití el acceso al GPS.</span>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Puedes usar el botón del mapa para seleccionar la ubicación exacta
-                </p>
               </div>
 
               {/* Image Upload */}
@@ -269,7 +292,7 @@ export default function NuevoReportePage() {
 
               {/* Submit Button */}
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1">
+                <Button type="submit" className="flex-1" disabled={geoStatus !== "ok"}>
                   <Send className="w-4 h-4 mr-2" />
                   Enviar Reporte
                 </Button>
