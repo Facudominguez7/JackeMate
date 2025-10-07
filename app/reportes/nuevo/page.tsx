@@ -116,12 +116,128 @@ export default function NuevoReportePage() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here would be the actual submission logic
-    console.log("Submitting report:", formData)
-    alert("Reporte enviado exitosamente!")
+    
+    // Validar campos requeridos
+    if (!formData.title || !formData.description || !formData.category || !formData.priority) {
+      alert("Por favor, completa todos los campos obligatorios")
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // 0. Asegurarse de que el usuario tenga un perfil en la tabla profiles
+      const { data: existingProfile, error: profileCheckError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single()
+
+      // Si no existe el perfil, crearlo
+      if (!existingProfile) {
+        const { error: profileCreateError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            username: user.email?.split('@')[0] || 'usuario',
+            rol_id: 2, // 2 = ciudadano
+            puntos: 0
+          })
+
+        if (profileCreateError) {
+          console.error("Error al crear el perfil:", profileCreateError)
+          alert("Error al crear el perfil de usuario. Por favor, contacta al administrador.")
+          return
+        }
+      }
+
+      // 1. Insertar el reporte en la base de datos
+      const { data: reporteData, error: reporteError } = await supabase
+        .from('reportes')
+        .insert({
+          usuario_id: user.id,
+          titulo: formData.title,
+          descripcion: formData.description,
+          categoria_id: parseInt(formData.category),
+          prioridad_id: parseInt(formData.priority),
+          estado_id: 1, // 1 = Pendiente
+          lat: formData.lat,
+          lon: formData.lon
+        })
+        .select()
+        .single()
+
+      if (reporteError) {
+        console.error("Error al crear el reporte:", reporteError)
+        alert("Error al crear el reporte. Por favor, intenta nuevamente.")
+        return
+      }
+
+      // 2. Si hay una imagen, subirla al storage y guardar la URL
+      if (formData.images.length > 0) {
+        const image = formData.images[0]
+        const fileExt = image.name.split('.').pop()
+        const fileName = `${reporteData.id}_${Date.now()}.${fileExt}`
+        const filePath = `${fileName}`
+
+        // Subir imagen al bucket 'reportes'
+        const { error: uploadError } = await supabase.storage
+          .from('reportes')
+          .upload(filePath, image, {
+            cacheControl: '3600',
+            upsert: false
+          })
+
+        if (uploadError) {
+          console.error("Error al subir la imagen:", uploadError)
+          // El reporte ya fue creado, solo notificar del error de la imagen
+          alert("Reporte creado, pero hubo un error al subir la imagen.")
+        } else {
+          // Obtener URL pública de la imagen
+          const { data: { publicUrl } } = supabase.storage
+            .from('reportes')
+            .getPublicUrl(filePath)
+
+          // Guardar la foto en la tabla fotos_reporte
+          const { error: fotoError } = await supabase
+            .from('fotos_reporte')
+            .insert({
+              reporte_id: reporteData.id,
+              url: publicUrl
+            })
+
+          if (fotoError) {
+            console.error("Error al guardar la URL de la foto:", fotoError)
+          }
+        }
+      }
+
+      alert("¡Reporte creado exitosamente!")
+      
+      // Redirigir a la página de reportes
+      window.location.href = "/reportes"
+      
+    } catch (error) {
+      console.error("Error inesperado:", error)
+      alert("Ocurrió un error inesperado. Por favor, intenta nuevamente.")
+    } finally {
+      setLoading(false)
+    }
   }
+
+  // Mostrar mensaje de carga o error de autenticación
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -292,11 +408,11 @@ export default function NuevoReportePage() {
 
               {/* Submit Button */}
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1" disabled={geoStatus !== "ok"}>
+                <Button type="submit" className="flex-1" disabled={geoStatus !== "ok" || loading}>
                   <Send className="w-4 h-4 mr-2" />
-                  Enviar Reporte
+                  {loading ? "Enviando..." : "Enviar Reporte"}
                 </Button>
-                <Button type="button" variant="outline" asChild>
+                <Button type="button" variant="outline" asChild disabled={loading}>
                   <Link href="/reportes">Cancelar</Link>
                 </Button>
               </div>
