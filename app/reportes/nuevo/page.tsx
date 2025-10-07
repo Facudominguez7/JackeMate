@@ -99,11 +99,12 @@ export default function NuevoReportePage() {
   }, [])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newImages = Array.from(e.target.files)
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      // Mantener solo una imagen como máximo
       setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...newImages],
+        images: [file],
       }))
     }
   }
@@ -236,27 +237,26 @@ export default function NuevoReportePage() {
 
               {/* Image Upload */}
               <div className="space-y-4">
-                <Label>Fotografías</Label>
+                <Label>Fotografía</Label>
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
                       <Upload className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Sube fotos del problema</p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG hasta 10MB cada una</p>
+                      <p className="text-sm font-medium">Sube una foto del problema</p>
+                      <p className="text-xs text-muted-foreground">PNG, JPG hasta 10MB (máximo 1 imagen)</p>
                     </div>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" asChild>
                         <label htmlFor="images" className="cursor-pointer">
                           <Camera className="w-4 h-4 mr-2" />
-                          Seleccionar Fotos
+                          Seleccionar Foto
                         </label>
                       </Button>
                       <input
                         id="images"
                         type="file"
-                        multiple
                         accept="image/*"
                         onChange={handleImageUpload}
                         className="hidden"
