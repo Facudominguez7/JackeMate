@@ -119,12 +119,6 @@ export default function NuevoReportePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validar campos requeridos
-    if (!formData.title || !formData.description || !formData.category || !formData.priority) {
-      alert("Por favor, completa todos los campos obligatorios")
-      return
-    }
-
     try {
       setLoading(true)
 
