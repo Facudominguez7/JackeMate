@@ -15,6 +15,7 @@ type UserReport = {
   categorias: any
   prioridades: any
   estados: any
+  fotos_reporte: any
 }
 
 const getStatusColor = (status: string) => {
@@ -48,6 +49,12 @@ const getNombre = (obj: any): string => {
   return "N/A"
 }
 
+const getImageUrl = (fotos: any): string => {
+  if (!fotos) return "/placeholder.svg"
+  if (Array.isArray(fotos) && fotos.length > 0 && fotos[0].url) return fotos[0].url
+  return "/placeholder.svg"
+}
+
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [userReports, setUserReports] = useState<UserReport[]>([])
@@ -76,7 +83,8 @@ export default function DashboardPage() {
             created_at,
             categorias (nombre),
             prioridades (nombre),
-            estados (nombre)
+            estados (nombre),
+            fotos_reporte (url)
           `)
           .eq('usuario_id', user.id)
           .is('deleted_at', null)
@@ -121,7 +129,7 @@ export default function DashboardPage() {
                   <AvatarFallback className="text-2xl">{getUserInitials(user.email || "US")}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-foreground mb-1">{user.email}</h2>
+                  <h2 className="text-sm font-bold text-foreground mb-1">{user.email}</h2>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Calendar className="w-3 h-3" />
                     {userReports.length} {userReports.length === 1 ? 'reporte creado' : 'reportes creados'}
@@ -162,33 +170,40 @@ export default function DashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userReports.map((report) => (
-                <Card key={report.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg">
-                        <Link href={`/reportes/${report.id}`} className="hover:text-primary">
+                <Link key={report.id} href={`/reportes/${report.id}`}>
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-lg">
                           {report.titulo}
-                        </Link>
-                      </CardTitle>
-                      <Badge variant={getPriorityColor(getNombre(report.prioridades)) as any}>
-                        {getNombre(report.prioridades)}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Badge className={getStatusColor(getNombre(report.estados))}>
-                          {getNombre(report.estados)}
+                        </CardTitle>
+                        <Badge variant={getPriorityColor(getNombre(report.prioridades)) as any}>
+                          {getNombre(report.prioridades)}
                         </Badge>
-                        <Badge variant="outline">{getNombre(report.categorias)}</Badge>
                       </div>
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>{new Date(report.created_at).toLocaleDateString("es-AR")}</span>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="aspect-video bg-muted rounded-lg mb-4 overflow-hidden">
+                          <img
+                            src={getImageUrl(report.fotos_reporte) || "/placeholder.svg"}
+                            alt={report.titulo}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Badge className={getStatusColor(getNombre(report.estados))}>
+                            {getNombre(report.estados)}
+                          </Badge>
+                          <Badge variant="outline">{getNombre(report.categorias)}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>{new Date(report.created_at).toLocaleDateString("es-AR")}</span>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           )}
