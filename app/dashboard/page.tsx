@@ -1,4 +1,6 @@
 "use client"
+import { useState, useEffect } from "react"
+import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -6,49 +8,20 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { MapPin, Plus, Calendar } from "lucide-react"
 import Link from "next/link"
 
-// Mock user data
-const mockUser = {
-  name: "María González",
-  email: "maria.gonzalez@email.com",
-  initials: "MG",
-  joinDate: "2023-08-15",
+type UserReport = {
+  id: number
+  titulo: string
+  created_at: string
+  categorias: any
+  prioridades: any
+  estados: any
 }
-
-// Mock user reports
-const mockUserReports = [
-  {
-    id: 1,
-    title: "Bache en Av. Quaranta",
-    status: "En Progreso",
-    priority: "Urgente",
-    category: "Vialidad",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    title: "Alumbrado Defectuoso en San Roque",
-    status: "Resuelto",
-    priority: "Media",
-    category: "Alumbrado",
-    createdAt: "2024-01-10",
-  },
-  {
-    id: 3,
-    title: "Basura Acumulada en Villa Sarita",
-    status: "Reportado",
-    priority: "Baja",
-    category: "Limpieza",
-    createdAt: "2024-01-08",
-  },
-]
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "Resuelto":
+    case "Reparado":
       return "bg-green-50 text-green-700 border-green-200"
-    case "En Progreso":
-      return "bg-blue-50 text-blue-700 border-blue-200"
-    case "Reportado":
+    case "Pendiente":
       return "bg-yellow-50 text-yellow-700 border-yellow-200"
     default:
       return ""
@@ -57,7 +30,7 @@ const getStatusColor = (status: string) => {
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
-    case "Urgente":
+    case "Alta":
       return "destructive"
     case "Media":
       return "secondary"
@@ -68,7 +41,74 @@ const getPriorityColor = (priority: string) => {
   }
 }
 
+const getNombre = (obj: any): string => {
+  if (!obj) return "N/A"
+  if (Array.isArray(obj) && obj.length > 0) return obj[0].nombre || "N/A"
+  if (obj.nombre) return obj.nombre
+  return "N/A"
+}
+
 export default function DashboardPage() {
+  const [user, setUser] = useState<any>(null)
+  const [userReports, setUserReports] = useState<UserReport[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  useEffect(() => {
+    const fetchUserAndReports = async () => {
+      try {
+        // Obtener usuario actual
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError || !user) {
+          setLoading(false)
+          return
+        }
+
+        setUser(user)
+
+        // Obtener reportes del usuario
+        const { data: reportes, error: reportesError } = await supabase
+          .from('reportes')
+          .select(`
+            id,
+            titulo,
+            created_at,
+            categorias (nombre),
+            prioridades (nombre),
+            estados (nombre)
+          `)
+          .eq('usuario_id', user.id)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+
+        if (!reportesError && reportes) {
+          setUserReports(reportes)
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserAndReports()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const getUserInitials = (email: string) => {
+    return email.substring(0, 2).toUpperCase()
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -78,14 +118,13 @@ export default function DashboardPage() {
             <CardContent className="pt-6">
               <div className="flex items-center gap-6">
                 <Avatar className="w-20 h-20">
-                  <AvatarFallback className="text-2xl">{mockUser.initials}</AvatarFallback>
+                  <AvatarFallback className="text-2xl">{getUserInitials(user.email || "US")}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-foreground mb-1">{mockUser.name}</h2>
-                  <p className="text-muted-foreground mb-2">{mockUser.email}</p>
+                  <h2 className="text-2xl font-bold text-foreground mb-1">{user.email}</h2>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Calendar className="w-3 h-3" />
-                    Miembro desde {new Date(mockUser.joinDate).toLocaleDateString("es-AR")}
+                    {userReports.length} {userReports.length === 1 ? 'reporte creado' : 'reportes creados'}
                   </div>
                 </div>
               </div>
@@ -108,33 +147,51 @@ export default function DashboardPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockUserReports.map((report) => (
-              <Card key={report.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">
-                      <Link href={`/reportes/${report.id}`} className="hover:text-primary">
-                        {report.title}
-                      </Link>
-                    </CardTitle>
-                    <Badge variant={getPriorityColor(report.priority) as any}>{report.priority}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Badge className={getStatusColor(report.status)}>{report.status}</Badge>
-                      <Badge variant="outline">{report.category}</Badge>
+          {userReports.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 text-center py-12">
+                <p className="text-muted-foreground mb-4">Aún no has creado ningún reporte</p>
+                <Button asChild>
+                  <Link href="/reportes/nuevo">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Crear Mi Primer Reporte
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {userReports.map((report) => (
+                <Card key={report.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-lg">
+                        <Link href={`/reportes/${report.id}`} className="hover:text-primary">
+                          {report.titulo}
+                        </Link>
+                      </CardTitle>
+                      <Badge variant={getPriorityColor(getNombre(report.prioridades)) as any}>
+                        {getNombre(report.prioridades)}
+                      </Badge>
                     </div>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>{new Date(report.createdAt).toLocaleDateString("es-AR")}</span>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Badge className={getStatusColor(getNombre(report.estados))}>
+                          {getNombre(report.estados)}
+                        </Badge>
+                        <Badge variant="outline">{getNombre(report.categorias)}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>{new Date(report.created_at).toLocaleDateString("es-AR")}</span>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
