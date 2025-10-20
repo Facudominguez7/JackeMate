@@ -24,6 +24,8 @@ const getStatusColor = (status: string) => {
       return "bg-green-50 text-green-700 border-green-200"
     case "Pendiente":
       return "bg-yellow-50 text-yellow-700 border-yellow-200"
+      case "Rechazado":
+        return "bg-red-50 text-red-700 border-red-200"
     default:
       return ""
   }
@@ -37,8 +39,6 @@ const getPriorityColor = (priority: string) => {
       return "secondary"
     case "Baja":
       return "outline"
-      case "Rechazado":
-        return "ghost"
     default:
       return "outline"
   }
