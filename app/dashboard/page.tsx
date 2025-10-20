@@ -37,6 +37,8 @@ const getPriorityColor = (priority: string) => {
       return "secondary"
     case "Baja":
       return "outline"
+      case "Rechazado":
+        return "ghost"
     default:
       return "outline"
   }
