@@ -136,7 +136,7 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Page actions */}
+      {/* Acciones de la página */}
       <div className="container mx-auto px-4 pt-6 max-w-4xl">
         <Button variant="outline" asChild>
           <Link href="/reportes">
@@ -148,9 +148,9 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+          {/* Contenido Principal */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Report Header */}
+            {/* Encabezado del Reporte */}
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -180,7 +180,7 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
               <CardContent>
                 <p className="text-foreground leading-relaxed mb-6">{reporte.descripcion}</p>
 
-                {/* Imagenes */}
+                {/* Imágenes */}
                 {reporte.fotos_reporte && reporte.fotos_reporte.length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     {reporte.fotos_reporte.map((foto, index) => (
@@ -195,7 +195,7 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
                   </div>
                 )}
 
-                {/* Author and Date */}
+                {/* Autor y Fecha */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Avatar className="w-6 h-6">
@@ -218,9 +218,9 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Barra Lateral */}
           <div className="space-y-6">
-            {/* Quick Info */}
+            {/* Información Rápida */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Información Rápida</CardTitle>
@@ -249,7 +249,7 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
               </CardContent>
             </Card>
 
-            {/* Map Placeholder */}
+            {/* Marcador de Posición del Mapa */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Ubicación</CardTitle>
