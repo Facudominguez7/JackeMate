@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { MapPin, ArrowLeft, Calendar, Flag, Share2, ThumbsDown } from "lucide-react"
+import { MapPin, ArrowLeft, Calendar, Flag, Share2, ThumbsDown, Trash2 } from "lucide-react"
 import Link from "next/link"
 
 type Reporte = {
@@ -65,6 +65,7 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
   const [votosCount, setVotosCount] = useState(0)
   const [hasVoted, setHasVoted] = useState(false)
   const [isVoting, setIsVoting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -176,6 +177,41 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
       alert("Error al procesar el voto")
     } finally {
       setIsVoting(false)
+    }
+  }
+
+  const handleDeleteReporte = async () => {
+    if (!currentUser || !reporte) return
+    
+    // Confirmar antes de borrar
+    const confirmDelete = window.confirm(
+      "¿Estás seguro de que querés eliminar este reporte? Esta acción no se puede deshacer."
+    )
+    
+    if (!confirmDelete) return
+
+    setIsDeleting(true)
+    try {
+      // Realizar soft delete (marcar como eliminado)
+      const { error } = await supabase
+        .from('reportes')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', reporte.id)
+
+      if (error) {
+        console.error("Error al eliminar el reporte:", error)
+        alert("Error al eliminar el reporte. Por favor, intenta nuevamente.")
+        return
+      }
+
+      alert("Reporte eliminado exitosamente")
+      // Redirigir al dashboard
+      window.location.href = "/dashboard"
+    } catch (error) {
+      console.error("Error:", error)
+      alert("Error al procesar la eliminación")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -302,6 +338,35 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
 
           {/* Barra Lateral */}
           <div className="space-y-6">
+            {/* Botón "Eliminar Reporte" - Solo para el creador */}
+            {currentUser && currentUser.id === reporte.usuario_id && (
+              <Card className="border-2 border-destructive/20">
+                <CardContent className="pt-6">
+                  <div className="text-center space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-lg">Eliminar Reporte</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Como creador de este reporte, podés eliminarlo si lo considerás necesario.
+                      </p>
+                      <p className="text-xs text-destructive">
+                        Esta acción no se puede deshacer.
+                      </p>
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      size="lg"
+                      className="w-full"
+                      onClick={handleDeleteReporte}
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="w-5 h-5 mr-2" />
+                      {isDeleting ? "Eliminando..." : "Eliminar Reporte"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Botón "No Existe" */}
             {currentUser && currentUser.id !== reporte.usuario_id && (
               <Card className="border-2 border-dashed border-muted-foreground/20">
