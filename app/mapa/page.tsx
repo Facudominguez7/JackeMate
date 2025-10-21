@@ -71,24 +71,28 @@ interface ReporteDB {
 }
 
 export default function MapaPage() {
+  // Inicializar siempre con false para evitar hydration mismatch
+  // El useEffect ajustará el valor según el tamaño de pantalla
   const [showSidebar, setShowSidebar] = useState(false)
   const [reportes, setReportes] = useState<ReporteParaMapa[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   /**
-   * Efecto para inicializar el estado del sidebar según el tamaño de pantalla
+   * Efecto para inicializar y actualizar el estado del sidebar según el tamaño de pantalla
    * En desktop (>= 768px) se muestra por defecto, en mobile se oculta
+   * Se ejecuta solo una vez al montar para evitar hydration errors
    */
   useEffect(() => {
+    // Configurar el valor inicial basado en el tamaño de pantalla
+    const isDesktop = window.innerWidth >= 768
+    setShowSidebar(isDesktop)
+
     const handleResize = () => {
       setShowSidebar(window.innerWidth >= 768)
     }
     
-    // Configurar estado inicial
-    handleResize()
-    
-    // Escuchar cambios de tamaño
+    // Escuchar cambios de tamaño de ventana
     window.addEventListener('resize', handleResize)
     
     return () => window.removeEventListener('resize', handleResize)
