@@ -122,32 +122,7 @@ export default function NuevoReportePage() {
     try {
       setLoading(true)
 
-      // 0. Asegurarse de que el usuario tenga un perfil en la tabla profiles
-      const { data: existingProfile, error: profileCheckError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single()
-
-      // Si no existe el perfil, crearlo
-      if (!existingProfile) {
-        const { error: profileCreateError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            username: user.email?.split('@')[0] || 'usuario',
-            rol_id: 2, // 2 = ciudadano
-            puntos: 0
-          })
-
-        if (profileCreateError) {
-          console.error("Error al crear el perfil:", profileCreateError)
-          alert("Error al crear el perfil de usuario. Por favor, contacta al administrador.")
-          return
-        }
-      }
-
-      // 1. Insertar el reporte en la base de datos
+      // Insertar el reporte en la base de datos
       const { data: reporteData, error: reporteError } = await supabase
         .from('reportes')
         .insert({
@@ -169,7 +144,7 @@ export default function NuevoReportePage() {
         return
       }
 
-      // 2. Si hay una imagen, subirla al storage y guardar la URL
+      // Si hay una imagen, subirla al storage y guardar la URL
       if (formData.images.length > 0) {
         const image = formData.images[0]
         const fileExt = image.name.split('.').pop()
