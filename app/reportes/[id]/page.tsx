@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { MapPin, ArrowLeft, Calendar, Flag, Share2, Plus, CheckCircle } from "lucide-react"
+import { MapPin, ArrowLeft, Calendar, Flag, Share2, ThumbsDown } from "lucide-react"
 import Link from "next/link"
 
 type Reporte = {
@@ -16,6 +16,7 @@ type Reporte = {
   lat: number
   lon: number
   created_at: string
+  usuario_id: string
   categorias: any
   prioridades: any
   estados: any
@@ -60,11 +61,20 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
   const resolvedParams = use(params)
   const [reporte, setReporte] = useState<Reporte | null>(null)
   const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [votosCount, setVotosCount] = useState(0)
+  const [hasVoted, setHasVoted] = useState(false)
+  const [isVoting, setIsVoting] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
-    const fetchReporte = async () => {
+    const fetchData = async () => {
       try {
+        // Obtener usuario actual
+        const { data: { user } } = await supabase.auth.getUser()
+        setCurrentUser(user)
+
+        // Obtener reporte
         const { data, error } = await supabase
           .from('reportes')
           .select(`
@@ -74,6 +84,7 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
             lat,
             lon,
             created_at,
+            usuario_id,
             categorias (nombre),
             prioridades (nombre),
             estados (nombre),
@@ -86,16 +97,87 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
 
         if (!error && data) {
           setReporte(data)
+
+          // Contar votos "no existe"
+          const { count } = await supabase
+            .from('votos_no_existe')
+            .select('*', { count: 'exact', head: true })
+            .eq('reporte_id', resolvedParams.id)
+
+          setVotosCount(count || 0)
+
+          // Verificar si el usuario actual ya votó
+          if (user) {
+            const { data: votoData } = await supabase
+              .from('votos_no_existe')
+              .select('id')
+              .eq('reporte_id', resolvedParams.id)
+              .eq('usuario_id', user.id)
+              .single()
+
+            setHasVoted(!!votoData)
+          }
         }
       } catch (error) {
-        console.error("Error fetching reporte:", error)
+        console.error("Error fetching data:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchReporte()
+    fetchData()
   }, [resolvedParams.id])
+
+  const handleVoteNoExiste = async () => {
+    if (!currentUser || !reporte) return
+
+    setIsVoting(true)
+    try {
+      // Insertar voto
+      const { error: votoError } = await supabase
+        .from('votos_no_existe')
+        .insert({
+          reporte_id: reporte.id,
+          usuario_id: currentUser.id
+        })
+
+      if (votoError) {
+        console.error("Error al votar:", votoError)
+        alert("Error al registrar el voto")
+        return
+      }
+
+      // Actualizar contador local
+      const newVotosCount = votosCount + 1
+      setVotosCount(newVotosCount)
+      setHasVoted(true)
+
+      // Si llega a 5 votos, cambiar estado a Rechazado
+      if (newVotosCount >= 5) {
+        // Obtener el ID del estado "Rechazado"
+        const { data: estadoRechazado } = await supabase
+          .from('estados')
+          .select('id')
+          .eq('nombre', 'Rechazado')
+          .single()
+
+        if (estadoRechazado) {
+          await supabase
+            .from('reportes')
+            .update({ estado_id: estadoRechazado.id })
+            .eq('id', reporte.id)
+
+          // Recargar página para mostrar el nuevo estado
+          window.location.reload()
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      alert("Error al procesar el voto")
+    } finally {
+      setIsVoting(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -220,34 +302,39 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
 
           {/* Barra Lateral */}
           <div className="space-y-6">
-            {/* Información Rápida */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Información Rápida</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Estado Actual</p>
-                  <Badge className={getStatusColor(getNombre(reporte.estados))}>
-                    {getNombre(reporte.estados)}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Prioridad</p>
-                  <Badge variant={getPriorityColor(getNombre(reporte.prioridades)) as any}>
-                    {getNombre(reporte.prioridades)}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Categoría</p>
-                  <Badge variant="outline">{getNombre(reporte.categorias)}</Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Fecha de Creación</p>
-                  <p className="text-sm">{new Date(reporte.created_at).toLocaleDateString("es-AR")}</p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Botón "No Existe" */}
+            {currentUser && currentUser.id !== reporte.usuario_id && (
+              <Card className="border-2 border-dashed border-muted-foreground/20">
+                <CardContent className="pt-6">
+                  <div className="text-center space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-lg">¿Este reporte no existe?</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Si verificaste que este problema ya no existe o nunca existió, podés reportarlo.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Con 5 votos de "No Existe", el reporte será marcado como rechazado.
+                      </p>
+                    </div>
+                    <Button 
+                      variant={hasVoted ? "secondary" : "destructive"} 
+                      size="lg"
+                      className="w-full"
+                      onClick={handleVoteNoExiste}
+                      disabled={hasVoted || isVoting}
+                    >
+                      <ThumbsDown className="w-5 h-5 mr-2" />
+                      {hasVoted ? "Ya votaste" : "Marcar como No Existe"}
+                    </Button>
+                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <span className="font-medium">{votosCount} {votosCount === 1 ? 'voto' : 'votos'}</span>
+                      <span>•</span>
+                      <span>{5 - votosCount} {(5 - votosCount) === 1 ? 'restante' : 'restantes'} para rechazar</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Marcador de Posición del Mapa */}
             <Card>
