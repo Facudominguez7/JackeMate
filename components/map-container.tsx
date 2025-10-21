@@ -81,8 +81,11 @@ export function MapContainer({ reports }: MapContainerProps) {
       </div>
 
       {/* Instrucciones de uso del mapa */}
-      <div className="absolute top-4 right-4 bg-card/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg z-[1000]">
-        <p className="text-xs text-muted-foreground">Haz clic en los marcadores para ver detalles</p>
+      <div className="absolute top-1 md:top-4 left-auto right-1 md:left-auto md:right-4 md:translate-x-0 bg-card/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg z-[1000] max-w-xs">
+        <p className="text-xs text-muted-foreground flex items-center gap-2">
+          <span className="text-xs md:text-base">💡</span>
+          <span>Haz clic en los marcadores para ver detalles</span>
+        </p>
       </div>
     </>
   )
