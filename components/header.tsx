@@ -16,8 +16,8 @@ export default async function Header() {
         "usuario"
 
     return (
-        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-            <div className="container mx-auto px-4 py-4">
+        <header className="border-b-4 border-b-primary bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-md">
+            <div className="container mx-auto px-1 py-1">
                 <div className="flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-3" aria-label="Ir al inicio">
                         <div className="w-20 h-20 rounded-lg relative overflow-hidden">
