@@ -73,47 +73,41 @@ type ReportCardData = {
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline"
 
 /**
- * Mapeo de nombres de prioridades a variantes de Badge
- * Permite asignar colores semánticos según la urgencia del reporte
+ * Obtiene las clases CSS según el nombre del estado
+ * 
+ * @param status - Nombre del estado (ej: "Reparado", "Pendiente", "Rechazado")
+ * @returns String con clases Tailwind CSS o vacío si no hay match
  */
-const PRIORITY_VARIANTS: Record<string, BadgeVariant> = {
-  urgente: "destructive", // Rojo para urgencias
-  alta: "destructive",
-  media: "secondary",     // Gris para prioridad media
-  baja: "outline",        // Solo borde para prioridad baja
-}
-
-/**
- * Mapeo de estados a clases de Tailwind CSS personalizadas
- * Define los colores visuales para cada estado del reporte
- */
-const STATUS_CLASSES: Record<string, string> = {
-  resuelto: "bg-green-50 text-green-700 border-green-200",     // Verde para completado
-  "en progreso": "bg-blue-50 text-blue-700 border-blue-200",   // Azul para en proceso
-  reportado: "bg-yellow-50 text-yellow-700 border-yellow-200", // Amarillo para nuevo
-  pendiente: "bg-yellow-50 text-yellow-700 border-yellow-200",
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Reparado":
+      return "bg-green-50 text-green-700 border-green-200"
+    case "Pendiente":
+      return "bg-yellow-50 text-yellow-700 border-yellow-200"
+    case "Rechazado":
+      return "bg-red-50 text-red-700 border-red-200"
+    default:
+      return ""
+  }
 }
 
 /**
  * Obtiene la variante de Badge según el nombre de la prioridad
  * 
- * @param priority - Nombre de la prioridad (ej: "Urgente", "Media")
+ * @param priority - Nombre de la prioridad (ej: "Alta", "Media", "Baja")
  * @returns Variante de Badge correspondiente o "outline" por defecto
  */
-const getPriorityColor = (priority?: string): BadgeVariant => {
-  const normalized = priority?.toLowerCase() ?? ""
-  return PRIORITY_VARIANTS[normalized] ?? "outline"
-}
-
-/**
- * Obtiene las clases CSS según el nombre del estado
- * 
- * @param status - Nombre del estado (ej: "Resuelto", "En Progreso")
- * @returns String con clases Tailwind CSS o vacío si no hay match
- */
-const getStatusColor = (status?: string) => {
-  const normalized = status?.toLowerCase() ?? ""
-  return STATUS_CLASSES[normalized] ?? ""
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case "Alta":
+      return "destructive"
+    case "Media":
+      return "secondary"
+    case "Baja":
+      return "outline"
+    default:
+      return "outline"
+  }
 }
 
 /**
@@ -259,8 +253,8 @@ export default async function ReportesPage() {
         {reports.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {reports.map((report) => (
-              <Link href={`/reportes/${report.id}`} className="hover:text-primary">
-                <Card key={report.id} className="hover:shadow-lg transition-shadow">
+              <Link key={report.id} href={`/reportes/${report.id}`} className="hover:text-primary">
+                <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       {/* Título del reporte con enlace a la página de detalle */}
