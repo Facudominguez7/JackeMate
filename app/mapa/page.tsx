@@ -71,10 +71,28 @@ interface ReporteDB {
 }
 
 export default function MapaPage() {
-  const [showSidebar, setShowSidebar] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(false)
   const [reportes, setReportes] = useState<ReporteParaMapa[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  /**
+   * Efecto para inicializar el estado del sidebar según el tamaño de pantalla
+   * En desktop (>= 768px) se muestra por defecto, en mobile se oculta
+   */
+  useEffect(() => {
+    const handleResize = () => {
+      setShowSidebar(window.innerWidth >= 768)
+    }
+    
+    // Configurar estado inicial
+    handleResize()
+    
+    // Escuchar cambios de tamaño
+    window.addEventListener('resize', handleResize)
+    
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   /**
    * Efecto para cargar los reportes desde Supabase al montar el componente
@@ -199,42 +217,41 @@ export default function MapaPage() {
 
       <div className="flex h-[calc(100vh-73px)]">
         {/* Barra lateral con lista de reportes */}
-        {showSidebar && (
-          <div className="w-80 border-r bg-card/50 backdrop-blur-sm overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold">Reportes en el Mapa</h2>
-                <Badge variant="outline">{reportes.length} reportes</Badge>
+        <div className={`w-80 border-r bg-card/50 backdrop-blur-sm overflow-y-auto transition-all ${showSidebar ? '' : 'hidden md:hidden'}`}>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold">Reportes en el Mapa</h2>
+              <Badge variant="outline">{reportes.length} reportes</Badge>
+            </div>
+
+            {/* Mensaje de carga */}
+            {loading && (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                Cargando reportes...
               </div>
+            )}
 
-              {/* Mensaje de carga */}
-              {loading && (
-                <div className="text-center py-8 text-sm text-muted-foreground">
-                  Cargando reportes...
-                </div>
-              )}
+            {/* Mensaje de error */}
+            {error && !loading && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-              {/* Mensaje de error */}
-              {error && !loading && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            {/* Lista de reportes */}
+            {!loading && !error && reportes.length === 0 && (
+              <Alert>
+                <AlertTitle>No hay reportes</AlertTitle>
+                <AlertDescription>
+                  No se encontraron reportes con ubicación en el mapa.
+                </AlertDescription>
+              </Alert>
+            )}
 
-              {/* Lista de reportes */}
-              {!loading && !error && reportes.length === 0 && (
-                <Alert>
-                  <AlertTitle>No hay reportes</AlertTitle>
-                  <AlertDescription>
-                    No se encontraron reportes con ubicación en el mapa.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {!loading && !error && reportes.length > 0 && (
-                <div className="space-y-3">
-                  {reportes.map((report) => (
+            {!loading && !error && reportes.length > 0 && (
+              <div className="space-y-3">
+                {reportes.map((report) => (
                     <Card key={report.id} className="cursor-pointer hover:shadow-md transition-shadow">
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
@@ -266,11 +283,10 @@ export default function MapaPage() {
                       </CardContent>
                     </Card>
                   ))}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Contenedor del mapa */}
         <div className="flex-1 relative">
