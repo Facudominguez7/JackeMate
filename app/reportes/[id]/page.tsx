@@ -1,142 +1,117 @@
 "use client"
 
-import { use, useState, useEffect } from "react"
-import { createClient } from "@/utils/supabase/client"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MapPin, ArrowLeft, Calendar, Flag, Share2, Plus, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
-type Reporte = {
-  id: number
-  titulo: string
-  descripcion: string
-  lat: number
-  lon: number
-  created_at: string
-  categorias: any
-  prioridades: any
-  estados: any
-  fotos_reporte: any[]
-  profiles: any
+// Mock data for individual report
+const mockReport = {
+  id: 1,
+  title: "Bache en Av. Quaranta",
+  description:
+    "Bache de gran tamaño que dificulta el tránsito vehicular en la intersección con Av. López y Planes. El problema se ha agravado con las últimas lluvias y representa un peligro para motociclistas y ciclistas.",
+  category: "Vialidad",
+  priority: "Urgente",
+  status: "En Progreso",
+  location: "Av. Quaranta y López y Planes, Centro, Posadas",
+  author: "María González",
+  authorInitials: "MG",
+  createdAt: "2024-01-15T10:30:00Z",
+  updatedAt: "2024-01-16T14:20:00Z",
+  images: ["/bache-en-calle-de-posadas.png"],
+  timeline: [
+    {
+      id: 1,
+      type: "status",
+      status: "Reportado",
+      description: "Reporte creado por el ciudadano",
+      date: "2024-01-15T10:30:00Z",
+      author: "María González",
+      authorInitials: "MG",
+    },
+    {
+      id: 2,
+      type: "status",
+      status: "Verificado",
+      description: "Reporte verificado por el equipo municipal",
+      date: "2024-01-15T16:45:00Z",
+      author: "Municipalidad de Posadas",
+      authorInitials: "MP",
+    },
+    {
+      id: 3,
+      type: "status",
+      status: "En Progreso",
+      description: "Trabajo asignado al equipo de vialidad",
+      date: "2024-01-16T09:15:00Z",
+      author: "Dirección de Vialidad",
+      authorInitials: "DV",
+    },
+  ],
+}
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case "Urgente":
+      return "destructive"
+    case "Media":
+      return "secondary"
+    case "Baja":
+      return "outline"
+    default:
+      return "outline"
+  }
 }
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "Reparado":
+    case "Resuelto":
       return "bg-green-50 text-green-700 border-green-200"
-    case "Pendiente":
+    case "En Progreso":
+      return "bg-blue-50 text-blue-700 border-blue-200"
+    case "Reportado":
       return "bg-yellow-50 text-yellow-700 border-yellow-200"
-    case "Rechazado":
-      return "bg-red-50 text-red-700 border-red-200"
+    case "Verificado":
+      return "bg-purple-50 text-purple-700 border-purple-200"
     default:
       return ""
   }
 }
 
-const getNombre = (obj: any): string => {
-  if (!obj) return "N/A"
-  if (Array.isArray(obj) && obj.length > 0) return obj[0].nombre || "N/A"
-  if (obj.nombre) return obj.nombre
-  return "N/A"
-}
+export default function ReporteDetallePage({ params }: { params: { id: string } }) {
+  const [timeline, setTimeline] = useState(mockReport.timeline)
+  const [showUpdateForm, setShowUpdateForm] = useState(false)
+  const [newUpdate, setNewUpdate] = useState({
+    status: "",
+    description: "",
+  })
 
-const getUsername = (obj: any): string => {
-  if (!obj) return "Usuario"
-  if (Array.isArray(obj) && obj.length > 0) return obj[0].username || "Usuario"
-  if (obj.username) return obj.username
-  return "Usuario"
-}
-
-const getUserInitials = (username: string) => {
-  if (!username || username === "Usuario") return "US"
-  return username.substring(0, 2).toUpperCase()
-}
-
-
-export default function ReporteDetallePage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params)
-  const [reporte, setReporte] = useState<Reporte | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
-
-  useEffect(() => {
-    const fetchReporte = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('reportes')
-          .select(`
-            id,
-            titulo,
-            descripcion,
-            lat,
-            lon,
-            created_at,
-            categorias (nombre),
-            prioridades (nombre),
-            estados (nombre),
-            fotos_reporte (url),
-            profiles (username)
-          `)
-          .eq('id', resolvedParams.id)
-          .is('deleted_at', null)
-          .single()
-
-        if (!error && data) {
-          setReporte(data)
-        }
-      } catch (error) {
-        console.error("Error fetching reporte:", error)
-      } finally {
-        setLoading(false)
+  const handleAddUpdate = () => {
+    if (newUpdate.status && newUpdate.description) {
+      const update = {
+        id: timeline.length + 1,
+        type: "status" as const,
+        status: newUpdate.status,
+        description: newUpdate.description,
+        date: new Date().toISOString(),
+        author: "Usuario Actual", // This would come from auth
+        authorInitials: "UC",
       }
-    }
-
-    fetchReporte()
-  }, [resolvedParams.id])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!reporte) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Reporte no encontrado</p>
-          <Button asChild className="mt-4">
-            <Link href="/reportes">Volver a Reportes</Link>
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "Alta":
-        return "destructive"
-      case "Media":
-        return "secondary"
-      case "Baja":
-        return "outline"
-      default:
-        return "outline"
+      setTimeline([...timeline, update])
+      setNewUpdate({ status: "", description: "" })
+      setShowUpdateForm(false)
     }
   }
-
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Acciones de la página */}
+      {/* Page actions */}
       <div className="container mx-auto px-4 pt-6 max-w-4xl">
         <Button variant="outline" asChild>
           <Link href="/reportes">
@@ -148,66 +123,61 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Contenido Principal */}
+          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Encabezado del Reporte */}
+            {/* Report Header */}
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Badge variant={getPriorityColor(getNombre(reporte.prioridades)) as any}>
-                        {getNombre(reporte.prioridades)}
-                      </Badge>
-                      <Badge className={getStatusColor(getNombre(reporte.estados))}>
-                        {getNombre(reporte.estados)}
-                      </Badge>
-                      <Badge variant="outline">{getNombre(reporte.categorias)}</Badge>
+                      <Badge variant={getPriorityColor(mockReport.priority) as any}>{mockReport.priority}</Badge>
+                      <Badge className={getStatusColor(mockReport.status)}>{mockReport.status}</Badge>
+                      <Badge variant="outline">{mockReport.category}</Badge>
                     </div>
-                    <CardTitle className="text-2xl">{reporte.titulo}</CardTitle>
+                    <CardTitle className="text-2xl">{mockReport.title}</CardTitle>
                     <CardDescription className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
-                      Lat: {reporte.lat.toFixed(6)}, Lon: {reporte.lon.toFixed(6)}
+                      {mockReport.location}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm">
                       <Share2 className="w-4 h-4" />
                     </Button>
+                    <Button variant="outline" size="sm">
+                      <Flag className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-foreground leading-relaxed mb-6">{reporte.descripcion}</p>
+                <p className="text-foreground leading-relaxed mb-6">{mockReport.description}</p>
 
-                {/* Imágenes */}
-                {reporte.fotos_reporte && reporte.fotos_reporte.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    {reporte.fotos_reporte.map((foto, index) => (
-                      <div key={index} className="aspect-video bg-muted rounded-lg overflow-hidden">
-                        <img
-                          src={foto.url || "/placeholder.svg"}
-                          alt={`Imagen ${index + 1} del reporte`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Images */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {mockReport.images.map((image, index) => (
+                    <div key={index} className="aspect-video bg-muted rounded-lg overflow-hidden">
+                      <img
+                        src={image || "/placeholder.svg"}
+                        alt={`Imagen ${index + 1} del reporte`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
 
-                {/* Autor y Fecha */}
+                {/* Author and Date */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Avatar className="w-6 h-6">
-                      <AvatarFallback className="text-xs">
-                        {getUserInitials(getUsername(reporte.profiles))}
-                      </AvatarFallback>
+                      <AvatarFallback className="text-xs">{mockReport.authorInitials}</AvatarFallback>
                     </Avatar>
-                    <span>Reportado por {getUsername(reporte.profiles)}</span>
+                    <span>Reportado por {mockReport.author}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {new Date(reporte.created_at).toLocaleDateString("es-AR", {
+                    {new Date(mockReport.createdAt).toLocaleDateString("es-AR", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
@@ -216,11 +186,100 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
                 </div>
               </CardContent>
             </Card>
+
+            {/* Timeline */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Cronología del Reporte</CardTitle>
+                    <CardDescription>Seguimiento de las actualizaciones y progreso del reporte</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setShowUpdateForm(!showUpdateForm)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Agregar Actualización
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {showUpdateForm && (
+                  <div className="mb-6 p-4 border rounded-lg bg-muted/30">
+                    <h4 className="font-medium mb-4">Agregar Nueva Actualización</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Estado</label>
+                        <Select onValueChange={(value) => setNewUpdate((prev) => ({ ...prev, status: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona el nuevo estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Verificado">Verificado</SelectItem>
+                            <SelectItem value="En Progreso">En Progreso</SelectItem>
+                            <SelectItem value="Pausado">Pausado</SelectItem>
+                            <SelectItem value="Resuelto">Resuelto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Descripción</label>
+                        <Textarea
+                          placeholder="Describe la actualización del estado..."
+                          value={newUpdate.description}
+                          onChange={(e) => setNewUpdate((prev) => ({ ...prev, description: e.target.value }))}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleAddUpdate} size="sm">
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Publicar Actualización
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setShowUpdateForm(false)}>
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {timeline.map((item, index) => (
+                    <div key={item.id} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-3 h-3 bg-primary rounded-full"></div>
+                        {index < timeline.length - 1 && <div className="w-px h-12 bg-border mt-2"></div>}
+                      </div>
+                      <div className="flex-1 pb-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className={getStatusColor(item.status)} variant="outline">
+                            {item.status}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(item.date).toLocaleDateString("es-AR")} a las{" "}
+                            {new Date(item.date).toLocaleTimeString("es-AR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground mb-1">{item.description}</p>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-5 h-5">
+                            <AvatarFallback className="text-xs">{item.authorInitials}</AvatarFallback>
+                          </Avatar>
+                          <p className="text-xs text-muted-foreground">por {item.author}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Barra Lateral */}
+          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Información Rápida */}
+            {/* Quick Info */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Información Rápida</CardTitle>
@@ -228,28 +287,24 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Estado Actual</p>
-                  <Badge className={getStatusColor(getNombre(reporte.estados))}>
-                    {getNombre(reporte.estados)}
-                  </Badge>
+                  <Badge className={getStatusColor(mockReport.status)}>{mockReport.status}</Badge>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Prioridad</p>
-                  <Badge variant={getPriorityColor(getNombre(reporte.prioridades)) as any}>
-                    {getNombre(reporte.prioridades)}
-                  </Badge>
+                  <Badge variant={getPriorityColor(mockReport.priority) as any}>{mockReport.priority}</Badge>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Categoría</p>
-                  <Badge variant="outline">{getNombre(reporte.categorias)}</Badge>
+                  <Badge variant="outline">{mockReport.category}</Badge>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Fecha de Creación</p>
-                  <p className="text-sm">{new Date(reporte.created_at).toLocaleDateString("es-AR")}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Última Actualización</p>
+                  <p className="text-sm">{new Date(mockReport.updatedAt).toLocaleDateString("es-AR")}</p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Marcador de Posición del Mapa */}
+            {/* Map Placeholder */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Ubicación</CardTitle>
