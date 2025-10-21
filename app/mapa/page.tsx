@@ -1,14 +1,29 @@
+/**
+ * Página del mapa interactivo de reportes
+ * 
+ * Este componente Client Component se encarga de:
+ * - Cargar reportes reales desde Supabase con sus coordenadas
+ * - Mostrar un mapa interactivo con marcadores de reportes
+ * - Incluir una barra lateral con la lista de reportes
+ * - Manejar estados de carga y errores
+ */
+
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { List, Layers } from "lucide-react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
+import { createClient } from "@/utils/supabase/client"
 
-// Importar el mapa solo en el cliente para evitar "window is not defined"
+/**
+ * Importar el mapa solo en el cliente para evitar "window is not defined"
+ * Leaflet requiere acceso al DOM, por lo que debe cargarse dinámicamente
+ */
 const MapContainer = dynamic(
   () => import("@/components/map-container").then((m) => m.MapContainer),
   {
@@ -21,96 +36,143 @@ const MapContainer = dynamic(
   }
 )
 
-// Mock data for reports with coordinates
-const mockReports = [
-  {
-    id: 1,
-    title: "Bache en Av. Quaranta",
-    description: "Bache de gran tamaño que dificulta el tránsito vehicular",
-    category: "Vialidad",
-    priority: "Urgente",
-    status: "En Progreso",
-    location: "Centro, Posadas",
-    coordinates: [-27.3676, -55.8961] as [number, number], // Posadas center
-    author: "María González",
-    createdAt: "2024-01-15",
-    image: "/bache-en-calle-de-posadas.png",
-  },
-  {
-    id: 2,
-    title: "Semáforo Descompuesto",
-    description: "El semáforo de la intersección no funciona desde ayer",
-    category: "Tránsito",
-    priority: "Media",
-    status: "Reportado",
-    location: "Villa Cabello, Posadas",
-    coordinates: [-27.3856, -55.8745] as [number, number],
-    author: "Carlos Ruiz",
-    createdAt: "2024-01-14",
-    image: "/semaforo-roto-en-interseccion.png",
-  },
-  {
-    id: 3,
-    title: "Alumbrado Público Defectuoso",
-    description: "Varias farolas sin funcionar en la cuadra",
-    category: "Alumbrado",
-    priority: "Baja",
-    status: "Resuelto",
-    location: "San Roque, Posadas",
-    coordinates: [-27.3456, -55.9123] as [number, number],
-    author: "Ana Martínez",
-    createdAt: "2024-01-12",
-    image: "/farola-de-luz-publica-apagada-de-noche.png",
-  },
-  {
-    id: 4,
-    title: "Basura Acumulada",
-    description: "Acumulación de residuos en la esquina",
-    category: "Limpieza",
-    priority: "Media",
-    status: "Reportado",
-    location: "Villa Sarita, Posadas",
-    coordinates: [-27.3789, -55.8834] as [number, number],
-    author: "Pedro López",
-    createdAt: "2024-01-13",
-  },
-  {
-    id: 5,
-    title: "Árbol Caído",
-    description: "Árbol caído obstruye la vereda",
-    category: "Espacios Verdes",
-    priority: "Urgente",
-    status: "En Progreso",
-    location: "Centro, Posadas",
-    coordinates: [-27.3612, -55.8978] as [number, number],
-    author: "Laura Fernández",
-    createdAt: "2024-01-16",
-  },
-]
+/**
+ * Tipo que representa un reporte con toda la información necesaria para el mapa
+ */
+interface ReporteParaMapa {
+  id: number
+  title: string
+  description: string
+  category: string
+  priority: string
+  status: string
+  location: string
+  coordinates: [number, number]
+  author: string
+  createdAt: string
+  image?: string
+}
+
+/**
+ * Tipo que representa la estructura de datos devuelta por Supabase
+ */
+interface ReporteDB {
+  id: number
+  titulo: string
+  descripcion: string | null
+  created_at: string
+  lat: number
+  lon: number
+  categoria: { nombre: string } | null
+  prioridad: { nombre: string } | null
+  estado: { nombre: string } | null
+  autor: { username: string | null } | null
+  fotos: { url: string | null }[] | null
+}
 
 export default function MapaPage() {
   const [showSidebar, setShowSidebar] = useState(true)
+  const [reportes, setReportes] = useState<ReporteParaMapa[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
+  /**
+   * Efecto para cargar los reportes desde Supabase al montar el componente
+   * Solo carga reportes que tengan coordenadas válidas (no null)
+   */
+  useEffect(() => {
+    const cargarReportes = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const supabase = createClient()
+
+        // Consultar reportes con coordenadas válidas y sus relaciones
+        const { data, error: supabaseError } = await supabase
+          .from("reportes")
+          .select(
+            `id,
+            titulo,
+            descripcion,
+            created_at,
+            lat,
+            lon,
+            categoria:categorias!reportes_categoria_id_fkey(nombre),
+            prioridad:prioridades!reportes_prioridad_id_fkey(nombre),
+            estado:estados!reportes_estado_id_fkey(nombre),
+            autor:profiles!reportes_usuario_id_fkey(username),
+            fotos:fotos_reporte(url)`
+          )
+          .not("lat", "is", null)
+          .not("lon", "is", null)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .returns<ReporteDB[]>()
+
+        if (supabaseError) throw supabaseError
+
+        // Transformar los datos de BD al formato esperado por los componentes del mapa
+        const reportesTransformados: ReporteParaMapa[] = (data ?? []).map((reporte) => ({
+          id: reporte.id,
+          title: reporte.titulo,
+          description: reporte.descripcion ?? "Sin descripción",
+          category: reporte.categoria?.nombre ?? "Sin categoría",
+          priority: reporte.prioridad?.nombre ?? "Sin prioridad",
+          status: reporte.estado?.nombre ?? "Sin estado",
+          location: `Lat ${reporte.lat.toFixed(4)}, Lon ${reporte.lon.toFixed(4)}`,
+          coordinates: [reporte.lat, reporte.lon] as [number, number],
+          author: reporte.autor?.username ?? "Anónimo",
+          createdAt: reporte.created_at,
+          image: reporte.fotos?.[0]?.url ?? undefined,
+        }))
+
+        setReportes(reportesTransformados)
+      } catch (err) {
+        console.error("Error al cargar reportes:", err)
+        setError("No se pudieron cargar los reportes del mapa")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    cargarReportes()
+  }, [])
+
+  /**
+   * Obtiene el color para la prioridad del reporte
+   * @param priority - Nombre de la prioridad
+   * @returns Color hex para la prioridad
+   */
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "Urgente":
+    const normalized = priority.toLowerCase()
+    switch (normalized) {
+      case "urgente":
+      case "alta":
         return "#ef4444" // red
-      case "Media":
+      case "media":
         return "#f59e0b" // amber
-      case "Baja":
+      case "baja":
         return "#10b981" // emerald
       default:
         return "#6b7280" // gray
     }
   }
 
+  /**
+   * Obtiene el color para el estado del reporte
+   * @param status - Nombre del estado
+   * @returns Color hex para el estado
+   */
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Resuelto":
+    const normalized = status.toLowerCase()
+    switch (normalized) {
+      case "resuelto":
         return "#10b981" // emerald
-      case "En Progreso":
+      case "en progreso":
         return "#3b82f6" // blue
-      case "Reportado":
+      case "reportado":
+      case "pendiente":
         return "#f59e0b" // amber
       default:
         return "#6b7280" // gray
@@ -119,7 +181,7 @@ export default function MapaPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Page actions */}
+      {/* Barra de acciones superior */}
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-end gap-3">
           <Button variant="outline" size="sm" onClick={() => setShowSidebar(!showSidebar)}>
@@ -135,58 +197,97 @@ export default function MapaPage() {
         </div>
       </div>
 
-  <div className="flex h-[calc(100vh-73px)]">
-        {/* Sidebar */}
+      <div className="flex h-[calc(100vh-73px)]">
+        {/* Barra lateral con lista de reportes */}
         {showSidebar && (
           <div className="w-80 border-r bg-card/50 backdrop-blur-sm overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold">Reportes en el Mapa</h2>
-                <Badge variant="outline">{mockReports.length} reportes</Badge>
+                <Badge variant="outline">{reportes.length} reportes</Badge>
               </div>
 
-              {/* Reports List */}
-              <div className="space-y-3">
-                {mockReports.map((report) => (
-                  <Card key={report.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div
-                          className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
-                          style={{ backgroundColor: getPriorityColor(report.priority) }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm truncate">
-                            <Link href={`/reportes/${report.id}`} className="hover:text-primary">
-                              {report.title}
-                            </Link>
-                          </h4>
-                          <p className="text-xs text-muted-foreground mb-2">{report.location}</p>
-                          <div className="flex gap-1">
-                            <Badge
-                              variant="outline"
-                              className="text-xs"
-                              style={{ color: getStatusColor(report.status) }}
-                            >
-                              {report.status}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {report.category}
-                            </Badge>
+              {/* Mensaje de carga */}
+              {loading && (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  Cargando reportes...
+                </div>
+              )}
+
+              {/* Mensaje de error */}
+              {error && !loading && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Lista de reportes */}
+              {!loading && !error && reportes.length === 0 && (
+                <Alert>
+                  <AlertTitle>No hay reportes</AlertTitle>
+                  <AlertDescription>
+                    No se encontraron reportes con ubicación en el mapa.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!loading && !error && reportes.length > 0 && (
+                <div className="space-y-3">
+                  {reportes.map((report) => (
+                    <Card key={report.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
+                            style={{ backgroundColor: getPriorityColor(report.priority) }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm truncate">
+                              <Link href={`/reportes/${report.id}`} className="hover:text-primary">
+                                {report.title}
+                              </Link>
+                            </h4>
+                            <p className="text-xs text-muted-foreground mb-2">{report.location}</p>
+                            <div className="flex gap-1">
+                              <Badge
+                                variant="outline"
+                                className="text-xs"
+                                style={{ color: getStatusColor(report.status) }}
+                              >
+                                {report.status}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {report.category}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Map */}
+        {/* Contenedor del mapa */}
         <div className="flex-1 relative">
-          <MapContainer reports={mockReports} />
+          {loading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <p className="text-muted-foreground">Cargando mapa...</p>
+            </div>
+          ) : error ? (
+            <div className="w-full h-full flex items-center justify-center p-8">
+              <Alert variant="destructive" className="max-w-md">
+                <AlertTitle>Error al cargar el mapa</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </div>
+          ) : (
+            <MapContainer reports={reportes} />
+          )}
         </div>
       </div>
     </div>

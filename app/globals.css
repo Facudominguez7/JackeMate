@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Importación de estilos de Leaflet para el mapa */
+@import "leaflet/dist/leaflet.css";
+@import "leaflet.markercluster/dist/MarkerCluster.css";
+@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -122,4 +127,22 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Estilos para clusters de marcadores en el mapa */
+.custom-cluster-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background-color: transparent !important;
+}
+
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background-color: transparent !important;
 }
