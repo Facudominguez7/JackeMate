@@ -6,13 +6,8 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-  MapPin,
   Plus,
   Search,
   Map,
@@ -21,6 +16,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
+import { ReportCard } from "@/components/report-card";
+import { MapPin } from "lucide-react";
 
 type RecentReport = {
   id: number;
@@ -33,32 +30,7 @@ type RecentReport = {
   prioridades: any;
   estados: any;
   fotos_reporte: any;
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "Reparado":
-      return "bg-green-50 text-green-700 border-green-200";
-    case "Pendiente":
-      return "bg-yellow-50 text-yellow-700 border-yellow-200";
-    case "Rechazado":
-      return "bg-red-50 text-red-700 border-red-200";
-    default:
-      return "";
-  }
-};
-
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
-    case "Alta":
-      return "destructive";
-    case "Media":
-      return "secondary";
-    case "Baja":
-      return "outline";
-    default:
-      return "outline";
-  }
+  profiles: any;
 };
 
 const getNombre = (obj: any): string => {
@@ -75,18 +47,12 @@ const getImageUrl = (fotos: any): string => {
   return "/placeholder.svg";
 };
 
-const getTimeAgo = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInHours / 24);
-
-  if (diffInHours < 1) return "Hace menos de 1 hora";
-  if (diffInHours < 24)
-    return `Hace ${diffInHours} ${diffInHours === 1 ? "hora" : "horas"}`;
-  if (diffInDays === 1) return "Hace 1 día";
-  return `Hace ${diffInDays} días`;
+const getUsername = (profiles: any): string => {
+  if (!profiles) return "Anónimo";
+  if (Array.isArray(profiles) && profiles.length > 0)
+    return profiles[0].username || "Anónimo";
+  if (profiles.username) return profiles.username;
+  return "Anónimo";
 };
 
 export default function HomePage() {
@@ -140,7 +106,8 @@ export default function HomePage() {
             categorias (nombre),
             prioridades (nombre),
             estados (nombre),
-            fotos_reporte (url)
+            fotos_reporte (url),
+            profiles (username)
           `
           )
           .is("deleted_at", null)
@@ -288,56 +255,18 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recentReports.map((report) => (
-                <Link key={report.id} href={`/reportes/${report.id}`}>
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg line-clamp-1">
-                          {report.titulo}
-                        </CardTitle>
-                        <Badge
-                          variant={
-                            getPriorityColor(
-                              getNombre(report.prioridades)
-                            ) as any
-                          }
-                        >
-                          {getNombre(report.prioridades)}
-                        </Badge>
-                      </div>
-                      <CardDescription className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        {getNombre(report.categorias)}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="aspect-video bg-muted rounded-lg mb-4 overflow-hidden">
-                        <img
-                          src={
-                            getImageUrl(report.fotos_reporte) ||
-                            "/placeholder.svg"
-                          }
-                          alt={report.titulo}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                        {report.descripcion || "Sin descripción"}
-                      </p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {getTimeAgo(report.created_at)}
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className={getStatusColor(getNombre(report.estados))}
-                        >
-                          {getNombre(report.estados)}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                <ReportCard
+                  key={report.id}
+                  id={report.id}
+                  titulo={report.titulo}
+                  descripcion={report.descripcion}
+                  categoria={getNombre(report.categorias)}
+                  prioridad={getNombre(report.prioridades)}
+                  estado={getNombre(report.estados)}
+                  imageUrl={getImageUrl(report.fotos_reporte)}
+                  createdAt={report.created_at}
+                  autor={getUsername(report.profiles)}
+                />
               ))}
             </div>
           )}

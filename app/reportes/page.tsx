@@ -12,14 +12,13 @@
  */
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/utils/supabase/server"
-import { Calendar, MapPin, Plus, Search, User } from "lucide-react"
+import { Plus, Search } from "lucide-react"
 import Link from "next/link"
+import { ReportCard } from "@/components/report-card"
 
 /**
  * Fuerza el renderizado dinámico en cada petición
@@ -64,50 +63,6 @@ type ReportCardData = {
   author: string
   createdAt: string
   image: string | null
-}
-
-/**
- * Variantes válidas para el componente Badge de shadcn/ui
- * Se usa para garantizar type-safety en los colores de prioridad
- */
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline"
-
-/**
- * Obtiene las clases CSS según el nombre del estado
- * 
- * @param status - Nombre del estado (ej: "Reparado", "Pendiente", "Rechazado")
- * @returns String con clases Tailwind CSS o vacío si no hay match
- */
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "Reparado":
-      return "bg-green-50 text-green-700 border-green-200"
-    case "Pendiente":
-      return "bg-yellow-50 text-yellow-700 border-yellow-200"
-    case "Rechazado":
-      return "bg-red-50 text-red-700 border-red-200"
-    default:
-      return ""
-  }
-}
-
-/**
- * Obtiene la variante de Badge según el nombre de la prioridad
- * 
- * @param priority - Nombre de la prioridad (ej: "Alta", "Media", "Baja")
- * @returns Variante de Badge correspondiente o "outline" por defecto
- */
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
-    case "Alta":
-      return "destructive"
-    case "Media":
-      return "secondary"
-    case "Baja":
-      return "outline"
-    default:
-      return "outline"
-  }
 }
 
 /**
@@ -253,58 +208,18 @@ export default async function ReportesPage() {
         {reports.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {reports.map((report) => (
-              <Link key={report.id} href={`/reportes/${report.id}`} className="hover:text-primary">
-                <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      {/* Título del reporte con enlace a la página de detalle */}
-                      <CardTitle className="text-lg">
-
-                        {report.title}
-                      </CardTitle>
-                      {/* Badge de prioridad con color dinámico */}
-                      <Badge variant={getPriorityColor(report.priority)}>{report.priority}</Badge>
-                    </div>
-                    {/* Ubicación del reporte */}
-                    <CardDescription className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      {report.location}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Imagen del reporte con lazy loading para optimización */}
-                    <div className="aspect-video bg-muted rounded-lg mb-4 overflow-hidden">
-                      <img
-                        src={report.image ?? "/placeholder.svg"}
-                        alt={report.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                    {/* Descripción con límite de 2 líneas */}
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{report.description}</p>
-                    <div className="space-y-3">
-                      {/* Badges de estado y categoría */}
-                      <div className="flex items-center justify-between text-sm">
-                        <Badge className={getStatusColor(report.status)}>{report.status}</Badge>
-                        <Badge variant="outline">{report.category}</Badge>
-                      </div>
-                      {/* Metadata: autor y fecha de creación */}
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {report.author}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(report.createdAt).toLocaleDateString("es-AR")}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-
+              <ReportCard
+                key={report.id}
+                id={report.id}
+                titulo={report.title}
+                descripcion={report.description}
+                categoria={report.category}
+                prioridad={report.priority}
+                estado={report.status}
+                imageUrl={report.image}
+                createdAt={report.createdAt}
+                autor={report.author}
+              />
             ))}
           </div>
         ) : !error ? (
