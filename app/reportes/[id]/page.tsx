@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { MapPin, ArrowLeft, Calendar, Flag, Share2, ThumbsDown, Trash2 } from "lucide-react"
+import { MapPin, ArrowLeft, Calendar, Flag, Share2, ThumbsDown, Trash2, MessageCircle, Send } from "lucide-react"
 import Link from "next/link"
+import { Textarea } from "@/components/ui/textarea"
 
 type Reporte = {
   id: number
@@ -22,6 +23,19 @@ type Reporte = {
   estados: any
   fotos_reporte: any[]
   profiles: any
+}
+
+type Comentario = {
+  id: number
+  reporte_id: number
+  usuario_id: string
+  contenido: string
+  created_at: string
+  profiles: {
+    username: string
+  } | {
+    username: string
+  }[]
 }
 
 const getStatusColor = (status: string) => {
@@ -66,6 +80,9 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
   const [hasVoted, setHasVoted] = useState(false)
   const [isVoting, setIsVoting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [comentarios, setComentarios] = useState<Comentario[]>([])
+  const [nuevoComentario, setNuevoComentario] = useState("")
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -118,6 +135,25 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
 
             setHasVoted(!!votoData)
           }
+        }
+
+        // Obtener comentarios
+        const { data: comentariosData, error: comentariosError } = await supabase
+          .from('comentarios_reporte')
+          .select(`
+            id,
+            reporte_id,
+            usuario_id,
+            contenido,
+            created_at,
+            profiles (username)
+          `)
+          .eq('reporte_id', resolvedParams.id)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: true })
+
+        if (!comentariosError && comentariosData) {
+          setComentarios(comentariosData)
         }
       } catch (error) {
         console.error("Error fetching data:", error)
@@ -213,6 +249,93 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
     } finally {
       setIsDeleting(false)
     }
+  }
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!currentUser || !reporte || !nuevoComentario.trim()) return
+
+    // Confirmar antes de publicar
+    const confirmPublish = window.confirm(
+      "¿Estás seguro de que querés publicar este comentario?"
+    )
+    
+    if (!confirmPublish) return
+
+    setIsSubmittingComment(true)
+    try {
+      const { data, error } = await supabase
+        .from('comentarios_reporte')
+        .insert({
+          reporte_id: reporte.id,
+          usuario_id: currentUser.id,
+          contenido: nuevoComentario.trim()
+        })
+        .select(`
+          id,
+          reporte_id,
+          usuario_id,
+          contenido,
+          created_at,
+          profiles (username)
+        `)
+        .single()
+
+      if (error) {
+        console.error("Error al crear comentario:", error)
+        alert("Error al publicar el comentario")
+        return
+      }
+
+      if (data) {
+        setComentarios([...comentarios, data])
+        setNuevoComentario("")
+      }
+    } catch (error) {
+      console.error("Error:", error)
+      alert("Error al procesar el comentario")
+    } finally {
+      setIsSubmittingComment(false)
+    }
+  }
+
+  const handleDeleteComment = async (comentarioId: number) => {
+    if (!currentUser) return
+
+    const confirmDelete = window.confirm(
+      "¿Estás seguro de que querés eliminar este comentario?"
+    )
+    
+    if (!confirmDelete) return
+
+    try {
+      // Realizar soft delete (marcar como eliminado)
+      const { error } = await supabase
+        .from('comentarios_reporte')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', comentarioId)
+        .eq('usuario_id', currentUser.id) // Solo el autor puede eliminar
+
+      if (error) {
+        console.error("Error al eliminar comentario:", error)
+        alert("Error al eliminar el comentario")
+        return
+      }
+
+      // Actualizar lista de comentarios (filtrar el eliminado)
+      setComentarios(comentarios.filter(c => c.id !== comentarioId))
+    } catch (error) {
+      console.error("Error:", error)
+      alert("Error al procesar la eliminación")
+    }
+  }
+
+  const getComentarioUsername = (profiles: any): string => {
+    if (!profiles) return "Usuario"
+    if (Array.isArray(profiles) && profiles.length > 0) return profiles[0].username || "Usuario"
+    if (profiles.username) return profiles.username
+    return "Usuario"
   }
 
   if (loading) {
@@ -331,6 +454,96 @@ export default function ReporteDetallePage({ params }: { params: Promise<{ id: s
                       day: "numeric",
                     })}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sección de Comentarios */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5" />
+                  Actualizaciones y Comentarios
+                </CardTitle>
+                <CardDescription>
+                  Compartí actualizaciones sobre el estado de este reporte
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Formulario para nuevo comentario */}
+                <form onSubmit={handleSubmitComment} className="space-y-3">
+                  <Textarea
+                    placeholder="Ej: 'Llamé a la municipalidad', 'Vi personal trabajando en el lugar', etc."
+                    value={nuevoComentario}
+                    onChange={(e) => setNuevoComentario(e.target.value)}
+                    className="min-h-[100px] resize-none"
+                    disabled={isSubmittingComment}
+                  />
+                  <div className="flex justify-end">
+                    <Button 
+                      type="submit" 
+                      disabled={!nuevoComentario.trim() || isSubmittingComment}
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      {isSubmittingComment ? "Publicando..." : "Publicar Comentario"}
+                    </Button>
+                  </div>
+                </form>
+
+                {/* Lista de comentarios */}
+                <div className="space-y-4">
+                  {comentarios.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">Aún no hay comentarios</p>
+                      <p className="text-xs">Sé el primero en comentar</p>
+                    </div>
+                  ) : (
+                    comentarios.map((comentario) => (
+                      <div 
+                        key={comentario.id} 
+                        className="border rounded-lg p-4 space-y-3 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1">
+                            <Avatar className="w-8 h-8">
+                              <AvatarFallback className="text-xs">
+                                {getUserInitials(getComentarioUsername(comentario.profiles))}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">
+                                {getComentarioUsername(comentario.profiles)}
+                              </p>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(comentario.created_at).toLocaleString("es-AR", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit"
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          {currentUser && currentUser.id === comentario.usuario_id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteComment(comentario.id)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-sm text-foreground leading-relaxed pl-11">
+                          {comentario.contenido}
+                        </p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
