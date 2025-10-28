@@ -488,10 +488,27 @@ export default function ReporteDetallePage({
                       </span>
                     </CardDescription>
                   </div>
-                  <div className="flex gap-1.5 md:gap-2 flex-shrink-0 lg:hidden">
-                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-9 md:w-9">
+                  <div className="flex gap-1.5 md:gap-2 flex-shrink-0">
+                    {/* Botón compartir en mobile */}
+                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-9 md:w-9 lg:hidden">
                       <Share2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     </Button>
+                    
+                    {/* Botón eliminar - solo para el creador */}
+                    {currentUser && currentUser.id === reporte.usuario_id && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 md:h-9 md:px-3 lg:h-10 lg:px-4 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                        onClick={handleDeleteReporte}
+                        disabled={isDeleting}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4 lg:w-4.5 lg:h-4.5 lg:mr-2" />
+                        <span className="hidden lg:inline text-xs lg:text-sm font-medium">
+                          {isDeleting ? "Eliminando..." : "Eliminar"}
+                        </span>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -684,40 +701,6 @@ export default function ReporteDetallePage({
               </Card>
             )}
             
-            {/* Botón "Eliminar Reporte" - Solo para el creador */}
-            {currentUser && currentUser.id === reporte.usuario_id && (
-              <Card className="border-2 border-destructive/20 lg:shadow-md hover:shadow-lg transition-shadow">
-                <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6 lg:p-6">
-                  <div className="text-center space-y-3 md:space-y-4">
-                    <div className="space-y-1.5 md:space-y-2">
-                      <h3 className="font-semibold text-base md:text-lg lg:text-xl">
-                        Eliminar Reporte
-                      </h3>
-                      <p className="text-xs md:text-sm lg:text-base text-muted-foreground">
-                        Como creador de este reporte, podés eliminarlo si lo
-                        considerás necesario.
-                      </p>
-                      <p className="text-[10px] md:text-xs lg:text-sm text-destructive font-medium">
-                        Esta acción no se puede deshacer.
-                      </p>
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="w-full h-9 md:h-10 lg:h-11"
-                      onClick={handleDeleteReporte}
-                      disabled={isDeleting}
-                    >
-                      <Trash2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
-                      <span className="text-xs md:text-sm lg:text-base font-medium">
-                        {isDeleting ? "Eliminando..." : "Eliminar Reporte"}
-                      </span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Botón "No Existe" */}
             {currentUser && currentUser.id !== reporte.usuario_id && (
               <Card className="border-2 border-red-500/30 bg-red-50/50 dark:bg-red-950/20 lg:shadow-md hover:shadow-lg transition-shadow">
