@@ -18,8 +18,8 @@ export type ReportCardProps = {
   autor?: string
 }
 
-
-const getStatusColor = (status: string) => {
+// Exportar función para reutilizar en otros componentes
+export const getStatusColor = (status: string) => {
   switch (status) {
     case "Reparado":
       return "bg-green-50 text-green-700 border-green-200"
@@ -32,8 +32,8 @@ const getStatusColor = (status: string) => {
   }
 }
 
-
-const getPriorityColor = (priority: string): BadgeVariant => {
+// Exportar función para reutilizar en otros componentes
+export const getPriorityColor = (priority: string): BadgeVariant => {
   switch (priority) {
     case "Alta":
       return "destructive"

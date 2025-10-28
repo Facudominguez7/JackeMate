@@ -30,6 +30,20 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import dynamic from "next/dynamic";
+import {
+  getReporteDetalle,
+  getVotosNoExiste,
+  verificarVotoUsuario,
+  votarNoExiste,
+  getEstadoRechazadoId,
+  actualizarEstadoReporte,
+  eliminarReporte,
+  getComentariosReporte,
+  crearComentario,
+  eliminarComentario,
+  type Comentario,
+} from "@/utils/supabase/queries/reportes/[id]/index";
+import { getStatusColor, getPriorityColor } from "@/components/report-card";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -59,34 +73,6 @@ type Reporte = {
   estados: any;
   fotos_reporte: any[];
   profiles: any;
-};
-
-type Comentario = {
-  id: number;
-  reporte_id: number;
-  usuario_id: string;
-  contenido: string;
-  created_at: string;
-  profiles:
-    | {
-        username: string;
-      }
-    | {
-        username: string;
-      }[];
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "Reparado":
-      return "bg-green-50 text-green-700 border-green-200";
-    case "Pendiente":
-      return "bg-yellow-50 text-yellow-700 border-yellow-200";
-    case "Rechazado":
-      return "bg-red-50 text-red-700 border-red-200";
-    default:
-      return "";
-  }
 };
 
 const getNombre = (obj: any): string => {
@@ -136,76 +122,32 @@ export default function ReporteDetallePage({
         setCurrentUser(user);
 
         // Obtener reporte
-        const { data, error } = await supabase
-          .from("reportes")
-          .select(
-            `
-            id,
-            titulo,
-            descripcion,
-            lat,
-            lon,
-            created_at,
-            usuario_id,
-            categorias (nombre),
-            prioridades (nombre),
-            estados (nombre),
-            fotos_reporte (url),
-            profiles (username)
-          `
-          )
-          .eq("id", resolvedParams.id)
-          .is("deleted_at", null)
-          .single();
+        const { data, error } = await getReporteDetalle(supabase, resolvedParams.id);
 
         if (!error && data) {
           setReporte(data);
 
           // Contar votos "no existe"
-          const { count } = await supabase
-            .from("votos_no_existe")
-            .select("*", { count: "exact", head: true })
-            .eq("reporte_id", resolvedParams.id);
-
-          setVotosCount(count || 0);
+          const { count } = await getVotosNoExiste(supabase, resolvedParams.id);
+          setVotosCount(count);
 
           // Verificar si el usuario actual ya votó
           if (user) {
-            const { data: votoData, error: votoError } = await supabase
-              .from("votos_no_existe")
-              .select("id")
-              .eq("reporte_id", resolvedParams.id)
-              .eq("usuario_id", user.id)
-              .maybeSingle();
-
-            // Solo establecer hasVoted si no hay error y hay datos
-            if (!votoError && votoData) {
-              setHasVoted(true);
-            }
+            const { hasVoted } = await verificarVotoUsuario(
+              supabase,
+              resolvedParams.id,
+              user.id
+            );
+            setHasVoted(hasVoted);
           }
         }
 
         // Obtener comentarios
-        const { data: comentariosData, error: comentariosError } =
-          await supabase
-            .from("comentarios_reporte")
-            .select(
-              `
-            id,
-            reporte_id,
-            usuario_id,
-            contenido,
-            created_at,
-            profiles (username)
-          `
-            )
-            .eq("reporte_id", resolvedParams.id)
-            .is("deleted_at", null)
-            .order("created_at", { ascending: true });
-
-        if (!comentariosError && comentariosData) {
-          setComentarios(comentariosData);
-        }
+        const { data: comentariosData } = await getComentariosReporte(
+          supabase,
+          resolvedParams.id
+        );
+        setComentarios(comentariosData);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -222,15 +164,13 @@ export default function ReporteDetallePage({
     setIsVoting(true);
     try {
       // Insertar voto
-      const { error: votoError } = await supabase
-        .from("votos_no_existe")
-        .insert({
-          reporte_id: reporte.id,
-          usuario_id: currentUser.id,
-        });
+      const { success, error } = await votarNoExiste(
+        supabase,
+        reporte.id,
+        currentUser.id
+      );
 
-      if (votoError) {
-        console.error("Error al votar:", votoError);
+      if (!success || error) {
         alert("Error al registrar el voto");
         return;
       }
@@ -242,19 +182,10 @@ export default function ReporteDetallePage({
 
       // Si llega a 5 votos, cambiar estado a Rechazado
       if (newVotosCount >= 5) {
-        // Obtener el ID del estado "Rechazado"
-        const { data: estadoRechazado } = await supabase
-          .from("estados")
-          .select("id")
-          .eq("nombre", "Rechazado")
-          .single();
+        const { estadoId } = await getEstadoRechazadoId(supabase);
 
-        if (estadoRechazado) {
-          await supabase
-            .from("reportes")
-            .update({ estado_id: estadoRechazado.id })
-            .eq("id", reporte.id);
-
+        if (estadoId) {
+          await actualizarEstadoReporte(supabase, reporte.id, estadoId);
           // Recargar página para mostrar el nuevo estado
           window.location.reload();
         }
@@ -279,14 +210,13 @@ export default function ReporteDetallePage({
 
     setIsDeleting(true);
     try {
-      // Realizar soft delete (marcar como eliminado)
-      const { error } = await supabase
-        .from("reportes")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", reporte.id);
+      const { success } = await eliminarReporte(
+        supabase,
+        reporte.id,
+        currentUser.id
+      );
 
-      if (error) {
-        console.error("Error al eliminar el reporte:", error);
+      if (!success) {
         alert("Error al eliminar el reporte. Por favor, intenta nuevamente.");
         return;
       }
@@ -316,35 +246,20 @@ export default function ReporteDetallePage({
 
     setIsSubmittingComment(true);
     try {
-      const { data, error } = await supabase
-        .from("comentarios_reporte")
-        .insert({
-          reporte_id: reporte.id,
-          usuario_id: currentUser.id,
-          contenido: nuevoComentario.trim(),
-        })
-        .select(
-          `
-          id,
-          reporte_id,
-          usuario_id,
-          contenido,
-          created_at,
-          profiles (username)
-        `
-        )
-        .single();
+      const { data, error } = await crearComentario(
+        supabase,
+        reporte.id,
+        currentUser.id,
+        nuevoComentario.trim()
+      );
 
-      if (error) {
-        console.error("Error al crear comentario:", error);
+      if (error || !data) {
         alert("Error al publicar el comentario");
         return;
       }
 
-      if (data) {
-        setComentarios([...comentarios, data]);
-        setNuevoComentario("");
-      }
+      setComentarios([...comentarios, data]);
+      setNuevoComentario("");
     } catch (error) {
       console.error("Error:", error);
       alert("Error al procesar el comentario");
@@ -363,15 +278,13 @@ export default function ReporteDetallePage({
     if (!confirmDelete) return;
 
     try {
-      // Realizar soft delete (marcar como eliminado)
-      const { error } = await supabase
-        .from("comentarios_reporte")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", comentarioId)
-        .eq("usuario_id", currentUser.id); // Solo el autor puede eliminar
+      const { success } = await eliminarComentario(
+        supabase,
+        comentarioId,
+        currentUser.id
+      );
 
-      if (error) {
-        console.error("Error al eliminar comentario:", error);
+      if (!success) {
         alert("Error al eliminar el comentario");
         return;
       }
@@ -414,19 +327,6 @@ export default function ReporteDetallePage({
       </div>
     );
   }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "Alta":
-        return "destructive";
-      case "Media":
-        return "secondary";
-      case "Baja":
-        return "outline";
-      default:
-        return "outline";
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -475,7 +375,7 @@ export default function ReporteDetallePage({
                       >
                         {getNombre(reporte.estados)}
                       </Badge>
-                      <Badge variant="outline" className="text-xs lg:text-sm">
+                      <Badge variant="blue" className="text-xs lg:text-sm">
                         {getNombre(reporte.categorias)}
                       </Badge>
                     </div>
