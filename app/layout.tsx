@@ -7,7 +7,14 @@ import Header from "@/components/header";
 export const metadata: Metadata = {
   title: "JackeMate",
   description: "Created by Facundo y Octavio",
-  generator: "v0.app",
+  icons: {
+  icon: [
+    {
+      url: "/ico/logoJackeMate.png",
+      href: "/ico/logoJackeMate.png",
+    }
+  ],
+}
 };
 
 export default function RootLayout({

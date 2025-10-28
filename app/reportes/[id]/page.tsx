@@ -36,13 +36,17 @@ import {
   verificarVotoUsuario,
   votarNoExiste,
   getEstadoRechazadoId,
+  getVotosReparado,
+  verificarVotoReparadoUsuario,
+  votarReparado,
+  getEstadoReparadoId,
   actualizarEstadoReporte,
   eliminarReporte,
   getComentariosReporte,
   crearComentario,
   eliminarComentario,
   type Comentario,
-} from "@/utils/supabase/queries/reportes/[id]/index";
+} from "@/database/queries/reportes/[id]/index";
 import { getStatusColor, getPriorityColor } from "@/components/report-card";
 
 dayjs.extend(utc);
@@ -68,6 +72,7 @@ type Reporte = {
   lon: number;
   created_at: string;
   usuario_id: string;
+  estado_id: number;
   categorias: any;
   prioridades: any;
   estados: any;
@@ -106,6 +111,9 @@ export default function ReporteDetallePage({
   const [votosCount, setVotosCount] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
+  const [votosReparadoCount, setVotosReparadoCount] = useState(0);
+  const [hasVotedReparado, setHasVotedReparado] = useState(false);
+  const [isVotingReparado, setIsVotingReparado] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [nuevoComentario, setNuevoComentario] = useState("");
@@ -131,6 +139,10 @@ export default function ReporteDetallePage({
           const { count } = await getVotosNoExiste(supabase, resolvedParams.id);
           setVotosCount(count);
 
+          // Contar votos "reparado"
+          const { count: countReparado } = await getVotosReparado(supabase, resolvedParams.id);
+          setVotosReparadoCount(countReparado);
+
           // Verificar si el usuario actual ya votó
           if (user) {
             const { hasVoted } = await verificarVotoUsuario(
@@ -139,6 +151,13 @@ export default function ReporteDetallePage({
               user.id
             );
             setHasVoted(hasVoted);
+
+            const { hasVoted: hasVotedRep } = await verificarVotoReparadoUsuario(
+              supabase,
+              resolvedParams.id,
+              user.id
+            );
+            setHasVotedReparado(hasVotedRep);
           }
         }
 
@@ -185,7 +204,17 @@ export default function ReporteDetallePage({
         const { estadoId } = await getEstadoRechazadoId(supabase);
 
         if (estadoId) {
-          await actualizarEstadoReporte(supabase, reporte.id, estadoId);
+          // Obtener el estado actual del reporte (usar estado_id directamente)
+          const estadoAnteriorId = reporte.estado_id;
+          
+          await actualizarEstadoReporte(
+            supabase, 
+            reporte.id, 
+            estadoId, 
+            estadoAnteriorId,
+            currentUser.id,
+            "Rechazado automáticamente por 5 votos de 'No Existe'"
+          );
           // Recargar página para mostrar el nuevo estado
           window.location.reload();
         }
@@ -195,6 +224,56 @@ export default function ReporteDetallePage({
       alert("Error al procesar el voto");
     } finally {
       setIsVoting(false);
+    }
+  };
+
+  const handleVoteReparado = async () => {
+    if (!currentUser || !reporte) return;
+
+    setIsVotingReparado(true);
+    try {
+      // Insertar voto
+      const { success, error } = await votarReparado(
+        supabase,
+        reporte.id,
+        currentUser.id
+      );
+
+      if (!success || error) {
+        alert("Error al registrar el voto");
+        return;
+      }
+
+      // Actualizar contador local
+      const newVotosReparadoCount = votosReparadoCount + 1;
+      setVotosReparadoCount(newVotosReparadoCount);
+      setHasVotedReparado(true);
+
+      // Si llega a 5 votos, cambiar estado a Reparado
+      if (newVotosReparadoCount >= 5) {
+        const { estadoId } = await getEstadoReparadoId(supabase);
+
+        if (estadoId) {
+          // Obtener el estado actual del reporte (usar estado_id directamente)
+          const estadoAnteriorId = reporte.estado_id;
+          
+          await actualizarEstadoReporte(
+            supabase, 
+            reporte.id, 
+            estadoId,
+            estadoAnteriorId,
+            currentUser.id,
+            "Marcado como reparado por 5 votos de usuarios"
+          );
+          // Recargar página para mostrar el nuevo estado
+          window.location.reload();
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al procesar el voto");
+    } finally {
+      setIsVotingReparado(false);
     }
   };
 
@@ -581,21 +660,40 @@ export default function ReporteDetallePage({
                       <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground">
                         Ayudá a mantener la información actualizada para todos.
                       </p>
+                      <div className="bg-green-100 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-md p-2 mt-2">
+                        <p className="text-[10px] md:text-xs lg:text-sm text-green-700 dark:text-green-400 font-medium">
+                          ✓ Con 5 votos, el reporte se marcará como reparado
+                        </p>
+                      </div>
                     </div>
                     <Button
-                      variant="default"
+                      variant={hasVotedReparado ? "secondary" : "default"}
                       size="sm"
-                      className="w-full h-9 md:h-10 lg:h-11 bg-green-600 hover:bg-green-700 text-white"
-                      disabled
+                      className={`w-full h-9 md:h-10 lg:h-11 ${
+                        hasVotedReparado 
+                          ? "bg-gray-500 hover:bg-gray-600" 
+                          : "bg-green-600 hover:bg-green-700 text-white"
+                      }`}
+                      onClick={handleVoteReparado}
+                      disabled={hasVotedReparado || isVotingReparado}
                     >
                       <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
                       <span className="text-xs md:text-sm lg:text-base font-medium">
-                        Votar como Reparado
+                        {hasVotedReparado ? "✓ Ya votaste" : "Votar como Reparado"}
                       </span>
                     </Button>
-                    <p className="text-[10px] lg:text-xs text-muted-foreground italic">
-                      Próximamente disponible
-                    </p>
+                    <div className="flex items-center justify-center gap-1.5 md:gap-2 text-xs md:text-sm lg:text-base flex-wrap">
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-950/40 rounded-md border border-green-200 dark:border-green-900">
+                        <span className="font-bold text-green-700 dark:text-green-400">
+                          {votosReparadoCount} / 5
+                        </span>
+                        <span className="text-green-600 dark:text-green-500">votos</span>
+                      </div>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-muted-foreground">
+                        Faltan <span className="font-semibold text-green-600 dark:text-green-500">{5 - votosReparadoCount}</span> para marcar como reparado
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

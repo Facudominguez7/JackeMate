@@ -15,9 +15,10 @@ export async function getReporteDetalle(supabase: SupabaseClient, reporteId: str
       lon,
       created_at,
       usuario_id,
+      estado_id,
       categorias (nombre),
       prioridades (nombre),
-      estados (nombre),
+      estados (id, nombre),
       fotos_reporte (url),
       profiles (username)
     `

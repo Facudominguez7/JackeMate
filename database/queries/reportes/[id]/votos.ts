@@ -80,13 +80,17 @@ export async function getEstadoRechazadoId(supabase: SupabaseClient) {
 }
 
 /**
- * Actualiza el estado de un reporte
+ * Actualiza el estado de un reporte y registra el cambio en el historial
  */
 export async function actualizarEstadoReporte(
   supabase: SupabaseClient,
   reporteId: number,
-  estadoId: number
+  estadoId: number,
+  estadoAnteriorId?: number,
+  usuarioId?: string,
+  comentario?: string
 ) {
+  // Actualizar el estado del reporte
   const { error } = await supabase
     .from("reportes")
     .update({ estado_id: estadoId })
@@ -95,6 +99,20 @@ export async function actualizarEstadoReporte(
   if (error) {
     console.error("Error al actualizar estado:", error);
     return { success: false, error };
+  }
+
+  // Registrar en el historial
+  const { error: historialError } = await supabase.from("historial_estados").insert({
+    reporte_id: reporteId,
+    estado_anterior_id: estadoAnteriorId || null,
+    estado_nuevo_id: estadoId,
+    usuario_id: usuarioId || null,
+    comentario: comentario || null,
+  });
+
+  if (historialError) {
+    console.error("Error al registrar historial:", historialError);
+    // No retornamos error aquí porque el estado sí se actualizó
   }
 
   return { success: true, error: null };
