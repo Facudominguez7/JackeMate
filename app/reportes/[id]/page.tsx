@@ -427,69 +427,72 @@ export default function ReporteDetallePage({
   return (
     <div className="min-h-screen bg-background">
       {/* Acciones de la página */}
-      <div className="container mx-auto px-4 pt-6 max-w-4xl">
-        <Button variant="outline" asChild>
+      <div className="container mx-auto px-3 md:px-4 pt-3 md:pt-6 max-w-4xl">
+        <Button variant="outline" size="sm" asChild>
           <Link href="/reportes">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver
+            <ArrowLeft className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+            <span className="text-xs md:text-sm">Volver</span>
           </Link>
         </Button>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="container mx-auto px-3 md:px-4 py-4 md:py-8 max-w-4xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Contenido Principal */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             {/* Encabezado del Reporte */}
             <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+              <CardHeader className="pb-3 md:pb-6">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
                       <Badge
                         variant={
                           getPriorityColor(
                             getNombre(reporte.prioridades)
                           ) as any
                         }
+                        className="text-xs"
                       >
                         {getNombre(reporte.prioridades)}
                       </Badge>
                       <Badge
-                        className={getStatusColor(getNombre(reporte.estados))}
+                        className={`${getStatusColor(getNombre(reporte.estados))} text-xs`}
                       >
                         {getNombre(reporte.estados)}
                       </Badge>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="text-xs">
                         {getNombre(reporte.categorias)}
                       </Badge>
                     </div>
-                    <CardTitle className="text-2xl">{reporte.titulo}</CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      Lat: {reporte.lat.toFixed(6)}, Lon:{" "}
-                      {reporte.lon.toFixed(6)}
+                    <CardTitle className="text-lg md:text-2xl">{reporte.titulo}</CardTitle>
+                    <CardDescription className="flex items-center gap-1.5 md:gap-2 text-xs">
+                      <MapPin className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                      <span className="truncate">
+                        Lat: {reporte.lat.toFixed(4)}, Lon:{" "}
+                        {reporte.lon.toFixed(4)}
+                      </span>
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Share2 className="w-4 h-4" />
+                  <div className="flex gap-1.5 md:gap-2 flex-shrink-0">
+                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-9 md:w-9">
+                      <Share2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-foreground leading-relaxed mb-6">
+              <CardContent className="pt-0">
+                <p className="text-sm md:text-base text-foreground leading-relaxed mb-4 md:mb-6">
                   {reporte.descripcion}
                 </p>
 
                 {/* Imágenes */}
                 {reporte.fotos_reporte && reporte.fotos_reporte.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
                     {reporte.fotos_reporte.map((foto, index) => (
                       <div
                         key={index}
-                        className="aspect-video bg-muted rounded-lg overflow-hidden"
+                        className="aspect-video bg-muted rounded-md md:rounded-lg overflow-hidden"
                       >
                         <img
                           src={foto.url || "/placeholder.svg"}
@@ -502,22 +505,24 @@ export default function ReporteDetallePage({
                 )}
 
                 {/* Autor y Fecha */}
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="w-6 h-6">
-                      <AvatarFallback className="text-xs">
+                <div className="flex items-center justify-between text-xs md:text-sm text-muted-foreground flex-wrap gap-2">
+                  <div className="flex items-center gap-1.5 md:gap-2">
+                    <Avatar className="w-5 h-5 md:w-6 md:h-6">
+                      <AvatarFallback className="text-[10px] md:text-xs">
                         {getUserInitials(getUsername(reporte.profiles))}
                       </AvatarFallback>
                     </Avatar>
-                    <span>Reportado por {getUsername(reporte.profiles)}</span>
+                    <span className="truncate">Reportado por {getUsername(reporte.profiles)}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(reporte.created_at).toLocaleDateString("es-AR", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    <Calendar className="w-3 h-3 flex-shrink-0" />
+                    <span className="whitespace-nowrap">
+                      {new Date(reporte.created_at).toLocaleDateString("es-AR", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -525,71 +530,76 @@ export default function ReporteDetallePage({
 
             {/* Sección de Comentarios */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5" />
-                  Actualizaciones y Comentarios
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="text-base md:text-xl flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 md:w-5 md:h-5" />
+                  <span>Actualizaciones y Comentarios</span>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs md:text-sm">
                   Compartí actualizaciones sobre el estado de este reporte
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 md:space-y-6 pt-0">
                 {/* Formulario para nuevo comentario */}
-                <form onSubmit={handleSubmitComment} className="space-y-3">
+                <form onSubmit={handleSubmitComment} className="space-y-2 md:space-y-3">
                   <Textarea
                     placeholder="Ej: 'Llamé a la municipalidad', 'Vi personal trabajando en el lugar', etc."
                     value={nuevoComentario}
                     onChange={(e) => setNuevoComentario(e.target.value)}
-                    className="min-h-[100px] resize-none"
+                    className="min-h-[80px] md:min-h-[100px] resize-none text-sm"
                     disabled={isSubmittingComment}
                   />
                   <div className="flex justify-end">
                     <Button
                       type="submit"
+                      size="sm"
                       disabled={!nuevoComentario.trim() || isSubmittingComment}
                     >
-                      <Send className="w-4 h-4 mr-2" />
-                      {isSubmittingComment
-                        ? "Publicando..."
-                        : "Publicar Comentario"}
+                      <Send className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                      <span className="text-xs md:text-sm">
+                        {isSubmittingComment
+                          ? "Publicando..."
+                          : "Publicar"}
+                      </span>
                     </Button>
                   </div>
                 </form>
 
                 {/* Lista de comentarios */}
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {comentarios.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">Aún no hay comentarios</p>
-                      <p className="text-xs">Sé el primero en comentar</p>
+                    <div className="text-center py-6 md:py-8 text-muted-foreground">
+                      <MessageCircle className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 opacity-50" />
+                      <p className="text-xs md:text-sm">Aún no hay comentarios</p>
+                      <p className="text-[10px] md:text-xs">Sé el primero en comentar</p>
                     </div>
                   ) : (
                     comentarios.map((comentario) => (
                       <div
                         key={comentario.id}
-                        className="border rounded-lg p-4 space-y-3 hover:bg-muted/50 transition-colors"
+                        className="border rounded-md md:rounded-lg p-3 md:p-4 space-y-2 md:space-y-3 hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3 flex-1">
-                            <Avatar className="w-8 h-8">
-                              <AvatarFallback className="text-xs">
+                        <div className="flex items-start justify-between gap-2 md:gap-3">
+                          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                            <Avatar className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0">
+                              <AvatarFallback className="text-[10px] md:text-xs">
                                 {getUserInitials(
                                   getComentarioUsername(comentario.profiles)
                                 )}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm">
+                              <p className="font-medium text-xs md:text-sm truncate">
                                 {getComentarioUsername(comentario.profiles)}
                               </p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {dayjs
-                                  .utc(comentario.created_at)
-                                  .tz("America/Argentina/Buenos_Aires")
-                                  .format("DD/MM/YYYY HH:mm")}
+                              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
+                                <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3 flex-shrink-0" />
+                                <span>
+                                  {dayjs
+                                    .utc(comentario.created_at)
+                                    .tz("America/Argentina/Buenos_Aires")
+                                    .format("DD/MM/YYYY HH:mm")}
+                                </span>
                               </p>
                             </div>
                           </div>
@@ -601,13 +611,13 @@ export default function ReporteDetallePage({
                                 onClick={() =>
                                   handleDeleteComment(comentario.id)
                                 }
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                className="h-7 w-7 md:h-8 md:w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                               </Button>
                             )}
                         </div>
-                        <p className="text-sm text-foreground leading-relaxed pl-11">
+                        <p className="text-xs md:text-sm text-foreground leading-relaxed pl-9 md:pl-11">
                           {comentario.contenido}
                         </p>
                       </div>
@@ -619,33 +629,35 @@ export default function ReporteDetallePage({
           </div>
 
           {/* Barra Lateral */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Botón "Eliminar Reporte" - Solo para el creador */}
             {currentUser && currentUser.id === reporte.usuario_id && (
               <Card className="border-2 border-destructive/20">
-                <CardContent className="pt-6">
-                  <div className="text-center space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-lg">
+                <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
+                  <div className="text-center space-y-3 md:space-y-4">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <h3 className="font-semibold text-base md:text-lg">
                         Eliminar Reporte
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         Como creador de este reporte, podés eliminarlo si lo
                         considerás necesario.
                       </p>
-                      <p className="text-xs text-destructive">
+                      <p className="text-[10px] md:text-xs text-destructive">
                         Esta acción no se puede deshacer.
                       </p>
                     </div>
                     <Button
                       variant="destructive"
-                      size="lg"
-                      className="w-full"
+                      size="sm"
+                      className="w-full h-9 md:h-10"
                       onClick={handleDeleteReporte}
                       disabled={isDeleting}
                     >
-                      <Trash2 className="w-5 h-5 mr-2" />
-                      {isDeleting ? "Eliminando..." : "Eliminar Reporte"}
+                      <Trash2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
+                      <span className="text-xs md:text-sm">
+                        {isDeleting ? "Eliminando..." : "Eliminar Reporte"}
+                      </span>
                     </Button>
                   </div>
                 </CardContent>
@@ -655,32 +667,34 @@ export default function ReporteDetallePage({
             {/* Botón "No Existe" */}
             {currentUser && currentUser.id !== reporte.usuario_id && (
               <Card className="border-2 border-dashed border-muted-foreground/20">
-                <CardContent className="pt-6">
-                  <div className="text-center space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-lg">
+                <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
+                  <div className="text-center space-y-3 md:space-y-4">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <h3 className="font-semibold text-base md:text-lg">
                         ¿Este reporte no existe?
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         Si verificaste que este problema ya no existe o nunca
                         existió, podés reportarlo.
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] md:text-xs text-muted-foreground">
                         Con 5 votos de "No Existe", el reporte será marcado como
                         rechazado.
                       </p>
                     </div>
                     <Button
                       variant={hasVoted ? "secondary" : "destructive"}
-                      size="lg"
-                      className="w-full"
+                      size="sm"
+                      className="w-full h-9 md:h-10"
                       onClick={handleVoteNoExiste}
                       disabled={hasVoted || isVoting}
                     >
-                      <ThumbsDown className="w-5 h-5 mr-2" />
-                      {hasVoted ? "Ya votaste" : "Marcar como No Existe"}
+                      <ThumbsDown className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
+                      <span className="text-xs md:text-sm">
+                        {hasVoted ? "Ya votaste" : "Marcar como No Existe"}
+                      </span>
                     </Button>
-                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center justify-center gap-1.5 md:gap-2 text-xs md:text-sm text-muted-foreground">
                       <span className="font-medium">
                         {votosCount} {votosCount === 1 ? "voto" : "votos"}
                       </span>
@@ -698,18 +712,18 @@ export default function ReporteDetallePage({
 
             {/* Marcador de Posición del Mapa */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Ubicación</CardTitle>
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="text-base md:text-lg">Ubicación</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <Link href="/mapa" className="block group">
-                  <div className="relative aspect-square rounded-lg overflow-hidden border">
+                  <div className="relative aspect-square rounded-md md:rounded-lg overflow-hidden border">
                     <MiniMap lat={reporte.lat} lon={reporte.lon} />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 bg-background/90 border rounded-md px-3 py-2 shadow-sm">
-                      <div className="flex items-center gap-2 text-xs text-foreground">
-                        <MapPin className="w-4 h-4" />
-                        <span>
+                    <div className="absolute bottom-2 md:bottom-3 left-2 md:left-3 right-2 md:right-3 flex items-center justify-between gap-1.5 md:gap-2 bg-background/90 border rounded-md px-2 md:px-3 py-1.5 md:py-2 shadow-sm">
+                      <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-foreground min-w-0">
+                        <MapPin className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                        <span className="truncate">
                           Lat {reporte.lat.toFixed(4)}, Lon {reporte.lon.toFixed(4)}
                         </span>
                       </div>
