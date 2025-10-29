@@ -131,24 +131,31 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* Sección Hero - Pantalla Completa */}
       <section className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
-        {/* Imagen de fondo */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/background_inicio/Posadas.jpeg')" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-background/50 via-background/70 to-background/50 pointer-events-none" />
-        <div className="container mx-auto text-center max-w-5xl relative z-10">
+        {/* Video de fondo */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/background_inicio/videoplaybackk.mp4#t=120" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+        <div className="container mx-auto text-center max-w-6xl relative z-10 px-4">
 
-          <h1 className="text-5xl md:text-7xl font-extrabold text-foreground mb-8 leading-tight">
-            Mejoremos <span className="text-primary">Posadas</span>
+          <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-8xl font-extrabold text-white mb-8 md:mb-12 leading-tight drop-shadow-2xl">
+            Mejoremos <span className="text-primary drop-shadow-2xl">Posadas</span>
             <br />
-            <span className="text-3xl md:text-5xl text-foreground">
+            <span className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white">
               entre todos
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-foreground mb-12 leading-relaxed max-w-3xl mx-auto">
-            Reportá problemas urbanos, seguí su progreso y ayudá a construir una
-            ciudad mejor para todos
+          <p className="text-md sm:text-2xl md:text-3xl lg:text-4xl text-white mb-4 md:mb-6 leading-relaxed max-w-4xl mx-auto drop-shadow-lg font-medium">
+            Una plataforma <span className="font-bold text-primary drop-shadow-lg">ciudadana e independiente</span> para reportar problemas urbanos, seguir su progreso y construir una ciudad mejor
+          </p>
+          <p className="text-md sm:text-xl md:text-2xl text-white/90 mb-12 md:mb-16 max-w-3xl mx-auto italic drop-shadow-lg">
+            Creada por vecinos, para vecinos. Sin intermediarios, con transparencia.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
@@ -282,7 +289,7 @@ export default function HomePage() {
           </h3>
           <p className="text-xl text-muted-foreground mb-10 leading-relaxed">
             Únete a miles de posadeños que están ayudando a mejorar nuestra
-            ciudad.
+            ciudad de manera independiente.
             <br />
             <span className="font-semibold">
               Tu voz importa, tu reporte hace la diferencia.
@@ -323,16 +330,16 @@ export default function HomePage() {
                   JackeMate
                 </span>
                 <p className="text-sm text-muted-foreground">
-                  Plataforma ciudadana de Posadas
+                  Iniciativa ciudadana independiente
                 </p>
               </div>
             </div>
             <div className="text-center md:text-right">
               <p className="text-sm text-muted-foreground mb-2">
-                Hecho con ❤️ para la comunidad posadeña
+                Hecho con ❤️ por y para la comunidad posadeña
               </p>
               <p className="text-xs text-muted-foreground">
-                &copy; 2025 JackeMate. Todos los derechos reservados.
+                Plataforma ciudadana sin afiliación gubernamental
               </p>
             </div>
           </div>
