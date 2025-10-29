@@ -144,12 +144,9 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-black/30 pointer-events-none" />
         <div className="container mx-auto text-center max-w-6xl relative z-10 px-4">
 
-          <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-8xl font-extrabold text-white mb-8 md:mb-12 leading-tight drop-shadow-2xl">
-            Mejoremos <span className="text-primary drop-shadow-2xl">Posadas</span>
+          <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold text-white mb-8 md:mb-12 leading-tight drop-shadow-2xl">
+            JACKEMATE
             <br />
-            <span className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-white">
-              entre todos
-            </span>
           </h1>
           <p className="text-md sm:text-2xl md:text-3xl lg:text-4xl text-white mb-4 md:mb-6 leading-relaxed max-w-4xl mx-auto drop-shadow-lg font-medium">
             Una plataforma <span className="font-bold text-primary drop-shadow-lg">ciudadana e independiente</span> para reportar problemas urbanos, seguir su progreso y construir una ciudad mejor
