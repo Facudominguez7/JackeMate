@@ -9,45 +9,23 @@
  * - Consulta a Supabase con relaciones (joins)
  * - Manejo de estados de error y datos vacíos
  * - Optimización con lazy loading de imágenes
+ * - Filtros reales por categoría, estado, prioridad y texto
  */
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createClient } from "@/utils/supabase/server"
-import { Plus, Search } from "lucide-react"
+import { Plus } from "lucide-react"
 import Link from "next/link"
 import { ReportCard } from "@/components/report-card"
+import { FiltrosReportes } from "@/components/filtros-reportes"
+import { getReportes, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 
-/**
- * Fuerza el renderizado dinámico en cada petición
- * Evita que Next.js cachee esta página para mostrar siempre datos actualizados
- */
 /**
  * Fuerza el renderizado dinámico en cada petición
  * Evita que Next.js cachee esta página para mostrar siempre datos actualizados
  */
 export const dynamic = "force-dynamic"
 
-type ReportRow = {
-  id: number
-  titulo: string
-  descripcion: string | null
-  created_at: string
-  lat: number | null
-  lon: number | null
-  categoria: { nombre: string } | null
-  prioridad: { nombre: string } | null
-  estado: { nombre: string } | null
-  autor: { username: string | null } | null
-  fotos: { url: string | null }[] | null
-}
-
-/**
- * Tipo simplificado para renderizar las tarjetas de reportes
- * Transforma los datos de la base de datos a un formato más amigable para la UI
- */
 /**
  * Tipo simplificado para renderizar las tarjetas de reportes
  * Transforma los datos de la base de datos a un formato más amigable para la UI
@@ -66,6 +44,18 @@ type ReportCardData = {
 }
 
 /**
+ * Props del componente - searchParams de Next.js para filtros
+ */
+type ReportesPageProps = {
+  searchParams: Promise<{
+    search?: string
+    categoria?: string
+    estado?: string
+    prioridad?: string
+  }>
+}
+
+/**
  * Formatea las coordenadas geográficas para mostrar en la UI
  * 
  * @param lat - Latitud
@@ -81,37 +71,24 @@ const formatLocation = (lat: number | null, lon: number | null) => {
  * Componente principal de la página de reportes
  * Server Component que se ejecuta en el servidor de Next.js
  */
-export default async function ReportesPage() {
-  // Crear cliente de Supabase para server components
-  const supabase = await createClient()
+export default async function ReportesPage({ searchParams }: ReportesPageProps) {
+  // Obtener los parámetros de búsqueda
+  const params = await searchParams
+  const { search, categoria, estado, prioridad } = params
 
-  /**
-   * Consulta a Supabase para obtener los reportes con sus relaciones
-   * 
-   * - Se filtran reportes no eliminados (deleted_at IS NULL)
-   * - Se ordenan por fecha de creación descendente (más recientes primero)
-   * - Se limita a 12 resultados para optimizar rendimiento
-   * - Se incluyen las relaciones mediante foreign keys explícitas
-   */
-  const { data, error } = await supabase
-    .from("reportes")
-    .select(
-      `id,
-      titulo,
-      descripcion,
-      created_at,
-      lat,
-      lon,
-      categoria:categorias!reportes_categoria_id_fkey(nombre),
-      prioridad:prioridades!reportes_prioridad_id_fkey(nombre),
-      estado:estados!reportes_estado_id_fkey(nombre),
-      autor:profiles!reportes_usuario_id_fkey(username),
-      fotos:fotos_reporte(url)`
-    )
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(12)
-    .returns<ReportRow[]>()
+  // Obtener reportes con filtros aplicados
+  const { data, error } = await getReportes({
+    search,
+    categoria,
+    estado,
+    prioridad,
+    limite: 12
+  })
+
+  // Obtener opciones para los filtros
+  const { data: categorias } = await getCategorias()
+  const { data: estados } = await getEstados()
+  const { data: prioridades } = await getPrioridades()
 
   /**
    * Transformación de datos de BD a formato de UI
@@ -151,50 +128,12 @@ export default async function ReportesPage() {
           <p className="text-muted-foreground">Explora todos los reportes de problemas públicos en Posadas</p>
         </div>
 
-        {/* Sección de filtros (UI únicamente, sin funcionalidad implementada) */}
-        <div className="mb-8 p-6 bg-card rounded-lg border">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input placeholder="Buscar reportes..." className="pl-10" />
-            </div>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las categorías</SelectItem>
-                <SelectItem value="vialidad">Vialidad</SelectItem>
-                <SelectItem value="transito">Tránsito</SelectItem>
-                <SelectItem value="alumbrado">Alumbrado</SelectItem>
-                <SelectItem value="limpieza">Limpieza</SelectItem>
-                <SelectItem value="seguridad">Seguridad</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="reportado">Reportado</SelectItem>
-                <SelectItem value="en-progreso">En Progreso</SelectItem>
-                <SelectItem value="resuelto">Resuelto</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Prioridad" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las prioridades</SelectItem>
-                <SelectItem value="urgente">Urgente</SelectItem>
-                <SelectItem value="media">Media</SelectItem>
-                <SelectItem value="baja">Baja</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        {/* Sección de filtros con funcionalidad real */}
+        <FiltrosReportes
+          categorias={categorias ?? []}
+          estados={estados ?? []}
+          prioridades={prioridades ?? []}
+        />
 
         {/* Mensaje de error si falla la consulta a Supabase */}
         {error && (
