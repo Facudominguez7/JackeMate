@@ -30,6 +30,24 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import dynamic from "next/dynamic";
+import {
+  getReporteDetalle,
+  getVotosNoExiste,
+  verificarVotoUsuario,
+  votarNoExiste,
+  getEstadoRechazadoId,
+  getVotosReparado,
+  verificarVotoReparadoUsuario,
+  votarReparado,
+  getEstadoReparadoId,
+  actualizarEstadoReporte,
+  eliminarReporte,
+  getComentariosReporte,
+  crearComentario,
+  eliminarComentario,
+  type Comentario,
+} from "@/database/queries/reportes/[id]/index";
+import { getStatusColor, getPriorityColor } from "@/components/report-card";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -54,39 +72,12 @@ type Reporte = {
   lon: number;
   created_at: string;
   usuario_id: string;
+  estado_id: number;
   categorias: any;
   prioridades: any;
   estados: any;
   fotos_reporte: any[];
   profiles: any;
-};
-
-type Comentario = {
-  id: number;
-  reporte_id: number;
-  usuario_id: string;
-  contenido: string;
-  created_at: string;
-  profiles:
-    | {
-        username: string;
-      }
-    | {
-        username: string;
-      }[];
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "Reparado":
-      return "bg-green-50 text-green-700 border-green-200";
-    case "Pendiente":
-      return "bg-yellow-50 text-yellow-700 border-yellow-200";
-    case "Rechazado":
-      return "bg-red-50 text-red-700 border-red-200";
-    default:
-      return "";
-  }
 };
 
 const getNombre = (obj: any): string => {
@@ -120,11 +111,20 @@ export default function ReporteDetallePage({
   const [votosCount, setVotosCount] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
+  const [votosReparadoCount, setVotosReparadoCount] = useState(0);
+  const [hasVotedReparado, setHasVotedReparado] = useState(false);
+  const [isVotingReparado, setIsVotingReparado] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const supabase = createClient();
+
+  // Verificar si el reporte está cerrado (Reparado o Rechazado)
+  const isReporteCerrado = reporte && (
+    getNombre(reporte.estados).toLowerCase() === 'reparado' || 
+    getNombre(reporte.estados).toLowerCase() === 'rechazado'
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -136,76 +136,43 @@ export default function ReporteDetallePage({
         setCurrentUser(user);
 
         // Obtener reporte
-        const { data, error } = await supabase
-          .from("reportes")
-          .select(
-            `
-            id,
-            titulo,
-            descripcion,
-            lat,
-            lon,
-            created_at,
-            usuario_id,
-            categorias (nombre),
-            prioridades (nombre),
-            estados (nombre),
-            fotos_reporte (url),
-            profiles (username)
-          `
-          )
-          .eq("id", resolvedParams.id)
-          .is("deleted_at", null)
-          .single();
+        const { data, error } = await getReporteDetalle(supabase, resolvedParams.id);
 
         if (!error && data) {
           setReporte(data);
 
           // Contar votos "no existe"
-          const { count } = await supabase
-            .from("votos_no_existe")
-            .select("*", { count: "exact", head: true })
-            .eq("reporte_id", resolvedParams.id);
+          const { count } = await getVotosNoExiste(supabase, resolvedParams.id);
+          setVotosCount(count);
 
-          setVotosCount(count || 0);
+          // Contar votos "reparado"
+          const { count: countReparado } = await getVotosReparado(supabase, resolvedParams.id);
+          setVotosReparadoCount(countReparado);
 
           // Verificar si el usuario actual ya votó
           if (user) {
-            const { data: votoData, error: votoError } = await supabase
-              .from("votos_no_existe")
-              .select("id")
-              .eq("reporte_id", resolvedParams.id)
-              .eq("usuario_id", user.id)
-              .maybeSingle();
+            const { hasVoted } = await verificarVotoUsuario(
+              supabase,
+              resolvedParams.id,
+              user.id
+            );
+            setHasVoted(hasVoted);
 
-            // Solo establecer hasVoted si no hay error y hay datos
-            if (!votoError && votoData) {
-              setHasVoted(true);
-            }
+            const { hasVoted: hasVotedRep } = await verificarVotoReparadoUsuario(
+              supabase,
+              resolvedParams.id,
+              user.id
+            );
+            setHasVotedReparado(hasVotedRep);
           }
         }
 
         // Obtener comentarios
-        const { data: comentariosData, error: comentariosError } =
-          await supabase
-            .from("comentarios_reporte")
-            .select(
-              `
-            id,
-            reporte_id,
-            usuario_id,
-            contenido,
-            created_at,
-            profiles (username)
-          `
-            )
-            .eq("reporte_id", resolvedParams.id)
-            .is("deleted_at", null)
-            .order("created_at", { ascending: true });
-
-        if (!comentariosError && comentariosData) {
-          setComentarios(comentariosData);
-        }
+        const { data: comentariosData } = await getComentariosReporte(
+          supabase,
+          resolvedParams.id
+        );
+        setComentarios(comentariosData);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -222,15 +189,13 @@ export default function ReporteDetallePage({
     setIsVoting(true);
     try {
       // Insertar voto
-      const { error: votoError } = await supabase
-        .from("votos_no_existe")
-        .insert({
-          reporte_id: reporte.id,
-          usuario_id: currentUser.id,
-        });
+      const { success, error } = await votarNoExiste(
+        supabase,
+        reporte.id,
+        currentUser.id
+      );
 
-      if (votoError) {
-        console.error("Error al votar:", votoError);
+      if (!success || error) {
         alert("Error al registrar el voto");
         return;
       }
@@ -242,19 +207,20 @@ export default function ReporteDetallePage({
 
       // Si llega a 5 votos, cambiar estado a Rechazado
       if (newVotosCount >= 5) {
-        // Obtener el ID del estado "Rechazado"
-        const { data: estadoRechazado } = await supabase
-          .from("estados")
-          .select("id")
-          .eq("nombre", "Rechazado")
-          .single();
+        const { estadoId } = await getEstadoRechazadoId(supabase);
 
-        if (estadoRechazado) {
-          await supabase
-            .from("reportes")
-            .update({ estado_id: estadoRechazado.id })
-            .eq("id", reporte.id);
-
+        if (estadoId) {
+          // Obtener el estado actual del reporte (usar estado_id directamente)
+          const estadoAnteriorId = reporte.estado_id;
+          
+          await actualizarEstadoReporte(
+            supabase, 
+            reporte.id, 
+            estadoId, 
+            estadoAnteriorId,
+            currentUser.id,
+            "Rechazado automáticamente por 5 votos de 'No Existe'"
+          );
           // Recargar página para mostrar el nuevo estado
           window.location.reload();
         }
@@ -264,6 +230,56 @@ export default function ReporteDetallePage({
       alert("Error al procesar el voto");
     } finally {
       setIsVoting(false);
+    }
+  };
+
+  const handleVoteReparado = async () => {
+    if (!currentUser || !reporte) return;
+
+    setIsVotingReparado(true);
+    try {
+      // Insertar voto
+      const { success, error } = await votarReparado(
+        supabase,
+        reporte.id,
+        currentUser.id
+      );
+
+      if (!success || error) {
+        alert("Error al registrar el voto");
+        return;
+      }
+
+      // Actualizar contador local
+      const newVotosReparadoCount = votosReparadoCount + 1;
+      setVotosReparadoCount(newVotosReparadoCount);
+      setHasVotedReparado(true);
+
+      // Si llega a 5 votos, cambiar estado a Reparado
+      if (newVotosReparadoCount >= 5) {
+        const { estadoId } = await getEstadoReparadoId(supabase);
+
+        if (estadoId) {
+          // Obtener el estado actual del reporte (usar estado_id directamente)
+          const estadoAnteriorId = reporte.estado_id;
+          
+          await actualizarEstadoReporte(
+            supabase, 
+            reporte.id, 
+            estadoId,
+            estadoAnteriorId,
+            currentUser.id,
+            "Marcado como reparado por 5 votos de usuarios"
+          );
+          // Recargar página para mostrar el nuevo estado
+          window.location.reload();
+        }
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al procesar el voto");
+    } finally {
+      setIsVotingReparado(false);
     }
   };
 
@@ -279,14 +295,13 @@ export default function ReporteDetallePage({
 
     setIsDeleting(true);
     try {
-      // Realizar soft delete (marcar como eliminado)
-      const { error } = await supabase
-        .from("reportes")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", reporte.id);
+      const { success } = await eliminarReporte(
+        supabase,
+        reporte.id,
+        currentUser.id
+      );
 
-      if (error) {
-        console.error("Error al eliminar el reporte:", error);
+      if (!success) {
         alert("Error al eliminar el reporte. Por favor, intenta nuevamente.");
         return;
       }
@@ -316,35 +331,20 @@ export default function ReporteDetallePage({
 
     setIsSubmittingComment(true);
     try {
-      const { data, error } = await supabase
-        .from("comentarios_reporte")
-        .insert({
-          reporte_id: reporte.id,
-          usuario_id: currentUser.id,
-          contenido: nuevoComentario.trim(),
-        })
-        .select(
-          `
-          id,
-          reporte_id,
-          usuario_id,
-          contenido,
-          created_at,
-          profiles (username)
-        `
-        )
-        .single();
+      const { data, error } = await crearComentario(
+        supabase,
+        reporte.id,
+        currentUser.id,
+        nuevoComentario.trim()
+      );
 
-      if (error) {
-        console.error("Error al crear comentario:", error);
+      if (error || !data) {
         alert("Error al publicar el comentario");
         return;
       }
 
-      if (data) {
-        setComentarios([...comentarios, data]);
-        setNuevoComentario("");
-      }
+      setComentarios([...comentarios, data]);
+      setNuevoComentario("");
     } catch (error) {
       console.error("Error:", error);
       alert("Error al procesar el comentario");
@@ -363,15 +363,13 @@ export default function ReporteDetallePage({
     if (!confirmDelete) return;
 
     try {
-      // Realizar soft delete (marcar como eliminado)
-      const { error } = await supabase
-        .from("comentarios_reporte")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", comentarioId)
-        .eq("usuario_id", currentUser.id); // Solo el autor puede eliminar
+      const { success } = await eliminarComentario(
+        supabase,
+        comentarioId,
+        currentUser.id
+      );
 
-      if (error) {
-        console.error("Error al eliminar comentario:", error);
+      if (!success) {
         alert("Error al eliminar el comentario");
         return;
       }
@@ -414,19 +412,6 @@ export default function ReporteDetallePage({
       </div>
     );
   }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "Alta":
-        return "destructive";
-      case "Media":
-        return "secondary";
-      case "Baja":
-        return "outline";
-      default:
-        return "outline";
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -475,7 +460,7 @@ export default function ReporteDetallePage({
                       >
                         {getNombre(reporte.estados)}
                       </Badge>
-                      <Badge variant="outline" className="text-xs lg:text-sm">
+                      <Badge variant="blue" className="text-xs lg:text-sm">
                         {getNombre(reporte.categorias)}
                       </Badge>
                     </div>
@@ -567,35 +552,39 @@ export default function ReporteDetallePage({
                   <span>Actualizaciones y Comentarios</span>
                 </CardTitle>
                 <CardDescription className="text-xs md:text-sm lg:text-base">
-                  Compartí actualizaciones sobre el estado de este reporte
+                  {isReporteCerrado 
+                    ? "Este reporte está cerrado. Solo se muestran comentarios anteriores."
+                    : "Compartí actualizaciones sobre el estado de este reporte"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 md:space-y-6 lg:space-y-8 pt-0 lg:px-8 lg:pb-8">
-                {/* Formulario para nuevo comentario */}
-                <form onSubmit={handleSubmitComment} className="space-y-2 md:space-y-3 lg:space-y-4">
-                  <Textarea
-                    placeholder="Ej: 'Llamé a la municipalidad', 'Vi personal trabajando en el lugar', etc."
-                    value={nuevoComentario}
-                    onChange={(e) => setNuevoComentario(e.target.value)}
-                    className="min-h-[80px] md:min-h-[100px] lg:min-h-[120px] resize-none text-sm lg:text-base"
-                    disabled={isSubmittingComment}
-                  />
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      size="sm"
-                      className="lg:h-10 lg:px-6"
-                      disabled={!nuevoComentario.trim() || isSubmittingComment}
-                    >
-                      <Send className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
-                      <span className="text-xs md:text-sm lg:text-base">
-                        {isSubmittingComment
-                          ? "Publicando..."
-                          : "Publicar"}
-                      </span>
-                    </Button>
-                  </div>
-                </form>
+                {/* Formulario para nuevo comentario - Solo si NO está cerrado */}
+                {!isReporteCerrado && (
+                  <form onSubmit={handleSubmitComment} className="space-y-2 md:space-y-3 lg:space-y-4">
+                    <Textarea
+                      placeholder="Ej: 'Llamé a la municipalidad', 'Vi personal trabajando en el lugar', etc."
+                      value={nuevoComentario}
+                      onChange={(e) => setNuevoComentario(e.target.value)}
+                      className="min-h-[80px] md:min-h-[100px] lg:min-h-[120px] resize-none text-sm lg:text-base"
+                      disabled={isSubmittingComment}
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        className="lg:h-10 lg:px-6"
+                        disabled={!nuevoComentario.trim() || isSubmittingComment}
+                      >
+                        <Send className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                        <span className="text-xs md:text-sm lg:text-base">
+                          {isSubmittingComment
+                            ? "Publicando..."
+                            : "Publicar"}
+                        </span>
+                      </Button>
+                    </div>
+                  </form>
+                )}
 
                 {/* Lista de comentarios */}
                 <div className="space-y-3 md:space-y-4 lg:space-y-5">
@@ -663,8 +652,8 @@ export default function ReporteDetallePage({
           {/* Barra Lateral */}
           <div className="lg:col-span-4 space-y-4 md:space-y-6">
             
-            {/* Botón "Marcar como Reparado" - Para cualquier usuario autenticado */}
-            {currentUser && (
+            {/* Botón "Marcar como Reparado" - Solo si está PENDIENTE */}
+            {currentUser && !isReporteCerrado && (
               <Card className="border-2 border-green-500/20 bg-green-50/50 dark:bg-green-950/20 lg:shadow-md hover:shadow-lg transition-shadow">
                 <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6 lg:p-6">
                   <div className="text-center space-y-3 md:space-y-4">
@@ -681,28 +670,47 @@ export default function ReporteDetallePage({
                       <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground">
                         Ayudá a mantener la información actualizada para todos.
                       </p>
+                      <div className="bg-green-100 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-md p-2 mt-2">
+                        <p className="text-[10px] md:text-xs lg:text-sm text-green-700 dark:text-green-400 font-medium">
+                          ✓ Con 5 votos, el reporte se marcará como reparado
+                        </p>
+                      </div>
                     </div>
                     <Button
-                      variant="default"
+                      variant={hasVotedReparado ? "secondary" : "default"}
                       size="sm"
-                      className="w-full h-9 md:h-10 lg:h-11 bg-green-600 hover:bg-green-700 text-white"
-                      disabled
+                      className={`w-full h-9 md:h-10 lg:h-11 ${
+                        hasVotedReparado 
+                          ? "bg-gray-500 hover:bg-gray-600" 
+                          : "bg-green-600 hover:bg-green-700 text-white"
+                      }`}
+                      onClick={handleVoteReparado}
+                      disabled={hasVotedReparado || isVotingReparado}
                     >
                       <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
                       <span className="text-xs md:text-sm lg:text-base font-medium">
-                        Votar como Reparado
+                        {hasVotedReparado ? "✓ Ya votaste" : "Votar como Reparado"}
                       </span>
                     </Button>
-                    <p className="text-[10px] lg:text-xs text-muted-foreground italic">
-                      Próximamente disponible
-                    </p>
+                    <div className="flex items-center justify-center gap-1.5 md:gap-2 text-xs md:text-sm lg:text-base flex-wrap">
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-950/40 rounded-md border border-green-200 dark:border-green-900">
+                        <span className="font-bold text-green-700 dark:text-green-400">
+                          {votosReparadoCount} / 5
+                        </span>
+                        <span className="text-green-600 dark:text-green-500">votos</span>
+                      </div>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-muted-foreground">
+                        Faltan <span className="font-semibold text-green-600 dark:text-green-500">{5 - votosReparadoCount}</span> para marcar como reparado
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             )}
             
-            {/* Botón "No Existe" */}
-            {currentUser && currentUser.id !== reporte.usuario_id && (
+            {/* Botón "No Existe" - Solo si está PENDIENTE y no es el creador */}
+            {currentUser && currentUser.id !== reporte.usuario_id && !isReporteCerrado && (
               <Card className="border-2 border-red-500/30 bg-red-50/50 dark:bg-red-950/20 lg:shadow-md hover:shadow-lg transition-shadow">
                 <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6 lg:p-6">
                   <div className="text-center space-y-3 md:space-y-4">
