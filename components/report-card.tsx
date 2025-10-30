@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { User, Calendar, Droplet, TrafficCone, Lightbulb, Trash2, ShieldAlert, MoreHorizontal, Trees } from "lucide-react"
+import { User, Calendar, Construction, TrafficCone, Lightbulb, Trash2, ShieldAlert, MoreHorizontal, Trees, AlertTriangle, AlertCircle, Info, CheckCircle, X } from "lucide-react"
 
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline"
@@ -18,50 +18,77 @@ export type ReportCardProps = {
   autor?: string
 }
 
-// Exportar función para reutilizar en otros componentes
-export const getStatusColor = (status: string) => {
+// Exportar función para obtener variante de estado
+export const getStatusVariant = (status: string): "reparado" | "pendiente" | "rechazado" | "outline" => {
   switch (status) {
     case "Reparado":
-      return "bg-green-50 text-green-700 border-green-200"
+      return "reparado"
     case "Pendiente":
-      return "bg-yellow-50 text-yellow-700 border-yellow-200"
+      return "pendiente"
     case "Rechazado":
-      return "bg-red-50 text-red-700 border-red-200"
+      return "rechazado"
     default:
-      return ""
+      return "outline"
   }
 }
 
-// Exportar función para reutilizar en otros componentes
-export const getPriorityColor = (priority: string): BadgeVariant => {
+// Exportar función para obtener iconos de estado
+export const getStatusIcon = (status: string, className: string = "w-3 h-3") => {
+  switch (status) {
+    case "Reparado":
+      return <CheckCircle className={className} />
+    case "Rechazado":
+      return <X className={className} />
+    default:
+      return null
+  }
+}
+
+// Exportar función para obtener variante de prioridad
+export const getPriorityVariant = (priority: string): "alta" | "media" | "baja" | "outline" => {
   switch (priority) {
     case "Alta":
-      return "destructive"
+      return "alta"
     case "Media":
-      return "secondary"
+      return "media"
     case "Baja":
-      return "outline"
+      return "baja"
     default:
       return "outline"
   }
 }
 
-const getCategoryIcon = (category: string) => {
+// Exportar función para obtener iconos de prioridad
+export const getPriorityIcon = (priority: string, className: string = "w-3 h-3") => {
+  switch (priority) {
+    case "Alta":
+      return <AlertTriangle className={className} />
+    case "Media":
+      return <AlertCircle className={className} />
+    case "Baja":
+      return <Info className={className} />
+    default:
+      return null
+  }
+}
+
+// Exportar función para obtener iconos de categoría
+export const getCategoryIcon = (category: string, className: string = "w-3 h-3") => {
   switch (category) {
     case "Bache":
-      return <Droplet className="w-3 h-3" />
+      return <Construction className={className} />
     case "Semaforo":
-      return <TrafficCone className="w-3 h-3" />
+      return <TrafficCone className={className} />
     case "Arbol caido":
-      return <Trees className="w-3 h-3" />
+      return <Trees className={className} />
     case "Alumbrado":
-      return <Lightbulb className="w-3 h-3" />
+      return <Lightbulb className={className} />
     case "Residuos":
-      return <Trash2 className="w-3 h-3" />
+      return <Trash2 className={className} />
     case "Seguridad":
-      return <ShieldAlert className="w-3 h-3" />
+      return <ShieldAlert className={className} />
     case "Otros":
-      return <MoreHorizontal className="w-3 h-3" />
+      return <MoreHorizontal className={className} />
     default:
       return null
   }
@@ -84,7 +111,10 @@ export function ReportCard({
         <CardHeader>
           <div className="flex items-start justify-between">
             <CardTitle className="text-lg line-clamp-1">{titulo}</CardTitle>
-            <Badge variant={getPriorityColor(prioridad)}>{prioridad}</Badge>
+            <Badge variant={getPriorityVariant(prioridad)} className="flex items-center gap-1">
+              {getPriorityIcon(prioridad)}
+              {prioridad}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -106,7 +136,10 @@ export function ReportCard({
           <div className="space-y-3">
             {/* Badges de estado y categoría */}
             <div className="flex items-center justify-between text-sm">
-              <Badge className={getStatusColor(estado)}>{estado}</Badge>
+              <Badge variant={getStatusVariant(estado)} className="flex items-center gap-1">
+                {getStatusIcon(estado)}
+                {estado}
+              </Badge>
               <Badge variant="blue" className="flex items-center gap-1">
                 {getCategoryIcon(categoria)}
                 {categoria}

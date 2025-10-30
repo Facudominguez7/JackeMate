@@ -23,6 +23,7 @@ import {
   MessageCircle,
   Send,
   CheckCircle2,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,9 +46,10 @@ import {
   getComentariosReporte,
   crearComentario,
   eliminarComentario,
+  getHistorialEstados,
   type Comentario,
 } from "@/database/queries/reportes/[id]/index";
-import { getStatusColor, getPriorityColor } from "@/components/report-card";
+import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, getCategoryIcon } from "@/components/report-card";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -118,6 +120,7 @@ export default function ReporteDetallePage({
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [fechaCambioEstado, setFechaCambioEstado] = useState<string | null>(null);
   const supabase = createClient();
 
   // Verificar si el reporte está cerrado (Reparado o Rechazado)
@@ -173,6 +176,27 @@ export default function ReporteDetallePage({
           resolvedParams.id
         );
         setComentarios(comentariosData);
+
+        // Obtener historial de estados para encontrar cuándo cambió a Reparado o Rechazado
+        if (data) {
+          const estadoActual = getNombre(data.estados).toLowerCase();
+          if (estadoActual === 'reparado' || estadoActual === 'rechazado') {
+            const { data: historial } = await getHistorialEstados(
+              supabase,
+              resolvedParams.id
+            );
+            
+            // Buscar el registro donde cambió a Reparado o Rechazado
+            const cambio = historial?.find((h: any) => {
+              const estadoNuevo = h.estado_nuevo?.nombre?.toLowerCase();
+              return estadoNuevo === 'reparado' || estadoNuevo === 'rechazado';
+            });
+            
+            if (cambio) {
+              setFechaCambioEstado(cambio.created_at);
+            }
+          }
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -446,24 +470,41 @@ export default function ReporteDetallePage({
                   <div className="space-y-2 lg:space-y-3 flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
                       <Badge
-                        variant={
-                          getPriorityColor(
-                            getNombre(reporte.prioridades)
-                          ) as any
-                        }
-                        className="text-xs lg:text-sm"
+                        variant={getPriorityVariant(getNombre(reporte.prioridades))}
+                        className="text-xs lg:text-sm flex items-center gap-1"
                       >
+                        {getPriorityIcon(getNombre(reporte.prioridades), "w-3 h-3 lg:w-3.5 lg:h-3.5")}
                         {getNombre(reporte.prioridades)}
                       </Badge>
                       <Badge
-                        className={`${getStatusColor(getNombre(reporte.estados))} text-xs lg:text-sm`}
+                        variant={getStatusVariant(getNombre(reporte.estados))}
+                        className="text-xs lg:text-sm flex items-center gap-1"
                       >
+                        {getStatusIcon(getNombre(reporte.estados), "w-3 h-3 lg:w-3.5 lg:h-3.5")}
                         {getNombre(reporte.estados)}
                       </Badge>
-                      <Badge variant="blue" className="text-xs lg:text-sm">
+                      <Badge variant="blue" className="text-xs lg:text-sm flex items-center gap-1">
+                        {getCategoryIcon(getNombre(reporte.categorias), "w-3 h-3 lg:w-3.5 lg:h-3.5")}
                         {getNombre(reporte.categorias)}
                       </Badge>
                     </div>
+                    {/* Mostrar fecha de cambio si está Reparado o Rechazado */}
+                    {fechaCambioEstado && isReporteCerrado && (
+                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs md:text-sm font-medium ${
+                        getNombre(reporte.estados).toLowerCase() === 'reparado'
+                          ? 'bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900'
+                          : 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900'
+                      }`}>
+                        <Clock className="w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0" />
+                        <span>
+                          {getNombre(reporte.estados)} el{" "}
+                          {dayjs
+                            .utc(fechaCambioEstado)
+                            .tz("America/Argentina/Buenos_Aires")
+                            .format("DD/MM/YYYY [a las] HH:mm")}
+                        </span>
+                      </div>
+                    )}
                     <CardTitle className="text-lg md:text-2xl lg:text-3xl font-bold tracking-tight">{reporte.titulo}</CardTitle>
                     <CardDescription className="flex items-center gap-1.5 md:gap-2 text-xs lg:text-sm">
                       <MapPin className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
