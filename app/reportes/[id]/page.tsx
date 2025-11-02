@@ -50,6 +50,7 @@ import {
   type Comentario,
 } from "@/database/queries/reportes/[id]/index";
 import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, getCategoryIcon } from "@/components/report-card";
+import { PUNTOS } from "@/database/queries/puntos";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -229,6 +230,9 @@ export default function ReporteDetallePage({
       setVotosCount(newVotosCount);
       setHasVoted(true);
 
+      // Mostrar mensaje de puntos ganados
+      alert(`¡Voto registrado! +${PUNTOS.VOTAR_NO_EXISTE} punto`);
+
       // Si llega a 5 votos, cambiar estado a Rechazado
       if (newVotosCount >= 5) {
         const { estadoId } = await getEstadoRechazadoId(supabase);
@@ -278,6 +282,9 @@ export default function ReporteDetallePage({
       const newVotosReparadoCount = votosReparadoCount + 1;
       setVotosReparadoCount(newVotosReparadoCount);
       setHasVotedReparado(true);
+
+      // Mostrar mensaje de puntos ganados
+      alert(`¡Voto registrado! +${PUNTOS.VOTAR_REPARADO} punto`);
 
       // Si llega a 5 votos, cambiar estado a Reparado
       if (newVotosReparadoCount >= 5) {
@@ -330,7 +337,7 @@ export default function ReporteDetallePage({
         return;
       }
 
-      alert("Reporte eliminado exitosamente");
+      alert(`Reporte eliminado exitosamente. ${PUNTOS.ELIMINAR_REPORTE_PROPIO} puntos`);
       // Redirigir al dashboard
       window.location.href = "/dashboard";
     } catch (error) {
@@ -369,6 +376,9 @@ export default function ReporteDetallePage({
 
       setComentarios([...comentarios, data]);
       setNuevoComentario("");
+      
+      // Mostrar mensaje de puntos ganados
+      alert(`¡Comentario publicado! +${PUNTOS.COMENTAR_REPORTE} puntos`);
     } catch (error) {
       console.error("Error:", error);
       alert("Error al procesar el comentario");

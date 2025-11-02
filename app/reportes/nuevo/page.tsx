@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MapPin, Upload, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
+import { sumarPuntos, PUNTOS } from "@/database/queries/puntos"
 
 export default function NuevoReportePage() {
   const [formData, setFormData] = useState({
@@ -183,7 +184,15 @@ export default function NuevoReportePage() {
         }
       }
 
-      alert("¡Reporte creado exitosamente!")
+      // Sumar puntos por crear reporte
+      await sumarPuntos(
+        supabase, 
+        user.id, 
+        PUNTOS.CREAR_REPORTE,
+        "Crear nuevo reporte"
+      );
+
+      alert(`¡Reporte creado exitosamente! +${PUNTOS.CREAR_REPORTE} puntos`)
       
       // Redirigir a la página de reportes
       window.location.href = "/reportes"

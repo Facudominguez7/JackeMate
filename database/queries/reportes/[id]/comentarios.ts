@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { sumarPuntos, PUNTOS } from "@/database/queries/puntos";
 
 export type Comentario = {
   id: number;
@@ -78,6 +79,14 @@ export async function crearComentario(
     console.error("Error al crear comentario:", error);
     return { data: null, error };
   }
+
+  // Sumar puntos por comentar
+  await sumarPuntos(
+    supabase,
+    usuarioId,
+    PUNTOS.COMENTAR_REPORTE,
+    "Comentar en reporte"
+  );
 
   return { data, error: null };
 }

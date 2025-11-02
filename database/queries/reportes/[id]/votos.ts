@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { sumarPuntos, actualizarPuntos, PUNTOS } from "@/database/queries/puntos";
 
 /**
  * Obtiene el conteo de votos "no existe" para un reporte
@@ -58,6 +59,14 @@ export async function votarNoExiste(
     return { success: false, error };
   }
 
+  // Sumar puntos por votar
+  await sumarPuntos(
+    supabase,
+    usuarioId,
+    PUNTOS.VOTAR_NO_EXISTE,
+    "Votar 'No Existe' en reporte"
+  );
+
   return { success: true, error: null };
 }
 
@@ -90,6 +99,18 @@ export async function actualizarEstadoReporte(
   usuarioId?: string,
   comentario?: string
 ) {
+  // Obtener el reporte para saber quién es el creador
+  const { data: reporte, error: reporteError } = await supabase
+    .from("reportes")
+    .select("usuario_id")
+    .eq("id", reporteId)
+    .single();
+
+  if (reporteError) {
+    console.error("Error al obtener reporte:", reporteError);
+    return { success: false, error: reporteError };
+  }
+
   // Actualizar el estado del reporte
   const { error } = await supabase
     .from("reportes")
@@ -99,6 +120,34 @@ export async function actualizarEstadoReporte(
   if (error) {
     console.error("Error al actualizar estado:", error);
     return { success: false, error };
+  }
+
+  // Obtener el nombre del nuevo estado
+  const { data: estadoData } = await supabase
+    .from("estados")
+    .select("nombre")
+    .eq("id", estadoId)
+    .single();
+
+  const estadoNombre = estadoData?.nombre?.toLowerCase();
+
+  // Aplicar puntos según el nuevo estado
+  if (estadoNombre === "rechazado" && reporte.usuario_id) {
+    // Penalizar al creador si su reporte fue rechazado
+    await actualizarPuntos(
+      supabase,
+      reporte.usuario_id,
+      PUNTOS.REPORTE_RECHAZADO,
+      "Reporte rechazado por votos"
+    );
+  } else if (estadoNombre === "reparado" && reporte.usuario_id) {
+    // Bonus al creador si su reporte fue reparado
+    await sumarPuntos(
+      supabase,
+      reporte.usuario_id,
+      PUNTOS.REPORTE_VALIDADO_REPARADO,
+      "Reporte validado como reparado"
+    );
   }
 
   // Registrar en el historial

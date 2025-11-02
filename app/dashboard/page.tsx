@@ -4,9 +4,10 @@ import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, Calendar } from "lucide-react"
+import { Plus, Calendar, Trophy, Star, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { ReportCard } from "@/components/report-card"
+import { getPuntosUsuario } from "@/database/queries/puntos"
 
 type UserReport = {
   id: number
@@ -44,6 +45,7 @@ const getUsername = (profiles: any): string => {
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [userReports, setUserReports] = useState<UserReport[]>([])
+  const [puntos, setPuntos] = useState(0)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -81,6 +83,10 @@ export default function DashboardPage() {
         if (!reportesError && reportes) {
           setUserReports(reportes)
         }
+
+        // Obtener puntos del usuario
+        const { puntos: userPuntos } = await getPuntosUsuario(supabase, user.id)
+        setPuntos(userPuntos)
       } catch (error) {
         console.error("Error fetching data:", error)
       } finally {
@@ -110,18 +116,92 @@ export default function DashboardPage() {
       <div className="container mx-auto px-4 py-8">
         {/* User Profile Header */}
         <div className="mb-8">
-          <Card>
+          <Card className="border-2 border-primary/20">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-6">
-                <Avatar className="w-20 h-20">
-                  <AvatarFallback className="text-2xl">{getUserInitials(user.email || "US")}</AvatarFallback>
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                <Avatar className="w-24 h-24 border-4 border-primary/20">
+                  <AvatarFallback className="text-3xl bg-gradient-to-br from-primary/20 to-primary/10">
+                    {getUserInitials(user.email || "US")}
+                  </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <h2 className="text-sm font-bold text-foreground mb-1">{user.email}</h2>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    {userReports.length} {userReports.length === 1 ? 'reporte creado' : 'reportes creados'}
+                <div className="flex-1 text-center md:text-left">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">{user.email}</h2>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      <span>{userReports.length} {userReports.length === 1 ? 'reporte' : 'reportes'}</span>
+                    </div>
                   </div>
+                  
+                  {/* Puntos del Usuario - Destacado */}
+                  <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-950/40 dark:to-yellow-950/40 rounded-full border-2 border-amber-300 dark:border-amber-700 shadow-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-md">
+                        <Trophy className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs text-amber-700 dark:text-amber-400 font-medium uppercase tracking-wide">
+                          Puntos Totales
+                        </p>
+                        <p className="text-3xl font-bold text-amber-900 dark:text-amber-100">
+                          {puntos}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 pl-4 border-l-2 border-amber-300 dark:border-amber-700">
+                      <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      <span className="text-sm text-amber-700 dark:text-amber-400 font-medium">
+                        ¡Sigue así!
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <Card className="border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950/40 rounded-lg flex items-center justify-center">
+                  <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{userReports.length}</p>
+                  <p className="text-xs text-muted-foreground">Reportes Creados</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-950/40 rounded-lg flex items-center justify-center">
+                  <Star className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">
+                    {userReports.filter(r => getNombre(r.estados).toLowerCase() === 'reparado').length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Problemas Resueltos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950/40 rounded-lg flex items-center justify-center">
+                  <Trophy className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{puntos}</p>
+                  <p className="text-xs text-muted-foreground">Puntos Acumulados</p>
                 </div>
               </div>
             </CardContent>
