@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { actualizarPuntos, PUNTOS } from "@/database/queries/puntos";
 
 /**
  * Realiza un soft delete de un reporte
@@ -18,6 +19,14 @@ export async function eliminarReporte(
     console.error("Error al eliminar reporte:", error);
     return { success: false, error };
   }
+
+  // Restar puntos por eliminar el reporte
+  await actualizarPuntos(
+    supabase,
+    usuarioId,
+    PUNTOS.ELIMINAR_REPORTE_PROPIO,
+    "Eliminar reporte propio"
+  );
 
   return { success: true, error: null };
 }

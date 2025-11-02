@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { sumarPuntos, PUNTOS } from "@/database/queries/puntos";
 
 /**
  * Obtiene el conteo de votos "reparado" para un reporte
@@ -57,6 +58,14 @@ export async function votarReparado(
     console.error("Error al registrar voto reparado:", error);
     return { success: false, error };
   }
+
+  // Sumar puntos por votar
+  await sumarPuntos(
+    supabase,
+    usuarioId,
+    PUNTOS.VOTAR_REPARADO,
+    "Votar 'Reparado' en reporte"
+  );
 
   return { success: true, error: null };
 }
