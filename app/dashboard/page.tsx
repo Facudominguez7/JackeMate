@@ -42,6 +42,13 @@ const getUsername = (profiles: any): string => {
   return "Anónimo"
 }
 
+/**
+ * Renders the user dashboard with profile, total points, summary stats and a list of the user's reports.
+ *
+ * On mount, the component fetches the current user, their reports and accumulated points and shows a loading state while data is being retrieved.
+ *
+ * @returns The dashboard page JSX containing the profile header, highlighted points, stats cards and the "Mis Reportes" section (either an empty-state prompt or a grid of report cards).
+ */
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [userReports, setUserReports] = useState<UserReport[]>([])

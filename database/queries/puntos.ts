@@ -14,7 +14,13 @@ export const PUNTOS = {
 } as const;
 
 /**
- * Suma o resta puntos a un usuario de forma atómica
+ * Atomically adjusts a user's points total in the "profiles" table, ensuring it never goes below zero.
+ *
+ * @param supabase - Supabase client used to read and update the profile row
+ * @param usuarioId - ID of the user whose points will be adjusted
+ * @param puntos - Number of points to add (positive) or subtract (negative)
+ * @param razon - Optional short reason logged for the change
+ * @returns An object with `success: true` when the update completed, or `success: false` and an `error` value when it failed
  */
 export async function actualizarPuntos(
   supabase: SupabaseClient,
@@ -62,7 +68,10 @@ export async function actualizarPuntos(
 }
 
 /**
- * Obtiene los puntos actuales de un usuario
+ * Fetches the current points for a user from the "profiles" table.
+ *
+ * @param usuarioId - The user's id to look up
+ * @returns An object with `puntos` set to the user's points (0 if not found) and `error` set to the error object when the query fails, or `null` on success
  */
 export async function getPuntosUsuario(
   supabase: SupabaseClient,
@@ -83,7 +92,10 @@ export async function getPuntosUsuario(
 }
 
 /**
- * Obtiene el top N de usuarios con más puntos
+ * Retrieve the top users ordered by points in descending order.
+ *
+ * @param limite - Maximum number of users to return (default: 3)
+ * @returns An object with `data` — an array of user records (`id`, `username`, `puntos`) ordered by points descending; and `error` — the query error if one occurred, or `null` on success.
  */
 export async function getTopUsuarios(
   supabase: SupabaseClient,
@@ -104,7 +116,11 @@ export async function getTopUsuarios(
 }
 
 /**
- * Función helper para sumar puntos (alias más semántico)
+ * Add points to a user's account using the absolute value of `puntos`.
+ *
+ * @param puntos - Number of points to add; negative values are converted to their absolute value.
+ * @param razon - Optional reason recorded in debug logs for the points change.
+ * @returns An object with `success` set to `true` on success and `error` containing any error information or `null`.
  */
 export async function sumarPuntos(
   supabase: SupabaseClient,
@@ -116,7 +132,12 @@ export async function sumarPuntos(
 }
 
 /**
- * Función helper para restar puntos (alias más semántico)
+ * Subtracts a given number of points from the specified user's total.
+ *
+ * @param usuarioId - ID of the user whose points will be decreased
+ * @param puntos - Number of points to subtract (positive values will be applied as subtraction)
+ * @param razon - Optional reason for the points change, used for logging/debugging
+ * @returns `{ success: true, error: null }` if the update succeeded, `{ success: false, error }` if it failed
  */
 export async function restarPuntos(
   supabase: SupabaseClient,

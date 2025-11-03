@@ -45,8 +45,13 @@ export interface LeafletMapProps {
 }
 
 /**
- * Componente auxiliar que ajusta el zoom del mapa para mostrar todos los reportes
- * Utiliza el hook useMap de React-Leaflet para acceder a la instancia del mapa
+ * Fit the map view to include all given reports, or center on a single report.
+ *
+ * Calculates geographic bounds from each report's coordinates and updates the map:
+ * centers the map at zoom level 14 when there is exactly one report, or fits the
+ * map bounds (with 10% padding) when there are multiple reports.
+ *
+ * @param reports - Array of reports whose `coordinates` (latitude, longitude) are used to compute bounds
  */
 function FitBounds({ reports }: { reports: Report[] }) {
   const map = useMap()
@@ -186,10 +191,14 @@ const createPopupContent = (
 }
 
 /**
- * Componente que implementa clustering de marcadores
- * Agrupa marcadores cercanos para evitar superposición y mejorar la usabilidad
- * 
- * Optimizado con useCallback para evitar re-renders innecesarios
+ * Clusters map markers and binds sanitized popups for each report.
+ *
+ * Creates and manages a Leaflet MarkerClusterGroup, adds one marker per report using the provided icon factory,
+ * binds popup content (sanitized) colored by status, and removes the cluster group when unmounted.
+ *
+ * @param reports - Array of report objects to render as clustered markers
+ * @param getIcon - Function that returns a Leaflet `DivIcon` for a given report priority
+ * @param getStatusColor - Function that returns a color string for a given report status
  */
 function MarkerClusterGroup({ 
   reports, 
@@ -259,6 +268,12 @@ function MarkerClusterGroup({
   return null
 }
 
+/**
+ * Renders an interactive Leaflet map displaying given reports with automatic bounds fitting and clustered markers.
+ *
+ * @param reports - Array of report objects to display; each report is rendered as a marker (styled by priority) with a sanitized popup (colored by status).
+ * @returns A React element containing the configured Leaflet map with tile layer, fit-to-bounds behavior, and marker clustering.
+ */
 export default function LeafletMap({ reports }: LeafletMapProps) {
   const [mapKey, setMapKey] = useState(0)
 

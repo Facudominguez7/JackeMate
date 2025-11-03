@@ -34,6 +34,13 @@ const badgeVariants = cva(
   }
 );
 
+/**
+ * Renders a styled badge element with selectable visual variants.
+ *
+ * @param variant - Visual variant key that controls the badge's color, border, and hover/focus styles.
+ * @param asChild - When true, uses a Slot so the provided child element becomes the rendered host; when false, renders a `span`.
+ * @returns A span (or Slot-hosted) element styled according to `variant` and `className`.
+ */
 function Badge({
   className,
   variant,

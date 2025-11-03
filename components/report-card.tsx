@@ -94,6 +94,17 @@ export const getCategoryIcon = (category: string, className: string = "w-3 h-3")
   }
 }
 
+/**
+ * Renders a clickable report card that links to the report details page.
+ *
+ * The card displays title, priority badge (with icon), an image (with placeholder fallback),
+ * a truncated description, status and category badges (with icons), and author and localized creation date.
+ *
+ * @param id - Report identifier used to build the detail page URL
+ * @param createdAt - Creation timestamp (Date, ISO string, or numeric epoch) used for the displayed date
+ * @param autor - Optional author name; displays "Anónimo" when not provided
+ * @returns A React element representing the report card UI
+ */
 export function ReportCard({
   id,
   titulo,

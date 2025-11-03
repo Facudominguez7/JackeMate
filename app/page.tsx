@@ -60,6 +60,13 @@ const getUsername = (profiles: any): string => {
   return "Anónimo";
 };
 
+/**
+ * Render the client-side homepage with hero, statistics, top contributors, recent reports, call-to-action sections, and footer.
+ *
+ * Fetches counts, the latest reports, and the top users from Supabase on mount and drives UI via local state (stats, recentReports, topUsuarios, loading).
+ *
+ * @returns The React element tree for the homepage containing the hero, stats cards, top-3 ranking, recent report cards, CTA area, and footer.
+ */
 export default function HomePage() {
   const [stats, setStats] = useState({
     totalUsers: 0,

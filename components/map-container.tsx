@@ -54,7 +54,11 @@ const LeafletMap = dynamic<LeafletMapProps>(
 )
 
 /**
- * Renderiza el mapa con elementos UI adicionales superpuestos
+ * Render the Leaflet map wrapped in a container that overlays UI elements (legend and usage hint).
+ *
+ * @param reports - Array of report objects to render as markers on the map
+ * @param showLegend - When `true`, display the floating color legend; defaults to `true`
+ * @returns The container element wrapping the map and its UI overlays
  */
 export function MapContainer({ reports, showLegend = true }: MapContainerProps) {
   return (

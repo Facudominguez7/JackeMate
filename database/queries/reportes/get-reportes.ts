@@ -34,10 +34,10 @@ export type FiltrosReportes = {
 }
 
 /**
- * Obtiene reportes aplicando filtros opcionales
- * 
- * @param filtros - Objeto con los filtros a aplicar
- * @returns Promise con los reportes filtrados y posible error
+ * Fetches reports from the database applying optional filters.
+ *
+ * @param filtros - Optional filters: `search`, `categoria`, `estado`, `prioridad`, `soloConCoordenadas`, and `limite`. Defaults: `soloConCoordenadas = false`, `limite = 12`.
+ * @returns An object with `data` containing an array of `ReporteDB` or `null`, and `error` containing the query error or `null`.
  */
 export async function getReportes(filtros: FiltrosReportes = {}) {
   const {
@@ -131,7 +131,9 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
 }
 
 /**
- * Obtiene todas las categorías disponibles
+ * Fetches all available categories sorted by name.
+ *
+ * @returns `{ data, error }` where `data` is an array of category objects with `id` and `nombre` or `null`, and `error` is the Supabase error object or `null`
  */
 export async function getCategorias() {
   const supabase = await createClient()
@@ -145,7 +147,9 @@ export async function getCategorias() {
 }
 
 /**
- * Obtiene todos los estados disponibles
+ * Fetches all available states ordered by name.
+ *
+ * @returns An object with `data` containing an array of state records (each with `id` and `nombre`) or `null`, and `error` containing the request error object or `null`.
  */
 export async function getEstados() {
   const supabase = await createClient()
@@ -159,7 +163,9 @@ export async function getEstados() {
 }
 
 /**
- * Obtiene todas las prioridades disponibles
+ * Fetches all priority records sorted by name.
+ *
+ * @returns An object containing `data` — an array of priority objects with `id` and `nombre`, or `null` if none — and `error` — an error object if the query failed, or `null` otherwise.
  */
 export async function getPrioridades() {
   const supabase = await createClient()

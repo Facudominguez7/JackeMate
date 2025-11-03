@@ -22,6 +22,18 @@ type FiltrosReportesProps = {
   onFilterApplied?: () => void
 }
 
+/**
+ * Renders a responsive filter panel for report lists and keeps filter state synchronized with the URL query string.
+ *
+ * The component reads initial filter values from the current URL, updates query parameters when filters change,
+ * supports clearing all filters, shows an active-filter count, and displays a loading state while applying updates.
+ *
+ * @param categorias - Array of category objects ({ id, nombre }) used to populate the "Categoría" select.
+ * @param estados - Array of state objects ({ id, nombre }) used to populate the "Estado" select.
+ * @param prioridades - Array of priority objects ({ id, nombre }) used to populate the "Prioridad" select.
+ * @param onFilterApplied - Optional callback invoked after a filter change is applied.
+ * @returns The filter panel UI element that syncs its controls (search, category, state, priority) with the URL.
+ */
 export function FiltrosReportes({ categorias = [], estados = [], prioridades = [], onFilterApplied }: FiltrosReportesProps) {
   const router = useRouter()
   const pathname = usePathname()

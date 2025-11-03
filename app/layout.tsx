@@ -17,6 +17,12 @@ export const metadata: Metadata = {
 }
 };
 
+/**
+ * Root-level layout component that applies global fonts, renders the site header, and wraps page content.
+ *
+ * @param children - React nodes to be rendered as the page content within the layout
+ * @returns The top-level HTML structure containing the header and the provided children
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

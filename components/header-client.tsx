@@ -35,6 +35,15 @@ interface HeaderClientProps {
   displayName: string;
 }
 
+/**
+ * Render a responsive header with navigation links and authentication controls.
+ *
+ * Renders a desktop layout with a reports dropdown, map link, and auth actions, and a mobile sheet menu with the same navigation and account controls.
+ *
+ * @param user - The authenticated user object, or `null`/`undefined` when not signed in.
+ * @param displayName - The display name shown in greetings and account sections when a user is signed in.
+ * @returns The JSX element for the responsive header UI. 
+ */
 export function HeaderClient({ user, displayName }: HeaderClientProps) {
   return (
     <>

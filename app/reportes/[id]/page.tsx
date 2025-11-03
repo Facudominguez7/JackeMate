@@ -102,6 +102,17 @@ const getUserInitials = (username: string) => {
   return username.substring(0, 2).toUpperCase();
 };
 
+/**
+ * Render the report detail page with full UI for viewing and managing a report.
+ *
+ * Displays report metadata, photos, author, localized timestamps, a client-only map preview,
+ * comments and a comment form (when the report is not closed), voting panels for "Reparado"
+ * and "No Existe" (with progress to automatic state changes at 5 votes), and creator-only
+ * deletion controls.
+ *
+ * @param params - A Promise that resolves to an object containing the report `id`
+ * @returns The React element for the report detail view
+ */
 export default function ReporteDetallePage({
   params,
 }: {

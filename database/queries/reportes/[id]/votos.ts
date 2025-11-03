@@ -2,7 +2,10 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { sumarPuntos, actualizarPuntos, PUNTOS } from "@/database/queries/puntos";
 
 /**
- * Obtiene el conteo de votos "no existe" para un reporte
+ * Get the count of "no existe" votes for a report.
+ *
+ * @param reporteId - The ID of the report to count votes for
+ * @returns An object with `count` set to the number of "no existe" votes (0 if none) and `error` set to the error object or `null`
  */
 export async function getVotosNoExiste(supabase: SupabaseClient, reporteId: string) {
   const { count, error } = await supabase
@@ -19,7 +22,11 @@ export async function getVotosNoExiste(supabase: SupabaseClient, reporteId: stri
 }
 
 /**
- * Verifica si un usuario ya votó "no existe" en un reporte
+ * Check whether a user has already voted "no existe" on a report.
+ *
+ * @param reporteId - The ID of the report to check
+ * @param usuarioId - The ID of the user to check
+ * @returns An object with `hasVoted`: `true` if the user has a "no existe" vote for the report, `false` otherwise; and `error`: the query error object if the operation failed, or `null` when successful
  */
 export async function verificarVotoUsuario(
   supabase: SupabaseClient,
@@ -42,7 +49,13 @@ export async function verificarVotoUsuario(
 }
 
 /**
- * Registra un voto "no existe" de un usuario
+ * Register a user's "no existe" vote for a report.
+ *
+ * Also awards the voter points for casting the vote.
+ *
+ * @param reporteId - ID of the report receiving the vote
+ * @param usuarioId - ID of the user casting the vote
+ * @returns An object with `success: true` and `error: null` on success; `success: false` and `error` on failure
  */
 export async function votarNoExiste(
   supabase: SupabaseClient,
@@ -71,7 +84,9 @@ export async function votarNoExiste(
 }
 
 /**
- * Obtiene el ID del estado "Rechazado"
+ * Retrieve the ID of the "Rechazado" state.
+ *
+ * @returns The `id` of the "Rechazado" state, or `null` if not found or on error; `error` contains the underlying error when present.
  */
 export async function getEstadoRechazadoId(supabase: SupabaseClient) {
   const { data, error } = await supabase
@@ -89,7 +104,17 @@ export async function getEstadoRechazadoId(supabase: SupabaseClient) {
 }
 
 /**
- * Actualiza el estado de un reporte y registra el cambio en el historial
+ * Update a report's state, record the state change in history, and adjust the report creator's points when applicable.
+ *
+ * Updates the report's `estado_id`, inserts a row into `historial_estados` describing the transition, and
+ * applies point adjustments to the report's creator when the new state is "rechazado" (penalty) or "reparado" (reward).
+ *
+ * @param reporteId - ID of the report to update
+ * @param estadoId - ID of the new state to set on the report
+ * @param estadoAnteriorId - Optional ID of the previous state to record in history
+ * @param usuarioId - Optional ID of the user who performed the state change (stored in history)
+ * @param comentario - Optional comment describing the reason for the state change (stored in history)
+ * @returns An object with `success: true` when the state update completed; `error` contains any fatal error encountered, or `null` on success
  */
 export async function actualizarEstadoReporte(
   supabase: SupabaseClient,

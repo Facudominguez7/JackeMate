@@ -14,6 +14,13 @@ import { MapPin, Upload, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
 import { sumarPuntos, PUNTOS } from "@/database/queries/puntos"
 
+/**
+ * Render the "Crear Nuevo Reporte" page that lets an authenticated user submit a report with automatic geolocation and an optional photo.
+ *
+ * Handles loading category and priority options, obtaining device location, uploading an optional image to Supabase storage, inserting the report record, awarding points via sumarPuntos, and redirecting to "/reportes" on success.
+ *
+ * @returns A React element representing the new-report form page.
+ */
 export default function NuevoReportePage() {
   const [formData, setFormData] = useState({
     title: "",
