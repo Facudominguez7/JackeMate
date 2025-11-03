@@ -17,7 +17,10 @@ export type Comentario = {
 };
 
 /**
- * Obtiene todos los comentarios de un reporte
+ * Fetches non-deleted comments for a report, including each comment's author username, ordered by creation time.
+ *
+ * @param reporteId - The report ID to retrieve comments for
+ * @returns An object with `data`: an array of comment records (fields: `id`, `reporte_id`, `usuario_id`, `contenido`, `created_at`, and `profiles` containing `username`), and `error`: the error object or `null`
  */
 export async function getComentariosReporte(
   supabase: SupabaseClient,
@@ -48,7 +51,12 @@ export async function getComentariosReporte(
 }
 
 /**
- * Crea un nuevo comentario en un reporte
+ * Create a new comment for a report and award points to the comment author.
+ *
+ * @param reporteId - Numeric ID of the report to attach the comment to
+ * @param usuarioId - ID of the user creating the comment
+ * @param contenido - Text content of the comment
+ * @returns An object with `data` set to the created comment (including `profiles.username`) or `null`, and `error` set to the error object or `null`
  */
 export async function crearComentario(
   supabase: SupabaseClient,
@@ -92,7 +100,13 @@ export async function crearComentario(
 }
 
 /**
- * Realiza un soft delete de un comentario
+ * Soft-deletes a comment, scoped to the comment's author.
+ *
+ * Sets the comment's `deleted_at` timestamp if `usuarioId` matches the comment's author.
+ *
+ * @param comentarioId - The numeric ID of the comment to delete
+ * @param usuarioId - The ID of the user attempting the deletion (must be the comment's author)
+ * @returns An object with `success: true` and `error: null` on success, or `success: false` and the `error` on failure
  */
 export async function eliminarComentario(
   supabase: SupabaseClient,

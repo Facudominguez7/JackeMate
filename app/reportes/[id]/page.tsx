@@ -102,6 +102,17 @@ const getUserInitials = (username: string) => {
   return username.substring(0, 2).toUpperCase();
 };
 
+/**
+ * Render the detailed view for a single reporte, including metadata, images, location map,
+ * voting controls, comments, and actions for the report owner.
+ *
+ * Fetches report data, current user, vote counts, comments and status history; manages
+ * local UI state for voting, commenting and deletion, and triggers automatic state
+ * transitions when vote thresholds are reached.
+ *
+ * @param params - Route parameters object containing the report `id`
+ * @returns The React element for the reporte detail page
+ */
 export default function ReporteDetallePage({
   params,
 }: {

@@ -34,10 +34,10 @@ export type FiltrosReportes = {
 }
 
 /**
- * Obtiene reportes aplicando filtros opcionales
- * 
- * @param filtros - Objeto con los filtros a aplicar
- * @returns Promise con los reportes filtrados y posible error
+ * Fetches reports from the database applying the provided filters.
+ *
+ * @param filtros - Filter options: `search` (text to match in title or description), `categoria`, `estado`, `prioridad`, `soloConCoordenadas` (when true, only reports with lat/lon), and `limite` (maximum number of results)
+ * @returns An object with `data` set to an array of report records matching the filters and `error` set to any query error
  */
 export async function getReportes(filtros: FiltrosReportes = {}) {
   const {
@@ -131,7 +131,9 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
 }
 
 /**
- * Obtiene todas las categorías disponibles
+ * Retrieve all categories ordered by `nombre`.
+ *
+ * @returns An object with `data` containing an array of categories (each with `id` and `nombre`) or `null`, and `error` containing any error information
  */
 export async function getCategorias() {
   const supabase = await createClient()
@@ -145,7 +147,9 @@ export async function getCategorias() {
 }
 
 /**
- * Obtiene todos los estados disponibles
+ * Retrieve all available states ordered by `nombre`.
+ *
+ * @returns An object with `data` (array of states, each containing `id` and `nombre`) and `error` if the query failed
  */
 export async function getEstados() {
   const supabase = await createClient()
@@ -159,7 +163,9 @@ export async function getEstados() {
 }
 
 /**
- * Obtiene todas las prioridades disponibles
+ * Retrieve all available priorities.
+ *
+ * @returns An object with `data` containing an array of priorities (each with `id` and `nombre`) ordered by `nombre`, and `error` containing any query error
  */
 export async function getPrioridades() {
   const supabase = await createClient()

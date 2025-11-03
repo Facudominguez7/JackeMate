@@ -24,6 +24,14 @@ type MapaPageProps = {
   }>
 }
 
+/**
+ * Render the mapa page populated with reports and filter option lists based on incoming search parameters.
+ *
+ * Fetches reports filtered by the provided `searchParams` (only reports with coordinates, limited to 100) and retrieves categories, estados, and prioridades, then renders the client-side map component with that data and any fetch error message.
+ *
+ * @param searchParams - A promise resolving to an object with optional filter fields: `search`, `categoria`, `estado`, and `prioridad`
+ * @returns The JSX element for the mapa page (MapaClient) populated with fetched reports and filter options
+ */
 export default async function MapaPage({ searchParams }: MapaPageProps) {
   // Obtener los parámetros de búsqueda
   const params = await searchParams

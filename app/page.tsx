@@ -60,6 +60,11 @@ const getUsername = (profiles: any): string => {
   return "Anónimo";
 };
 
+/**
+ * Render the client-side homepage that fetches and displays site-wide statistics, the top contributors ranking, and the most recent reports.
+ *
+ * @returns The homepage React element containing the hero, statistics, top users, recent reports, CTAs, and footer.
+ */
 export default function HomePage() {
   const [stats, setStats] = useState({
     totalUsers: 0,

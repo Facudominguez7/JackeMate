@@ -35,6 +35,12 @@ interface HeaderClientProps {
   displayName: string;
 }
 
+/**
+ * Render a responsive header with desktop navigation and a mobile slide-over menu that adapt to authentication state.
+ *
+ * @param user - Authenticated user object (present) or `null`/`undefined` (absent). When present, the header shows a greeting, dashboard link, and sign-out actions; when absent, it shows sign-in and register actions.
+ * @param displayName - The name displayed in the greeting and account sections when `user` is present.
+ * @returns A React element containing the desktop three-column navigation (reports dropdown, map, auth area) and a mobile sheet menu with the same navigation and account controls.
 export function HeaderClient({ user, displayName }: HeaderClientProps) {
   return (
     <>

@@ -4,6 +4,16 @@ import Image from "next/image"
 import { createClient } from "@/utils/supabase/server"
 import { HeaderClient } from "./header-client"
 
+/**
+ * Render the site header with logo, branding, and the central navigation component.
+ *
+ * Derives a display name from the current Supabase authenticated user by preferring
+ * `user_metadata.name`, then `user_metadata.full_name`, then `user_metadata.first_name`,
+ * then the local part of the user's email, and falls back to `"usuario"` if none are available.
+ *
+ * @returns The header JSX element containing the logo/branding and a `HeaderClient` component
+ *          receiving the current `user` (if any) and the derived `displayName`.
+ */
 export default async function Header() {
     const supabase = await createClient()
     const { data } = await supabase.auth.getUser()

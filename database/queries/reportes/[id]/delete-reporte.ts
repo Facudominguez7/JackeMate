@@ -2,7 +2,11 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { actualizarPuntos, PUNTOS } from "@/database/queries/puntos";
 
 /**
- * Realiza un soft delete de un reporte
+ * Soft-deletes a report when requested by the report's creator.
+ *
+ * @param reporteId - The ID of the report to soft-delete.
+ * @param usuarioId - The ID of the requesting user; deletion is performed only if this user is the report's creator.
+ * @returns An object with `success` set to `true` and `error` set to `null` on success; `success` set to `false` and `error` containing the failure details on error.
  */
 export async function eliminarReporte(
   supabase: SupabaseClient,

@@ -1,7 +1,12 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Obtiene los detalles completos de un reporte por ID
+ * Fetches the full detail of a report by its ID.
+ *
+ * Retrieves the report record (including `categorias(nombre)`, `prioridades(nombre)`, `estados(id, nombre)`, `fotos_reporte(url)`, and `profiles(username)`) only if the record is not soft-deleted.
+ *
+ * @param reporteId - The report's `id` to fetch
+ * @returns An object with `data` set to the report record including related fields when found, `data` is `null` and `error` contains the error information when the query fails
  */
 export async function getReporteDetalle(supabase: SupabaseClient, reporteId: string) {
   const { data, error } = await supabase

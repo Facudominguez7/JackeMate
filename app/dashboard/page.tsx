@@ -42,6 +42,13 @@ const getUsername = (profiles: any): string => {
   return "Anónimo"
 }
 
+/**
+ * Renders the authenticated user's dashboard including profile header, statistics, and a grid of the user's reports.
+ *
+ * Fetches the current user, the user's reports, and the user's points from Supabase on mount and shows a loading state while fetching.
+ *
+ * @returns The dashboard page JSX element containing the profile header, stats cards, and "Mis Reportes" section with report cards and links to create new reports.
+ */
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [userReports, setUserReports] = useState<UserReport[]>([])

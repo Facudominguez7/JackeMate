@@ -94,6 +94,20 @@ export const getCategoryIcon = (category: string, className: string = "w-3 h-3")
   }
 }
 
+/**
+ * Render a clickable report card linking to /reportes/{id} that displays title, image, priority, status and category badges, author, and creation date.
+ *
+ * @param id - Identifier of the report used to build the link target
+ * @param titulo - Report title shown as the card heading
+ * @param descripcion - Optional report description; shows "Sin descripción" when absent
+ * @param categoria - Report category displayed with a category badge and icon
+ * @param prioridad - Report priority displayed with a priority badge and icon
+ * @param estado - Report status displayed with a status badge and icon
+ * @param imageUrl - Optional URL of the report image; a placeholder is used when absent
+ * @param createdAt - Creation timestamp (ISO string) formatted for display as "es-AR"
+ * @param autor - Optional author name; shows "Anónimo" when absent
+ * @returns A JSX element representing the styled report card.
+ */
 export function ReportCard({
   id,
   titulo,

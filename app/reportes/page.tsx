@@ -68,8 +68,14 @@ const formatLocation = (lat: number | null, lon: number | null) => {
 }
 
 /**
- * Componente principal de la página de reportes
- * Server Component que se ejecuta en el servidor de Next.js
+ * Page component that renders the public reports list with filters and actions.
+ *
+ * Fetches report data and filter options, normalizes records for the UI, and renders
+ * a layout containing filters, a grid of report cards, appropriate empty/error states,
+ * and action buttons (e.g., create new report, load more).
+ *
+ * @param searchParams - Promise that resolves to an object with optional filter values: `search`, `categoria`, `estado`, and `prioridad`
+ * @returns JSX element containing the reports page layout including filters, report cards, empty/error alerts, and action buttons
  */
 export default async function ReportesPage({ searchParams }: ReportesPageProps) {
   // Obtener los parámetros de búsqueda

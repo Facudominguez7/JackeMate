@@ -17,6 +17,12 @@ export const metadata: Metadata = {
 }
 };
 
+/**
+ * Root layout component that wraps pages with the outer HTML and body structure and includes the site header.
+ *
+ * @param children - React nodes to render inside the page body; they are placed after the header.
+ * @returns The top-level HTML element containing the document body, site header, and the provided children.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

@@ -1,8 +1,14 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Registra un cambio de estado en el historial
- * Se usa cada vez que un reporte cambia de estado
+ * Record a report's status change in the status history table.
+ *
+ * @param reporteId - ID of the report whose status changed
+ * @param estadoAnteriorId - ID of the previous status, or `null` if none
+ * @param estadoNuevoId - ID of the new status
+ * @param usuarioId - Optional ID of the user who made the change; stored as `null` when not provided
+ * @param comentario - Optional comment associated with the change; stored as `null` when not provided
+ * @returns An object with `success: true` and `error: null` on success, or `success: false` and `error` containing the insertion error on failure
  */
 export async function registrarCambioEstado(
   supabase: SupabaseClient,
@@ -29,8 +35,10 @@ export async function registrarCambioEstado(
 }
 
 /**
- * Obtiene el historial de estados de un reporte
- * Útil para mostrar la línea de tiempo de cambios
+ * Retrieve a report's status history for timeline display.
+ *
+ * @param reporteId - The report identifier to fetch history for.
+ * @returns An object containing `data` — an array of history records (empty array on error) and `error` — the error object when the query fails, or `null` on success.
  */
 export async function getHistorialEstados(
   supabase: SupabaseClient,

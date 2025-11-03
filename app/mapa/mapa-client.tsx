@@ -61,6 +61,20 @@ type MapaClientProps = {
   error: string | null
 }
 
+/**
+ * Render an interactive client-side map with report markers, a responsive sidebar list, top controls and an expandable filters panel.
+ *
+ * Transforms `reportesDB` into a map-friendly format, displays markers on the map, shows a clickable list of reports in a left sidebar, and exposes UI controls
+ * for toggling the sidebar, opening filters, and navigating to a list view. Handles responsive behavior (sidebar visible on desktop, collapsible on mobile)
+ * and presents error or empty-state alerts when appropriate.
+ *
+ * @param reportesDB - Array of report records from the database used to populate map markers and the sidebar list
+ * @param categorias - Category options used by the filters panel
+ * @param estados - Status options used by the filters panel
+ * @param prioridades - Priority options used by the filters panel
+ * @param error - Optional error message to display in the map and list areas when present
+ * @returns The JSX element that composes the client-side map UI with sidebar, controls and filters
+ */
 export function MapaClient({ reportesDB, categorias, estados, prioridades, error }: MapaClientProps) {
   // Inicializar siempre con false para evitar hydration mismatch
   // El useEffect ajustará el valor según el tamaño de pantalla

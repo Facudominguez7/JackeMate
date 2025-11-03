@@ -45,8 +45,12 @@ export interface LeafletMapProps {
 }
 
 /**
- * Componente auxiliar que ajusta el zoom del mapa para mostrar todos los reportes
- * Utiliza el hook useMap de React-Leaflet para acceder a la instancia del mapa
+ * Adjusts the map view to include all provided report markers.
+ *
+ * Centers the map at zoom level 14 when all reports share the same coordinates;
+ * otherwise fits map bounds to encompass all report coordinates with 0.1 padding.
+ *
+ * @param reports - Array of reports whose `coordinates` (latitude, longitude) are used to compute bounds
  */
 function FitBounds({ reports }: { reports: Report[] }) {
   const map = useMap()
@@ -186,10 +190,15 @@ const createPopupContent = (
 }
 
 /**
- * Componente que implementa clustering de marcadores
- * Agrupa marcadores cercanos para evitar superposición y mejorar la usabilidad
- * 
- * Optimizado con useCallback para evitar re-renders innecesarios
+ * Adds a Leaflet marker cluster group to the current map and populates it with report markers and sanitized popups.
+ *
+ * For each report, creates a marker at the report coordinates using the icon returned by `getIcon`, binds a popup
+ * whose HTML is produced by the internal popup builder with status color from `getStatusColor`, and adds the marker
+ * to a MarkerClusterGroup with custom cluster icons and clustering options. Cleans up the cluster group on unmount.
+ *
+ * @param reports - Array of report objects to render as clustered markers
+ * @param getIcon - Function that returns a styled `L.DivIcon` for a given report priority
+ * @param getStatusColor - Function that returns a hex color string for a given report status
  */
 function MarkerClusterGroup({ 
   reports, 
@@ -259,6 +268,16 @@ function MarkerClusterGroup({
   return null
 }
 
+/**
+ * Render an interactive Leaflet map that displays reports as clustered markers.
+ *
+ * Renders a React-Leaflet map with OpenStreetMap tiles, custom marker icons by priority,
+ * marker clustering, sanitized popups showing report details, and automatic bounds fitting
+ * to include all provided reports.
+ *
+ * @param reports - Array of report objects to render as clustered markers on the map
+ * @returns A React element rendering an interactive Leaflet map with clustered report markers, custom priority icons, sanitized popups, and automatic bounds fitting
+ */
 export default function LeafletMap({ reports }: LeafletMapProps) {
   const [mapKey, setMapKey] = useState(0)
 

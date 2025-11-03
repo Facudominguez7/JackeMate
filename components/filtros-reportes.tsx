@@ -22,6 +22,19 @@ type FiltrosReportesProps = {
   onFilterApplied?: () => void
 }
 
+/**
+ * Render filter controls for report listings and keep selected filters synchronized with the URL query parameters.
+ *
+ * The component displays a text search and selects for category, state, and priority, shows the count of active filters,
+ * and provides a control to clear all filters. When a filter changes it updates the URL query parameters and, if provided,
+ * invokes `onFilterApplied`.
+ *
+ * @param categorias - Array of category objects used to populate the category select; each item should include `id` and `nombre`
+ * @param estados - Array of state objects used to populate the state select; each item should include `id` and `nombre`
+ * @param prioridades - Array of priority objects used to populate the priority select; each item should include `id` and `nombre`
+ * @param onFilterApplied - Optional callback invoked after filters are applied
+ * @returns The filter UI element that syncs control state with URL query parameters and indicates active filters
+ */
 export function FiltrosReportes({ categorias = [], estados = [], prioridades = [], onFilterApplied }: FiltrosReportesProps) {
   const router = useRouter()
   const pathname = usePathname()
