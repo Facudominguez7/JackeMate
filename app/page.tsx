@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Plus,
   Search,
@@ -148,53 +145,129 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sección Hero - Pantalla Completa */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
+      {/* Sección Hero - Pantalla Completa Modernizada */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Video de fondo */}
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover scale-105"
         >
-          <source src="/background_inicio/videoplaybackk.mp4#t=120" type="video/mp4" />
+          <source
+            src="/background_inicio/videoplaybackk.mp4#t=120"
+            type="video/mp4"
+          />
         </video>
-        <div className="absolute inset-0 bg-black/30 pointer-events-none" />
-        <div className="container mx-auto text-center max-w-6xl relative z-10 px-4">
 
-          <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold text-white mb-8 md:mb-12 leading-tight drop-shadow-2xl">
-            JACKEMATE
-            <br />
-          </h1>
-          <p className="text-md sm:text-2xl md:text-3xl lg:text-4xl text-white mb-4 md:mb-6 leading-relaxed max-w-4xl mx-auto drop-shadow-lg font-medium">
-            Una plataforma <span className="font-bold text-primary drop-shadow-lg">ciudadana e independiente</span> para reportar problemas urbanos, seguir su progreso y construir una ciudad mejor
-          </p>
-          <p className="text-md sm:text-xl md:text-2xl text-white/90 mb-12 md:mb-16 max-w-3xl mx-auto italic drop-shadow-lg">
-            Creada por vecinos, para vecinos. Sin intermediarios, con transparencia.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button
-              size="lg"
-              className="text-lg px-10 py-6 shadow-lg hover:shadow-xl transition-all"
-              asChild
-            >
-              <Link href="/reportes/nuevo">
-                <Plus className="w-6 h-6 mr-2" />
-                Reportar Problema
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="text-lg px-10 py-6"
-              asChild
-            >
-              <Link href="/reportes">
-                <Search className="w-6 h-6 mr-2" />
-                Ver Reportes
-              </Link>
-            </Button>
+        {/* Overlays graduales */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/10" />
+
+        {/* Elementos decorativos flotantes */}
+        <div className="absolute top-20 left-10 w-32 h-32 bg-white/5 rounded-full blur-xl animate-pulse" />
+        <div
+          className="absolute bottom-32 right-16 w-24 h-24 bg-primary/20 rounded-full blur-lg animate-bounce"
+          style={{ animationDelay: "1s", animationDuration: "3s" }}
+        />
+        <div
+          className="absolute top-1/3 right-1/4 w-16 h-16 bg-white/10 rounded-full blur-md animate-ping"
+          style={{ animationDelay: "2s", animationDuration: "4s" }}
+        />
+
+        {/* Contenido principal */}
+        <div className="container mx-auto relative z-10 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            {/* Contenedor principal con glassmorphism */}
+            <div className="backdrop-blur-xs bg-white/10 border border-white/20 rounded-3xl p-8 sm:p-12 lg:p-16 shadow-2xl">
+              {/* Badge superior */}
+              <div className="flex justify-center mb-8">
+                <div className="inline-flex items-center gap-2 px-6 py-3 bg-primary/90 backdrop-blur-sm rounded-full text-white font-semibold text-sm sm:text-base shadow-lg border border-primary/50">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                  Plataforma Ciudadana Independiente
+                </div>
+              </div>
+
+              {/* Título principal */}
+              <div className="text-center mb-8 sm:mb-12">
+                <h1 className="text-4xl sm:text-6xl lg:text-8xl xl:text-9xl font-black text-white mb-6 leading-none">
+                  <span className="bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent drop-shadow-2xl">
+                    JACKE
+                  </span>
+                  <br />
+                  <span className="bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent drop-shadow-2xl">
+                    MATE
+                  </span>
+                </h1>
+              </div>
+
+              {/* Grid de contenido */}
+              <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+                {/* Columna izquierda - Texto */}
+                <div className="space-y-6 lg:space-y-8">
+                  <div className="space-y-4">
+                    <h2 className="text-xl sm:text-2xl lg:text-3xl text-white font-bold leading-tight">
+                      Reportá problemas urbanos y
+                      <span className="block text-primary drop-shadow-lg">
+                        hacé la diferencia
+                      </span>
+                    </h2>
+                    <p className="text-base sm:text-lg lg:text-xl text-white/90 leading-relaxed">
+                      Una plataforma creada por vecinos, para vecinos. Sin
+                      intermediarios políticos, con total transparencia.
+                    </p>
+                  </div>
+
+                </div>
+
+                {/* Columna derecha - Acciones */}
+                <div className="space-y-6">
+                  {/* Botón principal destacado */}
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-primary to-primary/60 rounded-2xl blur-lg group-hover:blur-xl transition-all opacity-70 group-hover:opacity-100" />
+                    <Button
+                      size="lg"
+                      className="relative w-full text-lg sm:text-xl px-8 py-6 sm:py-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary border-0 rounded-xl shadow-2xl hover:shadow-primary/25 transition-all duration-300 font-semibold"
+                      asChild
+                    >
+                      <Link href="/reportes/nuevo">
+                        <Plus className="w-6 h-6 mr-3" />
+                        Reportar Problema
+                      </Link>
+                    </Button>
+                  </div>
+
+                  {/* Botones secundarios */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50 transition-all rounded-xl"
+                      asChild
+                    >
+                      <Link href="/reportes">
+                        <Search className="w-5 h-5 mr-2" />
+                        Ver Reportes
+                      </Link>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50 transition-all rounded-xl"
+                      asChild
+                    >
+                      <Link href="/mapa">
+                        <Map className="w-5 h-5 mr-2" />
+                        Ver Mapa
+                      </Link>
+                    </Button>
+                  </div>
+
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
