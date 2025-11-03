@@ -17,7 +17,12 @@ export type Comentario = {
 };
 
 /**
- * Obtiene todos los comentarios de un reporte
+ * Recupera los comentarios no eliminados de un reporte, ordenados por fecha de creación ascendente.
+ *
+ * Cada comentario incluye `id`, `reporte_id`, `usuario_id`, `contenido`, `created_at` y `profiles.username`.
+ *
+ * @param reporteId - Identificador del reporte cuyos comentarios se desean obtener
+ * @returns Objeto con `data`: arreglo de comentarios (vacío si no hay) y `error`: el error ocurrido o `null` si la operación fue exitosa
  */
 export async function getComentariosReporte(
   supabase: SupabaseClient,
@@ -48,7 +53,12 @@ export async function getComentariosReporte(
 }
 
 /**
- * Crea un nuevo comentario en un reporte
+ * Crea un comentario en un reporte y concede puntos al autor.
+ *
+ * @param reporteId - ID del reporte al que se asocia el comentario
+ * @param usuarioId - ID del usuario que crea el comentario
+ * @param contenido - Texto del comentario
+ * @returns Objeto con `data`: el comentario insertado (campos `id`, `reporte_id`, `usuario_id`, `contenido`, `created_at` y `profiles.username`) o `null` si hubo un error; y `error`: el objeto de error o `null` si la operación fue exitosa
  */
 export async function crearComentario(
   supabase: SupabaseClient,
@@ -92,7 +102,14 @@ export async function crearComentario(
 }
 
 /**
- * Realiza un soft delete de un comentario
+ * Marca un comentario como eliminado estableciendo su `deleted_at` con la hora actual.
+ *
+ * Actualiza solo el comentario cuyo `id` coincide con `comentarioId` y cuyo `usuario_id`
+ * coincide con `usuarioId`, de modo que solo el autor puede realizar la eliminación.
+ *
+ * @param comentarioId - Identificador del comentario a eliminar
+ * @param usuarioId - Identificador del usuario que intenta eliminar el comentario
+ * @returns Un objeto con `success: true` y `error: null` si la operación tuvo éxito; `success: false` y `error` en caso de fallo
  */
 export async function eliminarComentario(
   supabase: SupabaseClient,

@@ -42,6 +42,13 @@ const getUsername = (profiles: any): string => {
   return "Anónimo"
 }
 
+/**
+ * Renderiza la página de dashboard del usuario mostrando su perfil, métricas (reportes, problemas resueltos y puntos) y la lista de sus reportes.
+ *
+ * La página gestiona la carga de datos del usuario, sus reportes y sus puntos, muestra un estado de carga mientras se obtienen los datos y renderiza vistas condicionales según haya o no reportes.
+ *
+ * @returns El elemento React que representa la página de dashboard del usuario.
+ */
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [userReports, setUserReports] = useState<UserReport[]>([])

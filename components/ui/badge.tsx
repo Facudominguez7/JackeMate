@@ -34,6 +34,13 @@ const badgeVariants = cva(
   }
 );
 
+/**
+ * Componente visual que renderiza una etiqueta compacta (badge) con variantes de estilo.
+ *
+ * @param variant - Clave de la variante visual a aplicar (p. ej. `default`, `secondary`, `destructive`, `blue`, `alta`, `media`, `baja`, `reparado`, `pendiente`, `rechazado`).
+ * @param asChild - Si es `true`, renderiza el contenido usando `Slot` para delegar el elemento raíz; por defecto renderiza un `span`.
+ * @returns El elemento React que representa la badge: un `span` por defecto o el componente pasado mediante `asChild`.
+ */
 function Badge({
   className,
   variant,

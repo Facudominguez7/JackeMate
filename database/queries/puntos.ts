@@ -14,7 +14,12 @@ export const PUNTOS = {
 } as const;
 
 /**
- * Suma o resta puntos a un usuario de forma atómica
+ * Ajusta el saldo de puntos de un usuario en la tabla `profiles`, garantizando que el total no sea menor que cero.
+ *
+ * @param usuarioId - Identificador del usuario cuyo saldo se ajusta
+ * @param puntos - Cantidad a aplicar: valores positivos suman puntos, valores negativos restan
+ * @param razon - Texto opcional para registrar el motivo del cambio
+ * @returns `{ success: true, error: null }` si la operación fue exitosa; `{ success: false, error }` si ocurrió un error
  */
 export async function actualizarPuntos(
   supabase: SupabaseClient,
@@ -62,7 +67,10 @@ export async function actualizarPuntos(
 }
 
 /**
- * Obtiene los puntos actuales de un usuario
+ * Obtiene los puntos actuales de un usuario.
+ *
+ * @param usuarioId - Identificador del perfil del usuario cuya puntuación se consulta.
+ * @returns Un objeto con `puntos` (número; 0 si no existe o en caso de error) y `error` (el error ocurrido, o `null` si la operación fue correcta)
  */
 export async function getPuntosUsuario(
   supabase: SupabaseClient,
@@ -83,7 +91,10 @@ export async function getPuntosUsuario(
 }
 
 /**
- * Obtiene el top N de usuarios con más puntos
+ * Devuelve el top de usuarios ordenados por puntos.
+ *
+ * @param limite - Número máximo de usuarios a devolver (por defecto 3)
+ * @returns Un objeto con `data`: array de usuarios (`{ id, username, puntos }`) y `error`: `null` si la consulta tuvo éxito o el error devuelto por la consulta
  */
 export async function getTopUsuarios(
   supabase: SupabaseClient,
@@ -104,7 +115,12 @@ export async function getTopUsuarios(
 }
 
 /**
- * Función helper para sumar puntos (alias más semántico)
+ * Añade puntos al total de un usuario.
+ *
+ * @param usuarioId - Identificador del usuario cuyos puntos se actualizarán
+ * @param puntos - Cantidad de puntos a sumar (se normaliza a valor positivo)
+ * @param razon - Motivo opcional usado para registro informativo del cambio
+ * @returns Objeto con `success: true` si la operación tuvo éxito, `success: false` y `error` en caso contrario
  */
 export async function sumarPuntos(
   supabase: SupabaseClient,
@@ -116,7 +132,9 @@ export async function sumarPuntos(
 }
 
 /**
- * Función helper para restar puntos (alias más semántico)
+ * Resta una cantidad de puntos al perfil de un usuario.
+ *
+ * @returns `{ success: true, error: null }` si la operación tuvo éxito, `{ success: false, error }` en caso contrario.
  */
 export async function restarPuntos(
   supabase: SupabaseClient,

@@ -17,6 +17,12 @@ export const metadata: Metadata = {
 }
 };
 
+/**
+ * Renderiza la estructura raíz HTML de la aplicación incluyendo la cabecera y el contenido de la página.
+ *
+ * @param children - Contenido React que se renderizará dentro del <body> bajo la cabecera
+ * @returns El elemento raíz HTML que envuelve el cuerpo de la aplicación con las fuentes y la cabecera aplicadas
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

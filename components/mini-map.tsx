@@ -9,9 +9,11 @@ type MiniMapProps = {
 }
 
 /**
- * MiniMap: vista previa del mapa centrada en una coordenada.
- * - No interactiva (sin zoom/drag) para evitar conflictos en la tarjeta
- * - Usa CircleMarker para evitar problemas de assets de íconos de Leaflet
+ * Renderiza una vista previa de mapa centrada en las coordenadas proporcionadas.
+ *
+ * @param lat - Latitud en grados decimales del centro del mapa
+ * @param lon - Longitud en grados decimales del centro del mapa
+ * @returns Un elemento JSX que muestra un mapa no interactivo con un marcador circular en la posición indicada
  */
 export function MiniMap({ lat, lon }: MiniMapProps) {
   const center: [number, number] = [lat, lon]

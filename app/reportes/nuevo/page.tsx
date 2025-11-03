@@ -14,6 +14,16 @@ import { MapPin, Upload, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
 import { sumarPuntos, PUNTOS } from "@/database/queries/puntos"
 
+/**
+ * Componente de página que muestra un formulario para crear un nuevo reporte ciudadano.
+ *
+ * Carga las categorías y prioridades disponibles, verifica el usuario autenticado y obtiene
+ * la ubicación del dispositivo. Permite completar título, descripción, categoría, prioridad,
+ * adjuntar una única imagen y enviar el reporte al backend; tras la creación, asigna puntos
+ * al usuario y redirige al listado de reportes.
+ *
+ * @returns El elemento React que renderiza la interfaz de creación de reportes.
+ */
 export default function NuevoReportePage() {
   const [formData, setFormData] = useState({
     title: "",

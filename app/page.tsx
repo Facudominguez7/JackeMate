@@ -60,6 +60,13 @@ const getUsername = (profiles: any): string => {
   return "Anónimo";
 };
 
+/**
+ * Componente de la página principal que muestra estadísticas del sitio, el ranking de colaboradores y los reportes recientes.
+ *
+ * Realiza la carga inicial de datos (estadísticas, últimos reportes y top usuarios) y renderiza las secciones: hero, estadísticas, top colaboradores, reportes recientes, llamado a la acción y pie de página.
+ *
+ * @returns El elemento JSX que representa la página principal de la aplicación.
+ */
 export default function HomePage() {
   const [stats, setStats] = useState({
     totalUsers: 0,
