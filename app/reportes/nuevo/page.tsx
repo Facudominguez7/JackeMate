@@ -12,7 +12,18 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MapPin, Upload, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
+import { sumarPuntos, PUNTOS } from "@/database/queries/puntos"
 
+/**
+ * Componente de página que muestra un formulario para crear un nuevo reporte ciudadano.
+ *
+ * Carga las categorías y prioridades disponibles, verifica el usuario autenticado y obtiene
+ * la ubicación del dispositivo. Permite completar título, descripción, categoría, prioridad,
+ * adjuntar una única imagen y enviar el reporte al backend; tras la creación, asigna puntos
+ * al usuario y redirige al listado de reportes.
+ *
+ * @returns El elemento React que renderiza la interfaz de creación de reportes.
+ */
 export default function NuevoReportePage() {
   const [formData, setFormData] = useState({
     title: "",
@@ -122,32 +133,7 @@ export default function NuevoReportePage() {
     try {
       setLoading(true)
 
-      // 0. Asegurarse de que el usuario tenga un perfil en la tabla profiles
-      const { data: existingProfile, error: profileCheckError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single()
-
-      // Si no existe el perfil, crearlo
-      if (!existingProfile) {
-        const { error: profileCreateError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            username: user.email?.split('@')[0] || 'usuario',
-            rol_id: 2, // 2 = ciudadano
-            puntos: 0
-          })
-
-        if (profileCreateError) {
-          console.error("Error al crear el perfil:", profileCreateError)
-          alert("Error al crear el perfil de usuario. Por favor, contacta al administrador.")
-          return
-        }
-      }
-
-      // 1. Insertar el reporte en la base de datos
+      // Insertar el reporte en la base de datos
       const { data: reporteData, error: reporteError } = await supabase
         .from('reportes')
         .insert({
@@ -169,7 +155,7 @@ export default function NuevoReportePage() {
         return
       }
 
-      // 2. Si hay una imagen, subirla al storage y guardar la URL
+      // Si hay una imagen, subirla al storage y guardar la URL
       if (formData.images.length > 0) {
         const image = formData.images[0]
         const fileExt = image.name.split('.').pop()
@@ -208,7 +194,15 @@ export default function NuevoReportePage() {
         }
       }
 
-      alert("¡Reporte creado exitosamente!")
+      // Sumar puntos por crear reporte
+      await sumarPuntos(
+        supabase, 
+        user.id, 
+        PUNTOS.CREAR_REPORTE,
+        "Crear nuevo reporte"
+      );
+
+      alert(`¡Reporte creado exitosamente! +${PUNTOS.CREAR_REPORTE} puntos`)
       
       // Redirigir a la página de reportes
       window.location.href = "/reportes"

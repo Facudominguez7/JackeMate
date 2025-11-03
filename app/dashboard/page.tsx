@@ -2,46 +2,23 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { MapPin, Plus, Calendar } from "lucide-react"
+import { Plus, Calendar, Trophy, Star, TrendingUp } from "lucide-react"
 import Link from "next/link"
+import { ReportCard } from "@/components/report-card"
+import { getPuntosUsuario } from "@/database/queries/puntos"
 
 type UserReport = {
   id: number
   titulo: string
+  descripcion: string
   created_at: string
   categorias: any
   prioridades: any
   estados: any
   fotos_reporte: any
-}
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "Reparado":
-      return "bg-green-50 text-green-700 border-green-200"
-    case "Pendiente":
-      return "bg-yellow-50 text-yellow-700 border-yellow-200"
-      case "Rechazado":
-        return "bg-red-50 text-red-700 border-red-200"
-    default:
-      return ""
-  }
-}
-
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
-    case "Alta":
-      return "destructive"
-    case "Media":
-      return "secondary"
-    case "Baja":
-      return "outline"
-    default:
-      return "outline"
-  }
+  profiles: any
 }
 
 const getNombre = (obj: any): string => {
@@ -57,9 +34,25 @@ const getImageUrl = (fotos: any): string => {
   return "/placeholder.svg"
 }
 
+const getUsername = (profiles: any): string => {
+  if (!profiles) return "Anónimo"
+  if (Array.isArray(profiles) && profiles.length > 0)
+    return profiles[0].username || "Anónimo"
+  if (profiles.username) return profiles.username
+  return "Anónimo"
+}
+
+/**
+ * Renderiza la página de dashboard del usuario mostrando su perfil, métricas (reportes, problemas resueltos y puntos) y la lista de sus reportes.
+ *
+ * La página gestiona la carga de datos del usuario, sus reportes y sus puntos, muestra un estado de carga mientras se obtienen los datos y renderiza vistas condicionales según haya o no reportes.
+ *
+ * @returns El elemento React que representa la página de dashboard del usuario.
+ */
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [userReports, setUserReports] = useState<UserReport[]>([])
+  const [puntos, setPuntos] = useState(0)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -82,11 +75,13 @@ export default function DashboardPage() {
           .select(`
             id,
             titulo,
+            descripcion,
             created_at,
             categorias (nombre),
             prioridades (nombre),
             estados (nombre),
-            fotos_reporte (url)
+            fotos_reporte (url),
+            profiles (username)
           `)
           .eq('usuario_id', user.id)
           .is('deleted_at', null)
@@ -95,6 +90,10 @@ export default function DashboardPage() {
         if (!reportesError && reportes) {
           setUserReports(reportes)
         }
+
+        // Obtener puntos del usuario
+        const { puntos: userPuntos } = await getPuntosUsuario(supabase, user.id)
+        setPuntos(userPuntos)
       } catch (error) {
         console.error("Error fetching data:", error)
       } finally {
@@ -124,18 +123,92 @@ export default function DashboardPage() {
       <div className="container mx-auto px-4 py-8">
         {/* User Profile Header */}
         <div className="mb-8">
-          <Card>
+          <Card className="border-2 border-primary/20">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-6">
-                <Avatar className="w-20 h-20">
-                  <AvatarFallback className="text-2xl">{getUserInitials(user.email || "US")}</AvatarFallback>
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                <Avatar className="w-24 h-24 border-4 border-primary/20">
+                  <AvatarFallback className="text-3xl bg-gradient-to-br from-primary/20 to-primary/10">
+                    {getUserInitials(user.email || "US")}
+                  </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <h2 className="text-sm font-bold text-foreground mb-1">{user.email}</h2>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    {userReports.length} {userReports.length === 1 ? 'reporte creado' : 'reportes creados'}
+                <div className="flex-1 text-center md:text-left">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">{user.email}</h2>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      <span>{userReports.length} {userReports.length === 1 ? 'reporte' : 'reportes'}</span>
+                    </div>
                   </div>
+                  
+                  {/* Puntos del Usuario - Destacado */}
+                  <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-950/40 dark:to-yellow-950/40 rounded-full border-2 border-amber-300 dark:border-amber-700 shadow-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-md">
+                        <Trophy className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs text-amber-700 dark:text-amber-400 font-medium uppercase tracking-wide">
+                          Puntos Totales
+                        </p>
+                        <p className="text-3xl font-bold text-amber-900 dark:text-amber-100">
+                          {puntos}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 pl-4 border-l-2 border-amber-300 dark:border-amber-700">
+                      <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      <span className="text-sm text-amber-700 dark:text-amber-400 font-medium">
+                        ¡Sigue así!
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <Card className="border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950/40 rounded-lg flex items-center justify-center">
+                  <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{userReports.length}</p>
+                  <p className="text-xs text-muted-foreground">Reportes Creados</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-950/40 rounded-lg flex items-center justify-center">
+                  <Star className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">
+                    {userReports.filter(r => getNombre(r.estados).toLowerCase() === 'reparado').length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Problemas Resueltos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950/40 rounded-lg flex items-center justify-center">
+                  <Trophy className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{puntos}</p>
+                  <p className="text-xs text-muted-foreground">Puntos Acumulados</p>
                 </div>
               </div>
             </CardContent>
@@ -172,40 +245,18 @@ export default function DashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userReports.map((report) => (
-                <Link key={report.id} href={`/reportes/${report.id}`}>
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg">
-                          {report.titulo}
-                        </CardTitle>
-                        <Badge variant={getPriorityColor(getNombre(report.prioridades)) as any}>
-                          {getNombre(report.prioridades)}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="aspect-video bg-muted rounded-lg mb-4 overflow-hidden">
-                          <img
-                            src={getImageUrl(report.fotos_reporte) || "/placeholder.svg"}
-                            alt={report.titulo}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Badge className={getStatusColor(getNombre(report.estados))}>
-                            {getNombre(report.estados)}
-                          </Badge>
-                          <Badge variant="outline">{getNombre(report.categorias)}</Badge>
-                        </div>
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <span>{new Date(report.created_at).toLocaleDateString("es-AR")}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                <ReportCard
+                  key={report.id}
+                  id={report.id}
+                  titulo={report.titulo}
+                  descripcion={report.descripcion}
+                  categoria={getNombre(report.categorias)}
+                  prioridad={getNombre(report.prioridades)}
+                  estado={getNombre(report.estados)}
+                  imageUrl={getImageUrl(report.fotos_reporte)}
+                  createdAt={report.created_at}
+                  autor={getUsername(report.profiles)}
+                />
               ))}
             </div>
           )}

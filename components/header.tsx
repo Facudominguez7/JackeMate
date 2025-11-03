@@ -2,8 +2,18 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/utils/supabase/server"
-import { signout } from "@/app/auth/actions"
+import { HeaderClient } from "./header-client"
 
+/**
+ * Renderiza el encabezado de la aplicación con logo y controles de usuario.
+ *
+ * Recupera el usuario autenticado desde Supabase, determina un `displayName`
+ * a partir de la metadata del usuario o de la parte local del correo y devuelve
+ * la estructura JSX del header que incluye el logo responsive y el componente
+ * `HeaderClient` con el usuario y su nombre para mostrar.
+ *
+ * @returns El elemento JSX del encabezado de la página que contiene el logo, el título responsive y el componente `HeaderClient` configurado con el usuario y `displayName`.
+ */
 export default async function Header() {
     const supabase = await createClient()
     const { data } = await supabase.auth.getUser()
@@ -16,10 +26,11 @@ export default async function Header() {
         "usuario"
 
     return (
-        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-            <div className="container mx-auto px-4 py-4">
-                <div className="flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-3" aria-label="Ir al inicio">
+        <header className="border-b-4 border-b-primary bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-md">
+            <div className="container mx-auto px-1 py-1">
+                <div className="flex items-center justify-between gap-4">
+                    {/* Logo - Izquierda */}
+                    <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label="Ir al inicio">
                         <div className="w-20 h-20 rounded-lg relative overflow-hidden">
                             <Image
                                 src="/logo/logoJackeMate.png"
@@ -30,41 +41,14 @@ export default async function Header() {
                                 priority
                             />
                         </div>
-                        <div>
+                        <div className="hidden lg:block">
                             <h1 className="text-xl font-bold text-foreground">JackeMate</h1>
                             <p className="text-sm text-muted-foreground">Mejoremos nuestra ciudad juntos</p>
                         </div>
                     </Link>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        {user ? (
-                            <>
-                                <span className="hidden sm:inline text-sm text-muted-foreground">Hola, <span className="font-medium text-foreground">{displayName}</span></span>
-                                <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
-                                    <Link href="/dashboard">Mi Dashboard</Link>
-                                </Button>
-                                <form action={signout}>
-                                    <Button type="submit" size="sm" className="text-xs sm:text-sm px-2 sm:px-3">
-                                        Cerrar sesión
-                                    </Button>
-                                </form>
-                            </>
-                        ) : (
-                            <>
-                                <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
-                                    <Link href="/auth">
-                                        <span className="hidden sm:inline">Iniciar Sesión</span>
-                                        <span className="sm:hidden">Entrar</span>
-                                    </Link>
-                                </Button>
-                                <Button size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
-                                    <Link href="/auth">
-                                        <span className="hidden sm:inline">Registrarse</span>
-                                        <span className="sm:hidden">Registro</span>
-                                    </Link>
-                                </Button>
-                            </>
-                        )}
-                    </div>
+
+                    {/* Navegación Central - Desktop only */}
+                    <HeaderClient user={user} displayName={displayName} />
                 </div>
             </div>
         </header>
