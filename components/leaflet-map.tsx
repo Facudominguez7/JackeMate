@@ -11,7 +11,7 @@
 
 "use client"
 
-import { useEffect, useMemo, useRef, useCallback } from "react"
+import { useEffect, useMemo, useRef, useCallback, useState } from "react"
 import {
   MapContainer as RLMapContainer,
   TileLayer,
@@ -260,6 +260,13 @@ function MarkerClusterGroup({
 }
 
 export default function LeafletMap({ reports }: LeafletMapProps) {
+  const [mapKey, setMapKey] = useState(0)
+
+  // Re-renderizar el mapa solo al montar el componente
+  useEffect(() => {
+    setMapKey(Date.now())
+  }, [])
+
   /**
    * Obtiene el color para el estado del reporte
    * @param status - Nombre del estado
@@ -338,7 +345,14 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
   }
 
   return (
-    <RLMapContainer center={[-27.3676, -55.8961]} zoom={13} className="w-full h-full" style={{ zIndex: 0 }}>
+    <RLMapContainer 
+      key={mapKey}
+      center={[-27.3676, -55.8961]} 
+      zoom={13} 
+      className="w-full h-full" 
+      style={{ zIndex: 0 }}
+      scrollWheelZoom={true}
+    >
       {/* Capa de tiles de OpenStreetMap */}
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
