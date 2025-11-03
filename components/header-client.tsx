@@ -35,6 +35,17 @@ interface HeaderClientProps {
   displayName: string;
 }
 
+/**
+ * Cabecera responsiva con navegación (escritorio y móvil) y controles dependientes del estado de usuario.
+ *
+ * Muestra enlaces de navegación (Inicio, Reportes, Mapa), un menú desplegable de reportes y una hoja lateral para móviles.
+ * Cuando hay un usuario autenticado muestra saludo con `displayName`, acceso a "Mi Dashboard" y opción de cerrar sesión;
+ * en caso contrario muestra botones para iniciar sesión o registrarse.
+ *
+ * @param user - Objeto `User` de Supabase o `null`/`undefined`; determina la renderización de las acciones de cuenta
+ * @param displayName - Nombre que se muestra cuando el usuario está autenticado
+ * @returns El contenido JSX del componente de cabecera con la navegación y los controles de cuenta según el estado de autenticación
+ */
 export function HeaderClient({ user, displayName }: HeaderClientProps) {
   return (
     <>

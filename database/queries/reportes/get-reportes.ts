@@ -34,10 +34,16 @@ export type FiltrosReportes = {
 }
 
 /**
- * Obtiene reportes aplicando filtros opcionales
- * 
- * @param filtros - Objeto con los filtros a aplicar
- * @returns Promise con los reportes filtrados y posible error
+ * Recupera reportes desde la base de datos aplicando filtros opcionales.
+ *
+ * @param filtros - Opciones de filtrado:
+ *   - `search`: texto a buscar en `titulo` y `descripcion`
+ *   - `categoria`: nombre de la categoría (o `"all"` para no filtrar)
+ *   - `estado`: nombre del estado (o `"all"` para no filtrar)
+ *   - `prioridad`: nombre de la prioridad (o `"all"` para no filtrar)
+ *   - `soloConCoordenadas`: si `true`, solo incluye reportes con `lat` y `lon`
+ *   - `limite`: número máximo de resultados (por defecto 12)
+ * @returns Objeto con `data` — lista de reportes (`ReporteDB[]`) o `null`, y `error` — el error devuelto por Supabase o `null`.
  */
 export async function getReportes(filtros: FiltrosReportes = {}) {
   const {
@@ -131,7 +137,9 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
 }
 
 /**
- * Obtiene todas las categorías disponibles
+ * Recupera todas las categorías disponibles ordenadas por nombre.
+ *
+ * @returns Un objeto con `data` — arreglo de categorías (cada elemento tiene `id` y `nombre`) o `null` si no hay resultados — y `error` con la información del error si se produjo alguno.
  */
 export async function getCategorias() {
   const supabase = await createClient()
@@ -145,7 +153,9 @@ export async function getCategorias() {
 }
 
 /**
- * Obtiene todos los estados disponibles
+ * Recupera la lista de todos los estados ordenados por nombre.
+ *
+ * @returns Objeto con `data` — arreglo de registros `{ id, nombre }` o `null`, y `error` — error de la consulta o `null`.
  */
 export async function getEstados() {
   const supabase = await createClient()
@@ -159,7 +169,9 @@ export async function getEstados() {
 }
 
 /**
- * Obtiene todas las prioridades disponibles
+ * Obtiene la lista de prioridades disponibles ordenadas por nombre.
+ *
+ * @returns `data` — Array de objetos con `id` y `nombre` de cada prioridad; `error` — objeto de error de la consulta si se produjo, `null` en caso contrario.
  */
 export async function getPrioridades() {
   const supabase = await createClient()

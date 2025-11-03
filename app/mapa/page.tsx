@@ -24,6 +24,12 @@ type MapaPageProps = {
   }>
 }
 
+/**
+ * Página servidor que carga reportes con coordenadas y las opciones de filtro, y renderiza el componente cliente del mapa con esos datos.
+ *
+ * @param props.searchParams - Promise de un objeto con propiedades opcionales `search`, `categoria`, `estado` y `prioridad` que se usan como filtros para los reportes.
+ * @returns El elemento React que renderiza MapaClient con los reportes (o un arreglo vacío), las listas de categorías, estados y prioridades (o arreglos vacíos) y un mensaje de error o `null`.
+ */
 export default async function MapaPage({ searchParams }: MapaPageProps) {
   // Obtener los parámetros de búsqueda
   const params = await searchParams

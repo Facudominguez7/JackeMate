@@ -94,6 +94,20 @@ export const getCategoryIcon = (category: string, className: string = "w-3 h-3")
   }
 }
 
+/**
+ * Componente de tarjeta que muestra la información principal de un reporte y enlaza a su vista detallada.
+ *
+ * @param id - Identificador único del reporte usado en la ruta del enlace
+ * @param titulo - Título del reporte que se muestra como encabezado
+ * @param descripcion - Texto descriptivo del reporte; se muestra "Sin descripción" si no existe
+ * @param categoria - Categoría del reporte (p. ej. "Bache", "Semaforo") mostrada con su icono
+ * @param prioridad - Nivel de prioridad (p. ej. "Alta", "Media", "Baja") mostrado en una badge con icono
+ * @param estado - Estado actual del reporte (p. ej. "Reparado", "Pendiente", "Rechazado") mostrado en una badge con icono
+ * @param imageUrl - URL de la imagen del reporte; se usa un placeholder si no se proporciona
+ * @param createdAt - Fecha de creación en formato compatible con Date; se muestra formateada en "es-AR"
+ * @param autor - Nombre del autor; muestra "Anónimo" si no está disponible
+ * @returns Un elemento React que representa la tarjeta enlazable del reporte
+ */
 export function ReportCard({
   id,
   titulo,

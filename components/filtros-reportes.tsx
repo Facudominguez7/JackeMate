@@ -22,6 +22,19 @@ type FiltrosReportesProps = {
   onFilterApplied?: () => void
 }
 
+/**
+ * Renderiza un panel de controles para filtrar reportes y sincroniza los filtros con los parámetros de la URL.
+ *
+ * El componente mantiene el estado de visibilidad del panel, refleja los valores de filtro actuales desde los query params
+ * (`search`, `categoria`, `estado`, `prioridad`), permite aplicar y limpiar filtros (actualizando la URL) y muestra un indicador
+ * de carga durante las transiciones. Llama a `onFilterApplied` si se proporciona después de aplicar un filtro.
+ *
+ * @param categorias - Lista de categorías disponibles (cada objeto debe incluir `id` y `nombre`) para poblar el selector de categoría.
+ * @param estados - Lista de estados disponibles (cada objeto debe incluir `id` y `nombre`) para poblar el selector de estado.
+ * @param prioridades - Lista de prioridades disponibles (cada objeto debe incluir `id` y `nombre`) para poblar el selector de prioridad.
+ * @param onFilterApplied - Callback opcional que se invoca después de que se aplica un filtro.
+ * @returns El elemento React que renderiza la interfaz de filtros. 
+ */
 export function FiltrosReportes({ categorias = [], estados = [], prioridades = [], onFilterApplied }: FiltrosReportesProps) {
   const router = useRouter()
   const pathname = usePathname()

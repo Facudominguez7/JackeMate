@@ -45,8 +45,12 @@ export interface LeafletMapProps {
 }
 
 /**
- * Componente auxiliar que ajusta el zoom del mapa para mostrar todos los reportes
- * Utiliza el hook useMap de React-Leaflet para acceder a la instancia del mapa
+ * Ajusta la vista del mapa para que todos los reportes sean visibles.
+ *
+ * Centra el mapa con un zoom fijo cuando sólo hay un reporte; si hay varios,
+ * ajusta los límites del mapa para mostrar todos los reportes con un padding del 10%.
+ *
+ * @param reports - Array de reportes cuya propiedad `coordinates` ([lat, lng]) se usa para calcular los límites del mapa
  */
 function FitBounds({ reports }: { reports: Report[] }) {
   const map = useMap()
@@ -186,10 +190,13 @@ const createPopupContent = (
 }
 
 /**
- * Componente que implementa clustering de marcadores
- * Agrupa marcadores cercanos para evitar superposición y mejorar la usabilidad
- * 
- * Optimizado con useCallback para evitar re-renders innecesarios
+ * Renderiza un grupo de clusters de marcadores en el mapa y añade un marcador por cada reporte con su popup sanitizado.
+ *
+ * Crea un MarkerClusterGroup con configuración personalizada, genera el icono del cluster según la cantidad de marcadores, añade marcadores coloreados según la prioridad y vincula popups que usan el color del estado.
+ *
+ * @param reports - Lista de reportes que se representarán como marcadores
+ * @param getIcon - Función que recibe la prioridad del reporte y devuelve el `L.DivIcon` correspondiente
+ * @param getStatusColor - Función que recibe el estado del reporte y devuelve el color (hex) usado en el contenido del popup
  */
 function MarkerClusterGroup({ 
   reports, 
@@ -259,6 +266,16 @@ function MarkerClusterGroup({
   return null
 }
 
+/**
+ * Renderiza un mapa interactivo con Leaflet que muestra reportes como marcadores agrupados y priorizados.
+ *
+ * El mapa incluye tiles de OpenStreetMap, ajuste automático de vista según los reportes, agrupamiento (clustering)
+ * de marcadores y popups sanitizados con detalles de cada reporte. Los marcadores se colorean según la prioridad
+ * y el estado del reporte.
+ *
+ * @param reports - Lista de reportes cuya ubicación y metadatos se usan para crear marcadores y popups.
+ * @returns El elemento React que contiene el mapa Leaflet con clustering y ajuste automático de vista.
+ */
 export default function LeafletMap({ reports }: LeafletMapProps) {
   const [mapKey, setMapKey] = useState(0)
 

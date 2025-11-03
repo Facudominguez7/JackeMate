@@ -2,7 +2,9 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { sumarPuntos, PUNTOS } from "@/database/queries/puntos";
 
 /**
- * Obtiene el conteo de votos "reparado" para un reporte
+ * Obtiene el número de votos "Reparado" para un reporte dado.
+ *
+ * @returns `count` con el número de votos; `error` con el error ocurrido o `null` si no hubo error.
  */
 export async function getVotosReparado(supabase: SupabaseClient, reporteId: string) {
   const { count, error } = await supabase
@@ -19,7 +21,9 @@ export async function getVotosReparado(supabase: SupabaseClient, reporteId: stri
 }
 
 /**
- * Verifica si un usuario ya votó "reparado" en un reporte
+ * Determina si un usuario ya ha votado "Reparado" en un reporte.
+ *
+ * @returns Un objeto con `hasVoted`: `true` si existe un voto del usuario para el reporte, `false` en caso contrario; `error`: el error ocurrido o `null` si la operación fue exitosa.
  */
 export async function verificarVotoReparadoUsuario(
   supabase: SupabaseClient,
@@ -42,7 +46,11 @@ export async function verificarVotoReparadoUsuario(
 }
 
 /**
- * Registra un voto "reparado" de un usuario
+ * Registra un voto "Reparado" para un reporte por un usuario.
+ *
+ * @param reporteId - Id del reporte que recibe el voto
+ * @param usuarioId - Id del usuario que emite el voto
+ * @returns Objeto con `success` y `error`: `success` es `true` si el voto se insertó y se asignaron puntos al usuario, `false` en caso de error; `error` contiene el error ocurrido o `null`
  */
 export async function votarReparado(
   supabase: SupabaseClient,
@@ -71,7 +79,9 @@ export async function votarReparado(
 }
 
 /**
- * Obtiene el ID del estado "Reparado"
+ * Devuelve el identificador del estado llamado "Reparado".
+ *
+ * @returns Un objeto con `estadoId` —el id del estado "Reparado" o `null` si no existe— y `error` —el error ocurrido o `null` si la consulta tuvo éxito.
  */
 export async function getEstadoReparadoId(supabase: SupabaseClient) {
   const { data, error } = await supabase
