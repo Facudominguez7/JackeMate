@@ -15,25 +15,15 @@ import {
   Medal,
   Award,
   Crown,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 import { ReportCard } from "@/components/report-card";
-import { MapPin } from "lucide-react";
 import { getTopUsuarios } from "@/database/queries/puntos";
+import { getEstadisticas } from "@/database/queries/estadisticas";
+import { getReportesRecientes, type ReporteReciente } from "@/database/queries/reportes-recientes";
 
-type RecentReport = {
-  id: number;
-  titulo: string;
-  descripcion: string;
-  created_at: string;
-  lat: number;
-  lon: number;
-  categorias: any;
-  prioridades: any;
-  estados: any;
-  fotos_reporte: any;
-  profiles: any;
-};
+type RecentReport = ReporteReciente;
 
 const getNombre = (obj: any): string => {
   if (!obj) return "N/A";
@@ -78,55 +68,13 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Contar usuarios activos (profiles)
-        const { count: usersCount } = await supabase
-          .from("profiles")
-          .select("*", { count: "exact", head: true });
+        // Obtener estadísticas generales usando la query
+        const estadisticas = await getEstadisticas(supabase);
+        setStats(estadisticas);
 
-        // Contar reportes totales (no eliminados)
-        const { count: reportsCount } = await supabase
-          .from("reportes")
-          .select("*", { count: "exact", head: true })
-          .is("deleted_at", null);
-
-        // Contar reportes resueltos (estado_id = 2 que es "Reparado")
-        const { count: resolvedCount } = await supabase
-          .from("reportes")
-          .select("*", { count: "exact", head: true })
-          .eq("estado_id", 2)
-          .is("deleted_at", null);
-
-        setStats({
-          totalUsers: usersCount || 0,
-          totalReports: reportsCount || 0,
-          resolvedReports: resolvedCount || 0,
-        });
-
-        // Obtener los últimos 3 reportes
-        const { data: reportes, error: reportesError } = await supabase
-          .from("reportes")
-          .select(
-            `
-            id,
-            titulo,
-            descripcion,
-            created_at,
-            lat,
-            lon,
-            categorias (nombre),
-            prioridades (nombre),
-            estados (nombre),
-            fotos_reporte (url),
-            profiles (username)
-          `
-          )
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .limit(3);
-
-        if (!reportesError && reportes) {
-          setRecentReports(reportes);
-        }
+        // Obtener los últimos 3 reportes usando la query
+        const reportes = await getReportesRecientes(supabase, 3);
+        setRecentReports(reportes);
 
         // Obtener top 3 usuarios con más puntos
         const { data: topUsers } = await getTopUsuarios(supabase, 3);
@@ -223,27 +171,24 @@ export default function HomePage() {
 
                 {/* Columna derecha - Acciones */}
                 <div className="space-y-6">
-                  {/* Botón principal destacado */}
-                  <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-primary to-primary/60 rounded-2xl blur-lg group-hover:blur-xl transition-all opacity-70 group-hover:opacity-100" />
-                    <Button
-                      size="lg"
-                      className="relative w-full text-lg sm:text-xl px-8 py-6 sm:py-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary border-0 rounded-xl shadow-2xl hover:shadow-primary/25 transition-all duration-300 font-semibold"
-                      asChild
-                    >
-                      <Link href="/reportes/nuevo">
-                        <Plus className="w-6 h-6 mr-3" />
-                        Reportar Problema
-                      </Link>
-                    </Button>
-                  </div>
+                  {/* Botón principal */}
+                  <Button
+                    size="lg"
+                    className="w-full text-lg px-10 py-6 shadow-lg"
+                    asChild
+                  >
+                    <Link href="/reportes/nuevo">
+                      <Plus className="w-6 h-6 mr-2" />
+                      Reportar Problema
+                    </Link>
+                  </Button>
 
                   {/* Botones secundarios */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button
                       variant="outline"
                       size="lg"
-                      className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50 transition-all rounded-xl"
+                      className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50"
                       asChild
                     >
                       <Link href="/reportes">
@@ -255,7 +200,7 @@ export default function HomePage() {
                     <Button
                       variant="outline"
                       size="lg"
-                      className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50 transition-all rounded-xl"
+                      className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50"
                       asChild
                     >
                       <Link href="/mapa">
