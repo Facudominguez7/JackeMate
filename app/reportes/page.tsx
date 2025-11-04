@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { ReportCard } from "@/components/report-card"
-import { FiltrosReportes } from "@/components/filtros-reportes"
+import { ReportesClientWrapper } from "./reportes-client"
 import { getReportes, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 
 /**
@@ -131,7 +131,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
         </div>
 
         {/* Sección de filtros con funcionalidad real */}
-        <FiltrosReportes
+        <ReportesClientWrapper
           categorias={categorias ?? []}
           estados={estados ?? []}
           prioridades={prioridades ?? []}

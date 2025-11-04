@@ -9,7 +9,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -79,6 +79,7 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
   const [showSidebar, setShowSidebar] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [mapKey, setMapKey] = useState(0)
+  const [isPending, startTransition] = useTransition()
 
   /**
    * Efecto para inicializar y actualizar el estado del sidebar según el tamaño de pantalla
@@ -118,17 +119,29 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
   }))
 
   /**
-   * Maneja el cierre del panel de filtros en mobile después de aplicar un filtro
+   * Maneja el cierre del panel de filtros después de aplicar un filtro
    */
   const handleFilterApplied = useCallback(() => {
-    // Solo cerrar en dispositivos móviles (< 640px)
-    if (typeof window !== 'undefined' && window.innerWidth < 640) {
-      setShowFilters(false)
-    }
+    // Cerrar el panel de filtros siempre que se aplique un filtro
+    setShowFilters(false)
   }, [])
 
   return (
     <div className="bg-background">
+      {/* Loader flotante sobre toda la página */}
+      {isPending && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-5 duration-300">
+          <div className="bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce"></div>
+              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+            <span className="font-medium text-sm">Aplicando filtros...</span>
+          </div>
+        </div>
+      )}
+      
       {/* Barra de control superior */}
       <div className="border-b bg-background shadow-sm z-30">
         <div className="container mx-auto px-3 sm:px-4 py-3">
@@ -205,6 +218,8 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
               estados={estados}
               prioridades={prioridades}
               onFilterApplied={handleFilterApplied}
+              externalIsPending={isPending}
+              externalStartTransition={startTransition}
             />
           </div>
         </div>
