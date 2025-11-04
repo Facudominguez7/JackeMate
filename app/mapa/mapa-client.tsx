@@ -19,6 +19,7 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import { FiltrosReportes } from "@/components/filtros-reportes"
 import type { ReporteDB } from "@/database/queries/reportes/get-reportes"
+import { getPriorityColor, getStatusColor, getCategoryColor } from "@/components/report-card"
 
 /**
  * Importar el mapa solo en el cliente para evitar "window is not defined"
@@ -125,46 +126,6 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
       setShowFilters(false)
     }
   }, [])
-
-  /**
-   * Obtiene el color para la prioridad del reporte
-   * @param priority - Nombre de la prioridad
-   * @returns Color hex para la prioridad
-   */
-  const getPriorityColor = (priority: string) => {
-    const normalized = priority.toLowerCase()
-    switch (normalized) {
-      case "urgente":
-      case "alta":
-        return "#ef4444" // red
-      case "media":
-        return "#f59e0b" // amber
-      case "baja":
-        return "#10b981" // emerald
-      default:
-        return "#6b7280" // gray
-    }
-  }
-
-  /**
-   * Obtiene el color para el estado del reporte
-   * @param status - Nombre del estado
-   * @returns Color hex para el estado
-   */
-  const getStatusColor = (status: string) => {
-    const normalized = status.toLowerCase()
-    switch (normalized) {
-      case "resuelto":
-        return "#10b981" // emerald
-      case "en progreso":
-        return "#3b82f6" // blue
-      case "reportado":
-      case "pendiente":
-        return "#f59e0b" // amber
-      default:
-        return "#6b7280" // gray
-    }
-  }
 
   return (
     <div className="bg-background">
@@ -352,8 +313,19 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
                                 >
                                   {report.status}
                                 </Badge>
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-[10px] px-1.5 py-0"
+                                  style={{ borderColor: getCategoryColor(), color: getCategoryColor() }}
+                                >
                                   {report.category}
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0"
+                                  style={{ borderColor: getPriorityColor(report.priority), color: getPriorityColor(report.priority) }}
+                                >
+                                  {report.priority}
                                 </Badge>
                               </div>
                             </Link>
