@@ -13,17 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Upload, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
 import { sumarPuntos, PUNTOS } from "@/database/queries/puntos"
+import { 
+  getCategorias, 
+  getPrioridades, 
+  crearReporte, 
+  subirImagenReporte 
+} from "@/database/queries/reportes/nuevo"
 
-/**
- * Componente de página que muestra un formulario para crear un nuevo reporte ciudadano.
- *
- * Carga las categorías y prioridades disponibles, verifica el usuario autenticado y obtiene
- * la ubicación del dispositivo. Permite completar título, descripción, categoría, prioridad,
- * adjuntar una única imagen y enviar el reporte al backend; tras la creación, asigna puntos
- * al usuario y redirige al listado de reportes.
- *
- * @returns El elemento React que renderiza la interfaz de creación de reportes.
- */
+
 export default function NuevoReportePage() {
   const [formData, setFormData] = useState({
     title: "",
@@ -56,25 +53,13 @@ export default function NuevoReportePage() {
 
         setUser(user)
 
-        // Cargar categorías
-        const { data: categoriasData, error: categoriasError } = await supabase
-          .from('categorias')
-          .select('id, nombre')
-          .order('nombre')
+        // Cargar categorías usando la query
+        const categoriasData = await getCategorias(supabase)
+        setCategorias(categoriasData)
 
-        if (!categoriasError) {
-          setCategorias(categoriasData || [])
-        }
-
-        // Cargar prioridades
-        const { data: prioridadesData, error: prioridadesError } = await supabase
-          .from('prioridades')
-          .select('id, nombre')
-          .order('nombre')
-
-        if (!prioridadesError) {
-          setPrioridades(prioridadesData || [])
-        }
+        // Cargar prioridades usando la query
+        const prioridadesData = await getPrioridades(supabase)
+        setPrioridades(prioridadesData)
       } catch (error) {
         // Manejar error silenciosamente
       } finally {
@@ -133,64 +118,25 @@ export default function NuevoReportePage() {
     try {
       setLoading(true)
 
-      // Insertar el reporte en la base de datos
-      const { data: reporteData, error: reporteError } = await supabase
-        .from('reportes')
-        .insert({
-          usuario_id: user.id,
-          titulo: formData.title,
-          descripcion: formData.description,
-          categoria_id: parseInt(formData.category),
-          prioridad_id: parseInt(formData.priority),
-          estado_id: 1, // 1 = Pendiente
-          lat: formData.lat,
-          lon: formData.lon
-        })
-        .select()
-        .single()
+      // Crear el reporte usando la query
+      const reporteData = await crearReporte(supabase, {
+        usuarioId: user.id,
+        titulo: formData.title,
+        descripcion: formData.description,
+        categoriaId: parseInt(formData.category),
+        prioridadId: parseInt(formData.priority),
+        lat: formData.lat,
+        lon: formData.lon
+      })
 
-      if (reporteError) {
-        console.error("Error al crear el reporte:", reporteError)
-        alert("Error al crear el reporte. Por favor, intenta nuevamente.")
-        return
-      }
-
-      // Si hay una imagen, subirla al storage y guardar la URL
+      // Si hay una imagen, subirla usando la query
       if (formData.images.length > 0) {
         const image = formData.images[0]
-        const fileExt = image.name.split('.').pop()
-        const fileName = `${reporteData.id}_${Date.now()}.${fileExt}`
-        const filePath = `${fileName}`
-
-        // Subir imagen al bucket 'reportes'
-        const { error: uploadError } = await supabase.storage
-          .from('reportes')
-          .upload(filePath, image, {
-            cacheControl: '3600',
-            upsert: false
-          })
-
-        if (uploadError) {
-          console.error("Error al subir la imagen:", uploadError)
+        const result = await subirImagenReporte(supabase, reporteData.id, image)
+        
+        if (!result) {
           // El reporte ya fue creado, solo notificar del error de la imagen
           alert("Reporte creado, pero hubo un error al subir la imagen.")
-        } else {
-          // Obtener URL pública de la imagen
-          const { data: { publicUrl } } = supabase.storage
-            .from('reportes')
-            .getPublicUrl(filePath)
-
-          // Guardar la foto en la tabla fotos_reporte
-          const { error: fotoError } = await supabase
-            .from('fotos_reporte')
-            .insert({
-              reporte_id: reporteData.id,
-              url: publicUrl
-            })
-
-          if (fotoError) {
-            console.error("Error al guardar la URL de la foto:", fotoError)
-          }
         }
       }
 
@@ -209,7 +155,7 @@ export default function NuevoReportePage() {
       
     } catch (error) {
       console.error("Error inesperado:", error)
-      alert("Ocurrió un error inesperado. Por favor, intenta nuevamente.")
+      alert("Error al crear el reporte. Por favor, intenta nuevamente.")
     } finally {
       setLoading(false)
     }
