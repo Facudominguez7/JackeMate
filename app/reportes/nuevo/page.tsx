@@ -291,23 +291,24 @@ export default function NuevoReportePage() {
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <Camera className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Sube una foto del problema</p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG hasta 10MB (máximo 1 imagen)</p>
+                      <p className="text-sm font-medium">Toma una foto del problema</p>
+                      <p className="text-xs text-muted-foreground">Usa tu cámara para capturar la imagen en el momento</p>
                     </div>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" asChild>
                         <label htmlFor="images" className="cursor-pointer">
                           <Camera className="w-4 h-4 mr-2" />
-                          Seleccionar Foto
+                          Tomar Foto
                         </label>
                       </Button>
                       <input
                         id="images"
                         type="file"
                         accept="image/*"
+                        capture="environment"
                         onChange={handleImageUpload}
                         className="hidden"
                       />
