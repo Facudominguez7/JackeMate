@@ -11,6 +11,7 @@
 
 import dynamic from "next/dynamic"
 import type { LeafletMapProps } from "@/components/leaflet-map"
+import { getPriorityColor } from "@/components/report-card"
 
 /**
  * Interfaz que representa un reporte con sus datos para visualizar en el mapa
@@ -72,15 +73,24 @@ export function MapContainer({ reports, showLegend = true }: MapContainerProps) 
           <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3">Leyenda</h4>
           <div className="space-y-1.5 md:space-y-2">
             <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs">
-              <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500 flex-shrink-0"></div>
-              <span>Alta / Urgente</span>
+              <div 
+                className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 ring-1 ring-black/10" 
+                style={{ backgroundColor: getPriorityColor("Alta") }}
+              ></div>
+              <span>Alta</span>
             </div>
             <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs">
-              <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-amber-500 flex-shrink-0"></div>
+              <div 
+                className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 ring-1 ring-black/10" 
+                style={{ backgroundColor: getPriorityColor("Media") }}
+              ></div>
               <span>Media</span>
             </div>
             <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs">
-              <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-emerald-500 flex-shrink-0"></div>
+              <div 
+                className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 ring-1 ring-black/10" 
+                style={{ backgroundColor: getPriorityColor("Baja") }}
+              ></div>
               <span>Baja</span>
             </div>
           </div>

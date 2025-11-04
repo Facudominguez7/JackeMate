@@ -19,6 +19,7 @@ import {
 } from "react-leaflet"
 import L from "leaflet"
 import "leaflet.markercluster"
+import { getPriorityColor, getStatusColor, getCategoryColor } from "@/components/report-card"
 
 /**
  * Interfaz que representa un reporte para mostrar en el mapa
@@ -119,12 +120,15 @@ const escapeHtml = (text: string): string => {
  */
 const createPopupContent = (
   report: Report,
-  statusColor: string
+  statusColor: string,
+  priorityColor: string,
+  categoryColor: string
 ): string => {
   const safeTitle = escapeHtml(report.title)
   const safeLocation = escapeHtml(report.location)
   const safeDescription = escapeHtml(report.description)
   const safeCategory = escapeHtml(report.category)
+  const safePriority = escapeHtml(report.priority)
   const safeStatus = escapeHtml(report.status)
   const safeAuthor = escapeHtml(report.author)
   const safeImage = report.image ? escapeHtml(report.image) : null
@@ -158,7 +162,7 @@ const createPopupContent = (
 
       <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
         <span style="
-          background-color: ${statusColor}20;
+          background-color: ${statusColor}15;
           color: ${statusColor};
           padding: 2px 8px;
           border-radius: 12px;
@@ -169,15 +173,26 @@ const createPopupContent = (
           ${safeStatus}
         </span>
         <span style="
-          background-color: #f3f4f6;
-          color: #374151;
+          background-color: ${categoryColor}15;
+          color: ${categoryColor};
           padding: 2px 8px;
           border-radius: 12px;
           font-size: 11px;
           font-weight: 500;
-          border: 1px solid #d1d5db;
+          border: 1px solid ${categoryColor}40;
         ">
           ${safeCategory}
+        </span>
+        <span style="
+          background-color: ${priorityColor}15;
+          color: ${priorityColor};
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          border: 1px solid ${priorityColor}40;
+        ">
+          ${safePriority}
         </span>
       </div>
 
@@ -197,15 +212,21 @@ const createPopupContent = (
  * @param reports - Lista de reportes que se representarán como marcadores
  * @param getIcon - Función que recibe la prioridad del reporte y devuelve el `L.DivIcon` correspondiente
  * @param getStatusColor - Función que recibe el estado del reporte y devuelve el color (hex) usado en el contenido del popup
+ * @param getPriorityColor - Función que recibe la prioridad del reporte y devuelve el color (hex) usado en el contenido del popup
+ * @param getCategoryColor - Función que devuelve el color (hex) usado para categorías en el contenido del popup
  */
 function MarkerClusterGroup({ 
   reports, 
   getIcon, 
-  getStatusColor 
+  getStatusColor,
+  getPriorityColor,
+  getCategoryColor
 }: { 
   reports: Report[]
   getIcon: (priority: string) => L.DivIcon
   getStatusColor: (status: string) => string
+  getPriorityColor: (priority: string) => string
+  getCategoryColor: () => string
 }) {
   const map = useMap()
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null)
@@ -246,7 +267,12 @@ function MarkerClusterGroup({
       })
 
       // Crear contenido del popup de forma segura
-      const popupContent = createPopupContent(report, getStatusColor(report.status))
+      const popupContent = createPopupContent(
+        report, 
+        getStatusColor(report.status),
+        getPriorityColor(report.priority),
+        getCategoryColor()
+      )
       marker.bindPopup(popupContent, { maxWidth: 300 })
       
       clusterGroup.addLayer(marker)
@@ -261,7 +287,7 @@ function MarkerClusterGroup({
         clusterGroupRef.current = null
       }
     }
-  }, [map, reports, getIcon, getStatusColor])
+  }, [map, reports, getIcon, getStatusColor, getPriorityColor, getCategoryColor])
 
   return null
 }
@@ -283,24 +309,6 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
   useEffect(() => {
     setMapKey(Date.now())
   }, [])
-
-  /**
-   * Obtiene el color para el estado del reporte
-   * @param status - Nombre del estado
-   * @returns Color hex correspondiente
-   */
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Resuelto":
-        return "#10b981"
-      case "En Progreso":
-        return "#3b82f6"
-      case "Reportado":
-        return "#f59e0b"
-      default:
-        return "#6b7280"
-    }
-  }
 
   /**
    * Genera iconos personalizados para los marcadores según la prioridad
@@ -339,13 +347,12 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
         iconAnchor: [12, 12],
       })
     
-    // Mapeo de prioridades a colores: Alta/Urgente=Rojo, Media=Amarillo, Baja=Verde
+    // Mapeo de prioridades a colores (usando los mismos colores que report-card.tsx)
     return new Map<string, L.DivIcon>([
-      ["Urgente", mk("#ef4444")],  // Rojo para urgente
-      ["Alta", mk("#ef4444")],     // Rojo para alta
-      ["Media", mk("#f59e0b")],    // Amarillo para media
-      ["Baja", mk("#10b981")],     // Verde para baja
-      ["default", mk("#6b7280")],  // Gris por defecto
+      ["Alta", mk(getPriorityColor("Alta"))],
+      ["Media", mk(getPriorityColor("Media"))],
+      ["Baja", mk(getPriorityColor("Baja"))],
+      ["default", mk("#6b7280")],
     ])
   }, [])
 
@@ -383,7 +390,9 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
       <MarkerClusterGroup 
         reports={reports} 
         getIcon={getIcon} 
-        getStatusColor={getStatusColor} 
+        getStatusColor={getStatusColor}
+        getPriorityColor={getPriorityColor}
+        getCategoryColor={getCategoryColor}
       />
     </RLMapContainer>
   )
