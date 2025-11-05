@@ -387,6 +387,52 @@ export default function ReporteDetallePage({
       
       // Mostrar mensaje de puntos ganados
       alert(`¡Comentario publicado! +${PUNTOS.COMENTAR_REPORTE} puntos`);
+
+      // Enviar notificación por correo al dueño del reporte (solo si no es el mismo usuario)
+      if (currentUser.id !== reporte.usuario_id) {
+        try {
+          // Primero obtener el email del dueño del reporte
+          const emailResponse = await fetch("/api/get-user-email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              userId: reporte.usuario_id,
+            }),
+          });
+
+          if (emailResponse.ok) {
+            const { email } = await emailResponse.json();
+
+            // Obtener el username del comentarista
+            const { data: commenterProfile } = await supabase
+              .from("profiles")
+              .select("username")
+              .eq("id", currentUser.id)
+              .single();
+
+            // Enviar la notificación
+            await fetch("/api/send-notification", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ownerEmail: email,
+                ownerUsername: getUsername(reporte.profiles),
+                commenterUsername: commenterProfile?.username || "Un usuario",
+                reporteId: reporte.id,
+                reporteTitulo: reporte.titulo,
+                comentarioContenido: nuevoComentario.trim(),
+              }),
+            });
+          }
+        } catch (notifError) {
+          // No fallar si la notificación no se envía, solo loguearlo
+          console.error("Error al enviar notificación por correo:", notifError);
+        }
+      }
     } catch (error) {
       console.error("Error:", error);
       alert("Error al procesar el comentario");
