@@ -24,9 +24,18 @@ import {
   Send,
   CheckCircle2,
   Clock,
+  Shield,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -49,6 +58,14 @@ import {
   getHistorialEstados,
   type Comentario,
 } from "@/database/queries/reportes/[id]/index";
+import { 
+  verificarEsAdmin, 
+  getEstados, 
+  cambiarEstadoReporteAdmin,
+  eliminarReporteAdmin,
+  eliminarComentarioAdmin,
+  type Estado
+} from "@/database/queries/admin/index";
 import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, getCategoryIcon } from "@/components/report-card";
 import { PUNTOS } from "@/database/queries/puntos";
 
@@ -130,6 +147,11 @@ export default function ReporteDetallePage({
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [fechaCambioEstado, setFechaCambioEstado] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [estados, setEstados] = useState<Estado[]>([]);
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState("");
+  const [comentarioEstado, setComentarioEstado] = useState("");
+  const [isChangingEstado, setIsChangingEstado] = useState(false);
   const supabase = createClient();
 
   // Verificar si el reporte está cerrado (Reparado o Rechazado)
@@ -146,6 +168,18 @@ export default function ReporteDetallePage({
           data: { user },
         } = await supabase.auth.getUser();
         setCurrentUser(user);
+
+        // Verificar si el usuario es admin
+        if (user) {
+          const { isAdmin: adminStatus } = await verificarEsAdmin(supabase, user.id);
+          setIsAdmin(adminStatus);
+
+          // Si es admin, cargar los estados disponibles
+          if (adminStatus) {
+            const { data: estadosData } = await getEstados(supabase);
+            setEstados(estadosData);
+          }
+        }
 
         // Obtener reporte
         const { data, error } = await getReporteDetalle(supabase, resolvedParams.id);
@@ -424,6 +458,102 @@ export default function ReporteDetallePage({
     }
   };
 
+  // ===== FUNCIONES DE ADMINISTRADOR =====
+  const handleAdminChangeEstado = async () => {
+    if (!currentUser || !reporte || !estadoSeleccionado) return;
+
+    const confirmChange = window.confirm(
+      `¿Estás seguro de que querés cambiar el estado de este reporte? Esta acción quedará registrada en el historial.`
+    );
+
+    if (!confirmChange) return;
+
+    setIsChangingEstado(true);
+    try {
+      const { success, error } = await cambiarEstadoReporteAdmin(
+        supabase,
+        reporte.id,
+        parseInt(estadoSeleccionado),
+        currentUser.id,
+        comentarioEstado.trim() || undefined
+      );
+
+      if (!success || error) {
+        alert("Error al cambiar el estado del reporte");
+        return;
+      }
+
+      alert("Estado actualizado exitosamente");
+      // Recargar la página para mostrar los cambios
+      window.location.reload();
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al procesar el cambio de estado");
+    } finally {
+      setIsChangingEstado(false);
+    }
+  };
+
+  const handleAdminDeleteReporte = async () => {
+    if (!currentUser || !reporte) return;
+
+    const confirmDelete = window.confirm(
+      "¿Estás seguro de que querés eliminar este reporte como administrador? Esta acción no se puede deshacer."
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const { success } = await eliminarReporteAdmin(
+        supabase,
+        reporte.id,
+        currentUser.id
+      );
+
+      if (!success) {
+        alert("Error al eliminar el reporte. Por favor, intenta nuevamente.");
+        return;
+      }
+
+      alert("Reporte eliminado exitosamente por el administrador");
+      // Redirigir al dashboard
+      window.location.href = "/reportes";
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al procesar la eliminación");
+    }
+  };
+
+  const handleAdminDeleteComment = async (comentarioId: number) => {
+    if (!currentUser) return;
+
+    const confirmDelete = window.confirm(
+      "¿Estás seguro de que querés eliminar este comentario como administrador?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const { success } = await eliminarComentarioAdmin(
+        supabase,
+        comentarioId,
+        currentUser.id
+      );
+
+      if (!success) {
+        alert("Error al eliminar el comentario");
+        return;
+      }
+
+      // Actualizar lista de comentarios (filtrar el eliminado)
+      setComentarios(comentarios.filter((c) => c.id !== comentarioId));
+      alert("Comentario eliminado por el administrador");
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al procesar la eliminación");
+    }
+  };
+
   const getComentarioUsername = (profiles: any): string => {
     if (!profiles) return "Usuario";
     if (Array.isArray(profiles) && profiles.length > 0)
@@ -467,8 +597,14 @@ export default function ReporteDetallePage({
             </Link>
           </Button>
           
-          {/* Botones de acción rápida en desktop */}
+          {/* Badge de Admin y Botones de acción rápida en desktop */}
           <div className="hidden lg:flex items-center gap-2">
+            {isAdmin && (
+              <Badge variant="default" className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Shield className="w-3 h-3 mr-1" />
+                Administrador
+              </Badge>
+            )}
             <Button variant="outline" size="sm">
               <Share2 className="w-4 h-4 mr-2" />
               Compartir
@@ -683,19 +819,26 @@ export default function ReporteDetallePage({
                               </p>
                             </div>
                           </div>
-                          {currentUser &&
-                            currentUser.id === comentario.usuario_id && (
+                          {(currentUser &&
+                            currentUser.id === comentario.usuario_id) || isAdmin ? (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() =>
-                                  handleDeleteComment(comentario.id)
+                                  isAdmin && currentUser.id !== comentario.usuario_id
+                                    ? handleAdminDeleteComment(comentario.id)
+                                    : handleDeleteComment(comentario.id)
                                 }
                                 className="h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                title={
+                                  isAdmin && currentUser.id !== comentario.usuario_id
+                                    ? "Eliminar comentario (Admin)"
+                                    : "Eliminar comentario"
+                                }
                               >
                                 <Trash2 className="w-3 h-3 md:w-4 md:h-4 lg:w-4.5 lg:h-4.5" />
                               </Button>
-                            )}
+                            ) : null}
                         </div>
                         <p className="text-xs md:text-sm lg:text-base text-foreground leading-relaxed pl-9 md:pl-11 lg:pl-14">
                           {comentario.contenido}
@@ -710,6 +853,71 @@ export default function ReporteDetallePage({
 
           {/* Barra Lateral */}
           <div className="lg:col-span-4 space-y-4 md:space-y-6">
+            
+            {/* Panel de Administrador - Solo visible para admins */}
+            {isAdmin && (
+              <Card className="border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/20 lg:shadow-md">
+                <CardHeader className="pb-3 md:pb-4 lg:pb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-5 h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
+                    <CardTitle className="text-base md:text-lg lg:text-xl text-purple-700 dark:text-purple-400">
+                      Panel de Administrador
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="text-xs md:text-sm">
+                    Controles exclusivos para gestionar este reporte
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-0">
+                  {/* Cambiar Estado */}
+                  <div className="space-y-2">
+                    <label className="text-xs md:text-sm font-medium text-foreground">
+                      Cambiar Estado
+                    </label>
+                    <Select value={estadoSeleccionado} onValueChange={setEstadoSeleccionado}>
+                      <SelectTrigger className="w-full text-xs md:text-sm">
+                        <SelectValue placeholder="Seleccionar estado..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {estados.map((estado) => (
+                          <SelectItem key={estado.id} value={estado.id.toString()}>
+                            {estado.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Textarea
+                      placeholder="Descripción del cambio (opcional)"
+                      value={comentarioEstado}
+                      onChange={(e) => setComentarioEstado(e.target.value)}
+                      className="min-h-[60px] text-xs md:text-sm resize-none"
+                    />
+                    <Button
+                      onClick={handleAdminChangeEstado}
+                      disabled={!estadoSeleccionado || isChangingEstado}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm"
+                      size="sm"
+                    >
+                      <Settings className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
+                      {isChangingEstado ? "Actualizando..." : "Actualizar Estado"}
+                    </Button>
+                  </div>
+
+                  {/* Eliminar Reporte */}
+                  <div className="pt-3 border-t border-purple-200 dark:border-purple-900">
+                    <Button
+                      onClick={handleAdminDeleteReporte}
+                      variant="outline"
+                      className="w-full text-xs md:text-sm text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                      size="sm"
+                    >
+                      <Trash2 className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
+                      Eliminar Reporte (Admin)
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             
             {/* Botón "Marcar como Reparado" - Solo si está PENDIENTE */}
             {currentUser && !isReporteCerrado && (
