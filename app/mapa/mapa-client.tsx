@@ -20,6 +20,7 @@ import dynamic from "next/dynamic"
 import { FiltrosReportes } from "@/components/filtros-reportes"
 import type { ReporteDB } from "@/database/queries/reportes/get-reportes"
 import { getPriorityColor, getStatusColor, getCategoryColor } from "@/components/report-card"
+import { LoadingLogo } from "@/components/loading-logo"
 
 /**
  * Importar el mapa solo en el cliente para evitar "window is not defined"
@@ -30,8 +31,8 @@ const MapContainer = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
-        Cargando mapa…
+      <div className="w-full h-full flex items-center justify-center">
+        <LoadingLogo size="md" text="Cargando mapa..." />
       </div>
     ),
   }
