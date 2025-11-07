@@ -12,6 +12,7 @@
 import dynamic from "next/dynamic"
 import type { LeafletMapProps } from "@/components/leaflet-map"
 import { getPriorityColor } from "@/components/report-card"
+import { LoadingLogo } from "@/components/loading-logo"
 
 /**
  * Interfaz que representa un reporte con sus datos para visualizar en el mapa
@@ -47,8 +48,8 @@ const LeafletMap = dynamic<LeafletMapProps>(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
-        Cargando mapa…
+      <div className="w-full h-full flex items-center justify-center">
+        <LoadingLogo size="md" />
       </div>
     ),
   }

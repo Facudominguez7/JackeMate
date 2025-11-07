@@ -8,6 +8,7 @@ import { Plus, Calendar, Trophy, Star, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { ReportCard } from "@/components/report-card"
 import { getPuntosUsuario } from "@/database/queries/puntos"
+import { LoadingLogo } from "@/components/loading-logo"
 
 type UserReport = {
   id: number
@@ -107,9 +108,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Cargando...</p>
-        </div>
+        <LoadingLogo size="lg" text="Cargando dashboard..." />
       </div>
     )
   }

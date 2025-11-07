@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Upload, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
 import { sumarPuntos, PUNTOS } from "@/database/queries/puntos"
+import { LoadingLogo } from "@/components/loading-logo"
 import { 
   getCategorias, 
   getPrioridades, 
@@ -165,9 +166,7 @@ export default function NuevoReportePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Cargando...</p>
-        </div>
+        <LoadingLogo size="lg" text="Preparando formulario..." />
       </div>
     )
   }

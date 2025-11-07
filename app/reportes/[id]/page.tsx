@@ -31,6 +31,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import dynamic from "next/dynamic";
+import { LoadingLogo } from "@/components/loading-logo";
 import {
   getReporteDetalle,
   getVotosNoExiste,
@@ -62,9 +63,7 @@ const MiniMap = dynamic(() => import("@/components/mini-map").then((m) => m.Mini
   ssr: false,
   loading: () => (
     <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground">Cargando mapa…</p>
-      </div>
+      <LoadingLogo size="sm" />
     </div>
   ),
 });
@@ -289,7 +288,7 @@ export default function ReporteDetallePage({
       alert(`¡Voto registrado! +${PUNTOS.VOTAR_REPARADO} punto`);
 
       // Si llega a 5 votos, cambiar estado a Reparado
-      if (newVotosReparadoCount >= 1) {
+      if (newVotosReparadoCount >= 5) {
         const { estadoId } = await getEstadoReparadoId(supabase);
 
         if (estadoId) {
@@ -467,9 +466,7 @@ export default function ReporteDetallePage({
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Cargando...</p>
-        </div>
+        <LoadingLogo size="lg" text="Cargando reporte..." />
       </div>
     );
   }
