@@ -10,10 +10,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { MapPin, Upload, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
 import { sumarPuntos, PUNTOS } from "@/database/queries/puntos"
 import { LoadingLogo } from "@/components/loading-logo"
+import { toast } from "sonner"
 import { 
   getCategorias, 
   getPrioridades, 
@@ -38,6 +49,8 @@ export default function NuevoReportePage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [geoStatus, setGeoStatus] = useState<"pending" | "ok" | "error">("pending")
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const supabase = createClient()
   
@@ -115,9 +128,13 @@ export default function NuevoReportePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+    // Mostrar el diálogo de confirmación
+    setShowConfirmDialog(true)
+  }
+
+  const confirmSubmit = async () => {
     try {
-      setLoading(true)
+      setIsSubmitting(true)
 
       // Crear el reporte usando la query
       const reporteData = await crearReporte(supabase, {
@@ -137,7 +154,9 @@ export default function NuevoReportePage() {
         
         if (!result) {
           // El reporte ya fue creado, solo notificar del error de la imagen
-          alert("Reporte creado, pero hubo un error al subir la imagen.")
+          toast.warning("Reporte creado, pero hubo un error al subir la imagen.", {
+            description: "El reporte se creó correctamente pero sin imagen"
+          })
         }
       }
 
@@ -149,16 +168,23 @@ export default function NuevoReportePage() {
         "Crear nuevo reporte"
       );
 
-      alert(`¡Reporte creado exitosamente! +${PUNTOS.CREAR_REPORTE} puntos`)
+      toast.success(`¡Reporte creado exitosamente! +${PUNTOS.CREAR_REPORTE} puntos`, {
+        description: "Redirigiendo a la lista de reportes..."
+      })
       
       // Redirigir a la página de reportes
-      window.location.href = "/reportes"
+      setTimeout(() => {
+        window.location.href = "/reportes"
+      }, 1500)
       
     } catch (error) {
       console.error("Error inesperado:", error)
-      alert("Error al crear el reporte. Por favor, intenta nuevamente.")
+      toast.error("Error al crear el reporte", {
+        description: "Por favor, intenta nuevamente."
+      })
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
+      setShowConfirmDialog(false)
     }
   }
 
@@ -342,11 +368,11 @@ export default function NuevoReportePage() {
 
               {/* Submit Button */}
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1" disabled={geoStatus !== "ok" || loading}>
+                <Button type="submit" className="flex-1" disabled={geoStatus !== "ok" || loading || isSubmitting}>
                   <Send className="w-4 h-4 mr-2" />
-                  {loading ? "Enviando..." : "Enviar Reporte"}
+                  {isSubmitting ? "Enviando..." : "Enviar Reporte"}
                 </Button>
-                <Button type="button" variant="outline" asChild disabled={loading}>
+                <Button type="button" variant="outline" asChild disabled={loading || isSubmitting}>
                   <Link href="/reportes">Cancelar</Link>
                 </Button>
               </div>
@@ -354,6 +380,59 @@ export default function NuevoReportePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Alert Dialog de Confirmación */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar envío del reporte?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por crear un nuevo reporte con la siguiente información:</p>
+                <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
+                  <div>
+                    <span className="font-semibold">Título:</span> {formData.title}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Categoría:</span>{" "}
+                    {categorias.find(c => c.id === parseInt(formData.category))?.nombre}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Prioridad:</span>{" "}
+                    {prioridades.find(p => p.id === parseInt(formData.priority))?.nombre}
+                  </div>
+                  {formData.images.length > 0 && (
+                    <div>
+                      <span className="font-semibold">Imagen:</span> Sí
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Al confirmar, ganarás <span className="font-bold text-primary">{PUNTOS.CREAR_REPORTE} puntos</span> por crear este reporte.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Confirmar y Enviar
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

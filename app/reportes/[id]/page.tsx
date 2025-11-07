@@ -13,6 +13,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   MapPin,
   ArrowLeft,
   Calendar,
@@ -32,6 +42,7 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import dynamic from "next/dynamic";
 import { LoadingLogo } from "@/components/loading-logo";
+import { toast } from "sonner";
 import {
   getReporteDetalle,
   getVotosNoExiste,
@@ -123,6 +134,15 @@ export default function ReporteDetallePage({
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [fechaCambioEstado, setFechaCambioEstado] = useState<string | null>(null);
+  
+  // Estados para controlar los AlertDialogs
+  const [showDeleteReporteDialog, setShowDeleteReporteDialog] = useState(false);
+  const [showVoteNoExisteDialog, setShowVoteNoExisteDialog] = useState(false);
+  const [showVoteReparadoDialog, setShowVoteReparadoDialog] = useState(false);
+  const [showPublishCommentDialog, setShowPublishCommentDialog] = useState(false);
+  const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false);
+  const [comentarioToDelete, setComentarioToDelete] = useState<number | null>(null);
+  
   const supabase = createClient();
 
   // IDs de estados según la base de datos: 1 = Pendiente, 2 = Reparado, 3 = Rechazado
@@ -211,6 +231,11 @@ export default function ReporteDetallePage({
 
   const handleVoteNoExiste = async () => {
     if (!currentUser || !reporte) return;
+    setShowVoteNoExisteDialog(true);
+  };
+
+  const confirmVoteNoExiste = async () => {
+    if (!currentUser || !reporte) return;
 
     setIsVoting(true);
     try {
@@ -222,7 +247,7 @@ export default function ReporteDetallePage({
       );
 
       if (!success || error) {
-        alert("Error al registrar el voto");
+        toast.error("Error al registrar el voto");
         return;
       }
 
@@ -232,7 +257,9 @@ export default function ReporteDetallePage({
       setHasVoted(true);
 
       // Mostrar mensaje de puntos ganados
-      alert(`¡Voto registrado! +${PUNTOS.VOTAR_NO_EXISTE} punto`);
+      toast.success(`¡Voto registrado! +${PUNTOS.VOTAR_NO_EXISTE} punto`, {
+        description: "Tu voto ha sido contabilizado correctamente"
+      });
 
       // Si llega a 5 votos, cambiar estado a Rechazado
       if (newVotosCount >= 5 ) {
@@ -251,18 +278,29 @@ export default function ReporteDetallePage({
             "Rechazado automáticamente por 5 votos de 'No Existe'"
           );
           // Recargar página para mostrar el nuevo estado
-          window.location.reload();
+          toast.success("¡Reporte rechazado automáticamente!", {
+            description: "Se alcanzaron 5 votos. Redirigiendo..."
+          });
+          setTimeout(() => window.location.reload(), 1500);
         }
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar el voto");
+      toast.error("Error al procesar el voto", {
+        description: "Por favor, intenta nuevamente"
+      });
     } finally {
       setIsVoting(false);
+      setShowVoteNoExisteDialog(false);
     }
   };
 
   const handleVoteReparado = async () => {
+    if (!currentUser || !reporte) return;
+    setShowVoteReparadoDialog(true);
+  };
+
+  const confirmVoteReparado = async () => {
     if (!currentUser || !reporte) return;
 
     setIsVotingReparado(true);
@@ -275,7 +313,7 @@ export default function ReporteDetallePage({
       );
 
       if (!success || error) {
-        alert("Error al registrar el voto");
+        toast.error("Error al registrar el voto");
         return;
       }
 
@@ -285,7 +323,9 @@ export default function ReporteDetallePage({
       setHasVotedReparado(true);
 
       // Mostrar mensaje de puntos ganados
-      alert(`¡Voto registrado! +${PUNTOS.VOTAR_REPARADO} punto`);
+      toast.success(`¡Voto registrado! +${PUNTOS.VOTAR_REPARADO} punto`, {
+        description: "Gracias por mantener la información actualizada"
+      });
 
       // Si llega a 5 votos, cambiar estado a Reparado
       if (newVotosReparadoCount >= 5) {
@@ -304,26 +344,30 @@ export default function ReporteDetallePage({
             "Marcado como reparado por 5 votos de usuarios"
           );
           // Recargar página para mostrar el nuevo estado
-          window.location.reload();
+          toast.success("¡Reporte marcado como reparado!", {
+            description: "Se alcanzaron 5 votos. Redirigiendo..."
+          });
+          setTimeout(() => window.location.reload(), 1500);
         }
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar el voto");
+      toast.error("Error al procesar el voto", {
+        description: "Por favor, intenta nuevamente"
+      });
     } finally {
       setIsVotingReparado(false);
+      setShowVoteReparadoDialog(false);
     }
   };
 
   const handleDeleteReporte = async () => {
     if (!currentUser || !reporte) return;
+    setShowDeleteReporteDialog(true);
+  };
 
-    // Confirmar antes de borrar
-    const confirmDelete = window.confirm(
-      "¿Estás seguro de que querés eliminar este reporte? Esta acción no se puede deshacer."
-    );
-
-    if (!confirmDelete) return;
+  const confirmDeleteReporte = async () => {
+    if (!currentUser || !reporte) return;
 
     setIsDeleting(true);
     try {
@@ -334,18 +378,27 @@ export default function ReporteDetallePage({
       );
 
       if (!success) {
-        alert("Error al eliminar el reporte. Por favor, intenta nuevamente.");
+        toast.error("Error al eliminar el reporte", {
+          description: "Por favor, intenta nuevamente."
+        });
         return;
       }
 
-      alert(`Reporte eliminado exitosamente. ${PUNTOS.ELIMINAR_REPORTE_PROPIO} puntos`);
+      toast.success(`Reporte eliminado exitosamente`, {
+        description: `${PUNTOS.ELIMINAR_REPORTE_PROPIO} puntos. Redirigiendo al dashboard...`
+      });
       // Redirigir al dashboard
-      window.location.href = "/dashboard";
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar la eliminación");
+      toast.error("Error al procesar la eliminación", {
+        description: "Por favor, intenta nuevamente"
+      });
     } finally {
       setIsDeleting(false);
+      setShowDeleteReporteDialog(false);
     }
   };
 
@@ -354,12 +407,11 @@ export default function ReporteDetallePage({
 
     if (!currentUser || !reporte || !nuevoComentario.trim()) return;
 
-    // Confirmar antes de publicar
-    const confirmPublish = window.confirm(
-      "¿Estás seguro de que querés publicar este comentario?"
-    );
+    setShowPublishCommentDialog(true);
+  };
 
-    if (!confirmPublish) return;
+  const confirmPublishComment = async () => {
+    if (!currentUser || !reporte || !nuevoComentario.trim()) return;
 
     setIsSubmittingComment(true);
     try {
@@ -371,7 +423,9 @@ export default function ReporteDetallePage({
       );
 
       if (error || !data) {
-        alert("Error al publicar el comentario");
+        toast.error("Error al publicar el comentario", {
+          description: "Por favor, intenta nuevamente"
+        });
         return;
       }
 
@@ -379,7 +433,9 @@ export default function ReporteDetallePage({
       setNuevoComentario("");
       
       // Mostrar mensaje de puntos ganados
-      alert(`¡Comentario publicado! +${PUNTOS.COMENTAR_REPORTE} puntos`);
+      toast.success(`¡Comentario publicado! +${PUNTOS.COMENTAR_REPORTE} puntos`, {
+        description: "Tu comentario ha sido agregado correctamente"
+      });
 
       // Enviar notificación por correo al dueño del reporte (solo si no es el mismo usuario)
       if (currentUser.id !== reporte.usuario_id) {
@@ -420,38 +476,51 @@ export default function ReporteDetallePage({
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar el comentario");
+      toast.error("Error al procesar el comentario", {
+        description: "Por favor, intenta nuevamente"
+      });
     } finally {
       setIsSubmittingComment(false);
+      setShowPublishCommentDialog(false);
     }
   };
 
   const handleDeleteComment = async (comentarioId: number) => {
     if (!currentUser) return;
+    setComentarioToDelete(comentarioId);
+    setShowDeleteCommentDialog(true);
+  };
 
-    const confirmDelete = window.confirm(
-      "¿Estás seguro de que querés eliminar este comentario?"
-    );
-
-    if (!confirmDelete) return;
+  const confirmDeleteComment = async () => {
+    if (!currentUser || comentarioToDelete === null) return;
 
     try {
       const { success } = await eliminarComentario(
         supabase,
-        comentarioId,
+        comentarioToDelete,
         currentUser.id
       );
 
       if (!success) {
-        alert("Error al eliminar el comentario");
+        toast.error("Error al eliminar el comentario", {
+          description: "Por favor, intenta nuevamente"
+        });
         return;
       }
 
       // Actualizar lista de comentarios (filtrar el eliminado)
-      setComentarios(comentarios.filter((c) => c.id !== comentarioId));
+      setComentarios(comentarios.filter((c) => c.id !== comentarioToDelete));
+      toast.success("Comentario eliminado", {
+        description: "El comentario ha sido eliminado correctamente"
+      });
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar la eliminación");
+      toast.error("Error al procesar la eliminación", {
+        description: "Por favor, intenta nuevamente"
+      });
+    } finally {
+      setComentarioToDelete(null);
+      setShowDeleteCommentDialog(false);
     }
   };
 
@@ -879,6 +948,214 @@ export default function ReporteDetallePage({
           </div>
         </div>
       </div>
+
+      {/* AlertDialog - Eliminar Reporte */}
+      <AlertDialog open={showDeleteReporteDialog} onOpenChange={setShowDeleteReporteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este reporte?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por eliminar permanentemente este reporte:</p>
+                <div className="bg-muted p-4 rounded-lg space-y-2">
+                  <p className="font-semibold text-foreground">{reporte?.titulo}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{reporte?.descripcion}</p>
+                </div>
+                <p className="text-sm text-destructive font-medium">
+                  ⚠️ Esta acción no se puede deshacer
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Perderás <span className="font-bold text-destructive">{PUNTOS.ELIMINAR_REPORTE_PROPIO} puntos</span> al eliminar este reporte.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteReporte}
+              disabled={isDeleting}
+              className="bg-destructive text-accent-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-destructive-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                  Eliminando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar Reporte
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Votar No Existe */}
+      <AlertDialog open={showVoteNoExisteDialog} onOpenChange={setShowVoteNoExisteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar voto "No Existe"?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por votar que este reporte NO existe o fue reportado por error:</p>
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="font-semibold text-foreground mb-1">{reporte?.titulo}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Votantes actuales: {votosCount} / 5
+                  </p>
+                </div>
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
+                  <p className="text-sm text-red-700 dark:text-red-400">
+                    ⚠️ Con 5 votos, el reporte será <span className="font-bold">rechazado automáticamente</span>
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ganarás <span className="font-bold text-primary">{PUNTOS.VOTAR_NO_EXISTE} punto</span> por votar.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isVoting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmVoteNoExiste}
+              disabled={isVoting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {isVoting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Votando...
+                </>
+              ) : (
+                <>
+                  <ThumbsDown className="w-4 h-4 mr-2" />
+                  Confirmar Voto
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Votar Reparado */}
+      <AlertDialog open={showVoteReparadoDialog} onOpenChange={setShowVoteReparadoDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar que está reparado?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por confirmar que este problema ya fue solucionado:</p>
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="font-semibold text-foreground mb-1">{reporte?.titulo}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Votantes actuales: {votosReparadoCount} / 5
+                  </p>
+                </div>
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-md p-3">
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    ✓ Con 5 votos, el reporte se marcará como <span className="font-bold">Reparado</span>
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ganarás <span className="font-bold text-primary">{PUNTOS.VOTAR_REPARADO} punto</span> por votar.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isVotingReparado}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmVoteReparado}
+              disabled={isVotingReparado}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              {isVotingReparado ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Votando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Confirmar Voto
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Publicar Comentario */}
+      <AlertDialog open={showPublishCommentDialog} onOpenChange={setShowPublishCommentDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Publicar comentario?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por publicar el siguiente comentario:</p>
+                <div className="bg-muted p-4 rounded-lg max-h-40 overflow-y-auto">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{nuevoComentario}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ganarás <span className="font-bold text-primary">{PUNTOS.COMENTAR_REPORTE} puntos</span> por comentar.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmittingComment}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPublishComment} disabled={isSubmittingComment}>
+              {isSubmittingComment ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                  Publicando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Publicar Comentario
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Eliminar Comentario */}
+      <AlertDialog open={showDeleteCommentDialog} onOpenChange={setShowDeleteCommentDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar comentario?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por eliminar este comentario:</p>
+                <div className="bg-muted p-4 rounded-lg max-h-40 overflow-y-auto">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {comentarios.find(c => c.id === comentarioToDelete)?.contenido}
+                  </p>
+                </div>
+                <p className="text-sm text-destructive">
+                  Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteComment}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
