@@ -104,7 +104,7 @@ export default function HomePage() {
           className="absolute inset-0 w-full h-full object-cover scale-105"
         >
           <source
-            src="/background_inicio/videoplaybackk.mp4#t=120"
+            src="/background_inicio/videoplaybackk.mp4#t=69"
             type="video/mp4"
           />
         </video>
