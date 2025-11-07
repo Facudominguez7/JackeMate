@@ -69,7 +69,6 @@ export async function POST(request: NextRequest) {
               <!-- Tarjeta del reporte -->
               <div style="background: ${estadoColorLight}; padding: 24px; border-left: 5px solid ${estadoColor}; margin: 25px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);">
                 <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                  <span style="font-size: 32px; margin-right: 12px;">${estadoEmoji}</span>
                   <h3 style="margin: 0; color: ${estadoColor}; font-size: 18px; font-weight: 600;">${reporteTitulo}</h3>
                 </div>
                 

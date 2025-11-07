@@ -103,14 +103,6 @@ const getUserInitials = (username: string) => {
   return username.substring(0, 2).toUpperCase();
 };
 
-/**
- * Componente de página que muestra el detalle interactivo de un reporte, incluyendo metadata, mapa, votaciones ("No Existe" y "Reparado"), comentarios y acciones del usuario.
- *
- * Carga datos del reporte y del usuario, gestiona el estado local (votos, comentarios, cargas y operaciones como eliminar o actualizar estado) y renderiza la interfaz completa para ver y actuar sobre el reporte.
- *
- * @param params - Promise que resuelve los parámetros de ruta; debe contener `{ id: string }` con el identificador del reporte a mostrar.
- * @returns El elemento React que representa la vista detallada del reporte.
- */
 export default function ReporteDetallePage({
   params,
 }: {
@@ -243,7 +235,7 @@ export default function ReporteDetallePage({
       alert(`¡Voto registrado! +${PUNTOS.VOTAR_NO_EXISTE} punto`);
 
       // Si llega a 5 votos, cambiar estado a Rechazado
-      if (newVotosCount >= 5) {
+      if (newVotosCount >= 5 ) {
         const { estadoId } = await getEstadoRechazadoId(supabase);
 
         if (estadoId) {

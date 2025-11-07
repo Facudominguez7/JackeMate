@@ -1,6 +1,10 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { sumarPuntos, actualizarPuntos, PUNTOS } from "@/database/queries/puntos";
 
+// ============================================
+// FUNCIONES DE VOTOS "NO EXISTE"
+// ============================================
+
 /**
  * Consulta el número de votos "no existe" asociados a un reporte.
  *
@@ -14,7 +18,7 @@ export async function getVotosNoExiste(supabase: SupabaseClient, reporteId: stri
     .eq("reporte_id", reporteId);
 
   if (error) {
-    console.error("Error al obtener votos:", error);
+    console.error("Error al obtener votos no existe:", error);
     return { count: 0, error };
   }
 
@@ -41,7 +45,7 @@ export async function verificarVotoUsuario(
     .maybeSingle();
 
   if (error) {
-    console.error("Error al verificar voto:", error);
+    console.error("Error al verificar voto no existe:", error);
     return { hasVoted: false, error };
   }
 
@@ -66,7 +70,7 @@ export async function votarNoExiste(
   });
 
   if (error) {
-    console.error("Error al registrar voto:", error);
+    console.error("Error al registrar voto no existe:", error);
     return { success: false, error };
   }
 
@@ -81,6 +85,94 @@ export async function votarNoExiste(
   return { success: true, error: null };
 }
 
+// ============================================
+// FUNCIONES DE VOTOS "REPARADO"
+// ============================================
+
+/**
+ * Obtiene el número de votos "Reparado" para un reporte dado.
+ *
+ * @param reporteId - ID del reporte cuyo conteo de votos se desea obtener
+ * @returns `count` con el número de votos; `error` con el error ocurrido o `null` si no hubo error.
+ */
+export async function getVotosReparado(supabase: SupabaseClient, reporteId: string) {
+  const { count, error } = await supabase
+    .from("votos_reparado")
+    .select("*", { count: "exact", head: true })
+    .eq("reporte_id", reporteId);
+
+  if (error) {
+    console.error("Error al obtener votos reparado:", error);
+    return { count: 0, error };
+  }
+
+  return { count: count || 0, error: null };
+}
+
+/**
+ * Determina si un usuario ya ha votado "Reparado" en un reporte.
+ *
+ * @param reporteId - ID del reporte a comprobar
+ * @param usuarioId - ID del usuario que se consulta
+ * @returns Un objeto con `hasVoted`: `true` si existe un voto del usuario para el reporte, `false` en caso contrario; `error`: el error ocurrido o `null` si la operación fue exitosa.
+ */
+export async function verificarVotoReparadoUsuario(
+  supabase: SupabaseClient,
+  reporteId: string,
+  usuarioId: string
+) {
+  const { data, error } = await supabase
+    .from("votos_reparado")
+    .select("id")
+    .eq("reporte_id", reporteId)
+    .eq("usuario_id", usuarioId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error al verificar voto reparado:", error);
+    return { hasVoted: false, error };
+  }
+
+  return { hasVoted: !!data, error: null };
+}
+
+/**
+ * Registra un voto "Reparado" para un reporte por un usuario.
+ *
+ * @param reporteId - Id del reporte que recibe el voto
+ * @param usuarioId - Id del usuario que emite el voto
+ * @returns Objeto con `success` y `error`: `success` es `true` si el voto se insertó y se asignaron puntos al usuario, `false` en caso de error; `error` contiene el error ocurrido o `null`
+ */
+export async function votarReparado(
+  supabase: SupabaseClient,
+  reporteId: number,
+  usuarioId: string
+) {
+  const { error } = await supabase.from("votos_reparado").insert({
+    reporte_id: reporteId,
+    usuario_id: usuarioId,
+  });
+
+  if (error) {
+    console.error("Error al registrar voto reparado:", error);
+    return { success: false, error };
+  }
+
+  // Sumar puntos por votar
+  await sumarPuntos(
+    supabase,
+    usuarioId,
+    PUNTOS.VOTAR_REPARADO,
+    "Votar 'Reparado' en reporte"
+  );
+
+  return { success: true, error: null };
+}
+
+// ============================================
+// FUNCIONES DE ESTADOS
+// ============================================
+
 /**
  * Obtiene el ID del estado "Rechazado".
  * ID según base de datos: 3
@@ -90,6 +182,17 @@ export async function votarNoExiste(
 export async function getEstadoRechazadoId(supabase: SupabaseClient) {
   // ID fijo según la base de datos
   return { estadoId: 3, error: null };
+}
+
+/**
+ * Devuelve el identificador del estado "Reparado".
+ * ID según base de datos: 2
+ *
+ * @returns Un objeto con `estadoId` (siempre 2 para Reparado) y `error` (null)
+ */
+export async function getEstadoReparadoId(supabase: SupabaseClient) {
+  // ID fijo según la base de datos
+  return { estadoId: 2, error: null };
 }
 
 /**
