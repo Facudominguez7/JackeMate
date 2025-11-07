@@ -47,6 +47,7 @@ import {
   crearComentario,
   eliminarComentario,
   getHistorialEstados,
+  getUserEmail,
   type Comentario,
 } from "@/database/queries/reportes/[id]/index";
 import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, getCategoryIcon } from "@/components/report-card";
@@ -288,7 +289,7 @@ export default function ReporteDetallePage({
       alert(`¡Voto registrado! +${PUNTOS.VOTAR_REPARADO} punto`);
 
       // Si llega a 5 votos, cambiar estado a Reparado
-      if (newVotosReparadoCount >= 5) {
+      if (newVotosReparadoCount >= 1) {
         const { estadoId } = await getEstadoReparadoId(supabase);
 
         if (estadoId) {
@@ -384,20 +385,13 @@ export default function ReporteDetallePage({
       // Enviar notificación por correo al dueño del reporte (solo si no es el mismo usuario)
       if (currentUser.id !== reporte.usuario_id) {
         try {
-          // Primero obtener el email del dueño del reporte
-          const emailResponse = await fetch("/api/get-user-email", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              userId: reporte.usuario_id,
-            }),
-          });
+          // Obtener el email del dueño del reporte usando la query directa
+          const { data: ownerEmail } = await getUserEmail(
+            supabase,
+            reporte.usuario_id
+          );
 
-          if (emailResponse.ok) {
-            const { email } = await emailResponse.json();
-
+          if (ownerEmail) {
             // Obtener el username del comentarista usando la función de queries
             const { data: commenterUsername } = await getUserUsername(
               supabase,
@@ -411,7 +405,7 @@ export default function ReporteDetallePage({
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                ownerEmail: email,
+                ownerEmail: ownerEmail,
                 ownerUsername: getUsername(reporte.profiles),
                 commenterUsername: commenterUsername || "Un usuario",
                 reporteId: reporte.id,

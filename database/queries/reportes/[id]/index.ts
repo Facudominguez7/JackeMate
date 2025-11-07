@@ -4,3 +4,4 @@ export * from "./votos"; // Contiene todas las funciones de votación (No Existe
 export * from "./historial-estados";
 export * from "./delete-reporte";
 export * from "./comentarios";
+export * from "./get-owner-email";

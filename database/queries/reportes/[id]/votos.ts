@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { sumarPuntos, actualizarPuntos, PUNTOS } from "@/database/queries/puntos";
+import { getUserEmail } from "./get-owner-email";
 
 // ============================================
 // FUNCIONES DE VOTOS "NO EXISTE"
@@ -283,20 +284,10 @@ export async function actualizarEstadoReporte(
       // Determinar el nombre del estado para el correo
       const estadoNombre = estadoId === ESTADO_REPARADO ? "Reparado" : "Rechazado";
 
-      // Obtener el email del dueño del reporte
-      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/get-user-email`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: reporte.usuario_id,
-        }),
-      });
+      // Obtener el email del dueño del reporte usando la query directa
+      const { data: email } = await getUserEmail(supabase, reporte.usuario_id);
 
-      if (emailResponse.ok) {
-        const { email } = await emailResponse.json();
-
+      if (email) {
         const profiles: any = reporte.profiles;
         const username = Array.isArray(profiles) 
           ? profiles[0]?.username || "Usuario"
