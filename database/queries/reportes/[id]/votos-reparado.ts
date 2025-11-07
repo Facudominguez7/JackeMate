@@ -79,21 +79,12 @@ export async function votarReparado(
 }
 
 /**
- * Devuelve el identificador del estado llamado "Reparado".
+ * Devuelve el identificador del estado "Reparado".
+ * ID según base de datos: 2
  *
- * @returns Un objeto con `estadoId` —el id del estado "Reparado" o `null` si no existe— y `error` —el error ocurrido o `null` si la consulta tuvo éxito.
+ * @returns Un objeto con `estadoId` (siempre 2 para Reparado) y `error` (null)
  */
 export async function getEstadoReparadoId(supabase: SupabaseClient) {
-  const { data, error } = await supabase
-    .from("estados")
-    .select("id")
-    .eq("nombre", "Reparado")
-    .single();
-
-  if (error) {
-    console.error("Error al obtener estado reparado:", error);
-    return { estadoId: null, error };
-  }
-
-  return { estadoId: data?.id || null, error: null };
+  // ID fijo según la base de datos
+  return { estadoId: 2, error: null };
 }

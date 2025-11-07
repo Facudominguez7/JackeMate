@@ -82,23 +82,14 @@ export async function votarNoExiste(
 }
 
 /**
- * Obtiene el ID del estado llamado "Rechazado".
+ * Obtiene el ID del estado "Rechazado".
+ * ID según base de datos: 3
  *
- * @returns El objeto con `estadoId` (el ID si existe, `null` en caso contrario) y `error` (`null` si la consulta tuvo éxito)
+ * @returns El objeto con `estadoId` (siempre 3 para Rechazado) y `error` (null)
  */
 export async function getEstadoRechazadoId(supabase: SupabaseClient) {
-  const { data, error } = await supabase
-    .from("estados")
-    .select("id")
-    .eq("nombre", "Rechazado")
-    .single();
-
-  if (error) {
-    console.error("Error al obtener estado rechazado:", error);
-    return { estadoId: null, error };
-  }
-
-  return { estadoId: data?.id || null, error: null };
+  // ID fijo según la base de datos
+  return { estadoId: 3, error: null };
 }
 
 /**
@@ -119,10 +110,14 @@ export async function actualizarEstadoReporte(
   usuarioId?: string,
   comentario?: string
 ) {
-  // Obtener el reporte para saber quién es el creador
+  // Obtener el reporte completo con toda la información necesaria
   const { data: reporte, error: reporteError } = await supabase
     .from("reportes")
-    .select("usuario_id")
+    .select(`
+      usuario_id,
+      titulo,
+      profiles (username)
+    `)
     .eq("id", reporteId)
     .single();
 
@@ -142,17 +137,12 @@ export async function actualizarEstadoReporte(
     return { success: false, error };
   }
 
-  // Obtener el nombre del nuevo estado
-  const { data: estadoData } = await supabase
-    .from("estados")
-    .select("nombre")
-    .eq("id", estadoId)
-    .single();
+  // IDs de estados según la base de datos: 1 = Pendiente, 2 = Reparado, 3 = Rechazado
+  const ESTADO_REPARADO = 2;
+  const ESTADO_RECHAZADO = 3;
 
-  const estadoNombre = estadoData?.nombre?.toLowerCase();
-
-  // Aplicar puntos según el nuevo estado
-  if (estadoNombre === "rechazado" && reporte.usuario_id) {
+  // Aplicar puntos según el nuevo estado (usando IDs directos)
+  if (estadoId === ESTADO_RECHAZADO && reporte.usuario_id) {
     // Penalizar al creador si su reporte fue rechazado
     await actualizarPuntos(
       supabase,
@@ -160,7 +150,7 @@ export async function actualizarEstadoReporte(
       PUNTOS.REPORTE_RECHAZADO,
       "Reporte rechazado por votos"
     );
-  } else if (estadoNombre === "reparado" && reporte.usuario_id) {
+  } else if (estadoId === ESTADO_REPARADO && reporte.usuario_id) {
     // Bonus al creador si su reporte fue reparado
     await sumarPuntos(
       supabase,
@@ -182,6 +172,55 @@ export async function actualizarEstadoReporte(
   if (historialError) {
     console.error("Error al registrar historial:", historialError);
     // No retornamos error aquí porque el estado sí se actualizó
+  }
+
+  // Enviar notificación por correo si el estado cambió a Reparado (2) o Rechazado (3)
+  if ((estadoId === ESTADO_REPARADO || estadoId === ESTADO_RECHAZADO) && reporte.usuario_id) {
+    try {
+      // Determinar el nombre del estado para el correo
+      const estadoNombre = estadoId === ESTADO_REPARADO ? "Reparado" : "Rechazado";
+
+      // Obtener el email del dueño del reporte
+      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/get-user-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: reporte.usuario_id,
+        }),
+      });
+
+      if (emailResponse.ok) {
+        const { email } = await emailResponse.json();
+
+        const profiles: any = reporte.profiles;
+        const username = Array.isArray(profiles) 
+          ? profiles[0]?.username || "Usuario"
+          : profiles?.username || "Usuario";
+
+        // Enviar la notificación de cambio de estado
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/send-status-notification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ownerEmail: email,
+            ownerUsername: username,
+            reporteId: reporteId,
+            reporteTitulo: reporte.titulo,
+            nuevoEstado: estadoNombre,
+            comentario: comentario || null,
+          }),
+        });
+
+        console.log(`Notificación de cambio de estado enviada para reporte ${reporteId}`);
+      }
+    } catch (notifError) {
+      // No fallar si la notificación no se envía, solo loguearlo
+      console.error("Error al enviar notificación de cambio de estado:", notifError);
+    }
   }
 
   return { success: true, error: null };

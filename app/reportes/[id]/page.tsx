@@ -51,6 +51,7 @@ import {
 } from "@/database/queries/reportes/[id]/index";
 import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, getCategoryIcon } from "@/components/report-card";
 import { PUNTOS } from "@/database/queries/puntos";
+import { getUserUsername } from "@/database/queries/profiles";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -132,10 +133,14 @@ export default function ReporteDetallePage({
   const [fechaCambioEstado, setFechaCambioEstado] = useState<string | null>(null);
   const supabase = createClient();
 
-  // Verificar si el reporte está cerrado (Reparado o Rechazado)
+  // IDs de estados según la base de datos: 1 = Pendiente, 2 = Reparado, 3 = Rechazado
+  const ESTADO_REPARADO = 2;
+  const ESTADO_RECHAZADO = 3;
+
+  // Verificar si el reporte está cerrado (Reparado o Rechazado) usando IDs
   const isReporteCerrado = reporte && (
-    getNombre(reporte.estados).toLowerCase() === 'reparado' || 
-    getNombre(reporte.estados).toLowerCase() === 'rechazado'
+    reporte.estado_id === ESTADO_REPARADO || 
+    reporte.estado_id === ESTADO_RECHAZADO
   );
 
   useEffect(() => {
@@ -186,24 +191,20 @@ export default function ReporteDetallePage({
         );
         setComentarios(comentariosData);
 
-        // Obtener historial de estados para encontrar cuándo cambió a Reparado o Rechazado
-        if (data) {
-          const estadoActual = getNombre(data.estados).toLowerCase();
-          if (estadoActual === 'reparado' || estadoActual === 'rechazado') {
-            const { data: historial } = await getHistorialEstados(
-              supabase,
-              resolvedParams.id
-            );
-            
-            // Buscar el registro donde cambió a Reparado o Rechazado
-            const cambio = historial?.find((h: any) => {
-              const estadoNuevo = h.estado_nuevo?.nombre?.toLowerCase();
-              return estadoNuevo === 'reparado' || estadoNuevo === 'rechazado';
-            });
-            
-            if (cambio) {
-              setFechaCambioEstado(cambio.created_at);
-            }
+        // Obtener historial de estados para encontrar cuándo cambió a Reparado (2) o Rechazado (3)
+        if (data && (data.estado_id === ESTADO_REPARADO || data.estado_id === ESTADO_RECHAZADO)) {
+          const { data: historial } = await getHistorialEstados(
+            supabase,
+            resolvedParams.id
+          );
+          
+          // Buscar el registro donde cambió a Reparado (2) o Rechazado (3) usando IDs
+          const cambio = historial?.find((h: any) => {
+            return h.estado_nuevo_id === ESTADO_REPARADO || h.estado_nuevo_id === ESTADO_RECHAZADO;
+          });
+          
+          if (cambio) {
+            setFechaCambioEstado(cambio.created_at);
           }
         }
       } catch (error) {
@@ -405,12 +406,11 @@ export default function ReporteDetallePage({
           if (emailResponse.ok) {
             const { email } = await emailResponse.json();
 
-            // Obtener el username del comentarista
-            const { data: commenterProfile } = await supabase
-              .from("profiles")
-              .select("username")
-              .eq("id", currentUser.id)
-              .single();
+            // Obtener el username del comentarista usando la función de queries
+            const { data: commenterUsername } = await getUserUsername(
+              supabase,
+              currentUser.id
+            );
 
             // Enviar la notificación
             await fetch("/api/send-notification", {
@@ -421,7 +421,7 @@ export default function ReporteDetallePage({
               body: JSON.stringify({
                 ownerEmail: email,
                 ownerUsername: getUsername(reporte.profiles),
-                commenterUsername: commenterProfile?.username || "Un usuario",
+                commenterUsername: commenterUsername || "Un usuario",
                 reporteId: reporte.id,
                 reporteTitulo: reporte.titulo,
                 comentarioContenido: nuevoComentario.trim(),
