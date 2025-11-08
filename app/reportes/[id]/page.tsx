@@ -82,6 +82,8 @@ import {
 import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, getCategoryIcon } from "@/components/report-card";
 import { PUNTOS } from "@/database/queries/puntos";
 import { getUserUsername } from "@/database/queries/profiles";
+import { useShareReport } from "@/hooks/use-share-report";
+import { ShareDialog } from "@/components/share-dialog";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -164,8 +166,19 @@ export default function ReporteDetallePage({
   const [showPublishCommentDialog, setShowPublishCommentDialog] = useState(false);
   const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false);
   const [comentarioToDelete, setComentarioToDelete] = useState<number | null>(null);
+  const [usuarioPuntos, setUsuarioPuntos] = useState<number | undefined>(undefined);
   
   const supabase = createClient();
+
+  // Hook para compartir reporte
+  const {
+    showShareDialog,
+    setShowShareDialog,
+    isGeneratingImage,
+    shareUrl,
+    shareMessage,
+    handleGenerateImage,
+  } = useShareReport({ reporte, usuarioPuntos });
 
   // IDs de estados según la base de datos: 1 = Pendiente, 2 = Reparado, 3 = Rechazado
   const ESTADO_REPARADO = 2;
@@ -195,6 +208,17 @@ export default function ReporteDetallePage({
           if (adminStatus) {
             const { data: estadosData } = await getEstados(supabase);
             setEstados(estadosData);
+          }
+
+          // Obtener puntos del usuario para la imagen de compartir
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("puntos")
+            .eq("id", user.id)
+            .single();
+          
+          if (profileData) {
+            setUsuarioPuntos(profileData.puntos);
           }
         }
 
@@ -703,7 +727,7 @@ export default function ReporteDetallePage({
                 Administrador
               </Badge>
             )}
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setShowShareDialog(true)}>
               <Share2 className="w-4 h-4 mr-2" />
               Compartir
             </Button>
@@ -768,7 +792,12 @@ export default function ReporteDetallePage({
                   </div>
                   <div className="flex gap-1.5 md:gap-2 flex-shrink-0">
                     {/* Botón compartir en mobile */}
-                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-9 md:w-9 lg:hidden">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 md:h-9 md:w-9 lg:hidden"
+                      onClick={() => setShowShareDialog(true)}
+                    >
                       <Share2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     </Button>
                     
@@ -1364,6 +1393,16 @@ export default function ReporteDetallePage({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de Compartir */}
+      <ShareDialog
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        shareUrl={shareUrl}
+        shareMessage={shareMessage}
+        onGenerateImage={handleGenerateImage}
+        isGeneratingImage={isGeneratingImage}
+      />
     </div>
   );
 }
