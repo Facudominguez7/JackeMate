@@ -3,6 +3,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { createClient } from "@/utils/supabase/server"
 import { HeaderClient } from "./header-client"
+import { HeaderWrapper } from "./header-wrapper"
 
 /**
  * Renderiza el encabezado de la aplicación con logo y controles de usuario.
@@ -12,9 +13,10 @@ import { HeaderClient } from "./header-client"
  * la estructura JSX del header que incluye el logo responsive y el componente
  * `HeaderClient` con el usuario y su nombre para mostrar.
  *
+ * @param isTransparent - Si es true, el header será transparente (para la página de inicio)
  * @returns El elemento JSX del encabezado de la página que contiene el logo, el título responsive y el componente `HeaderClient` configurado con el usuario y `displayName`.
  */
-export default async function Header() {
+export default async function Header({ isTransparent = false }: { isTransparent?: boolean }) {
     const supabase = await createClient()
     const { data } = await supabase.auth.getUser()
     const user = data?.user
@@ -26,7 +28,7 @@ export default async function Header() {
         "usuario"
 
     return (
-        <header className="border-b-4 border-b-primary bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-md">
+        <HeaderWrapper isTransparent={isTransparent}>
             <div className="container mx-auto px-1 py-1">
                 <div className="flex items-center justify-between gap-4">
                     {/* Logo - Izquierda */}
@@ -50,9 +52,9 @@ export default async function Header() {
                     </div>
 
                     {/* Navegación Central y Derecha */}
-                    <HeaderClient user={user} displayName={displayName} />
+                    <HeaderClient user={user} displayName={displayName} isTransparent={isTransparent} />
                 </div>
             </div>
-        </header>
+        </HeaderWrapper>
     )
 }

@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import Header from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: "JackeMate",
@@ -24,16 +25,22 @@ export const metadata: Metadata = {
  * @param children - Contenido React que se renderizará dentro del <body> bajo la cabecera
  * @returns El elemento raíz HTML que envuelve el cuerpo de la aplicación con las fuentes y la cabecera aplicadas
  */
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "";
+  const isHomePage = pathname === "/" || pathname === "";
+  
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <Header />
-        {children}
+        <Header isTransparent={isHomePage} />
+        <main className={isHomePage ? "" : "pt-2"}>
+          {children}
+        </main>
         <Toaster richColors  position="top-center"  />
       </body>
     </html>

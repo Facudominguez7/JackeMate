@@ -34,6 +34,7 @@ import type { User } from "@supabase/supabase-js";
 interface HeaderClientProps {
   user: User | null | undefined;
   displayName: string;
+  isTransparent?: boolean;
 }
 
 /**
@@ -45,9 +46,10 @@ interface HeaderClientProps {
  *
  * @param user - Objeto `User` de Supabase o `null`/`undefined`; determina la renderización de las acciones de cuenta
  * @param displayName - Nombre que se muestra cuando el usuario está autenticado
+ * @param isTransparent - Si es true, los botones tendrán estilos para fondo transparente
  * @returns El contenido JSX del componente de cabecera con la navegación y los controles de cuenta según el estado de autenticación
  */
-export function HeaderClient({ user, displayName }: HeaderClientProps) {
+export function HeaderClient({ user, displayName, isTransparent = false }: HeaderClientProps) {
   const getUserInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };

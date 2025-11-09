@@ -93,8 +93,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sección Hero - Pantalla Completa Modernizada */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Sección Hero - Pantalla Completa Modernizada con Header Transparente */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden -mt-[88px]">
         {/* Video de fondo */}
         <video
           autoPlay
@@ -104,7 +104,7 @@ export default function HomePage() {
           className="absolute inset-0 w-full h-full object-cover scale-105"
         >
           <source
-            src="/background_inicio/videoplaybackk.mp4#t=69"
+            src="/background_inicio/videoplaybackk.mp4"
             type="video/mp4"
           />
         </video>
@@ -125,7 +125,7 @@ export default function HomePage() {
         />
 
         {/* Contenido principal */}
-        <div className="container mx-auto relative z-10 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-24">
           <div className="max-w-7xl mx-auto">
             {/* Contenedor principal con glassmorphism */}
             <div className="backdrop-blur-xs bg-white/10 border border-white/20 rounded-3xl p-8 sm:p-12 lg:p-16 shadow-2xl">
