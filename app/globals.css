@@ -207,3 +207,30 @@
   background-color: hsl(var(--accent)) !important;
 }
 
+/* Ajustar z-index de Leaflet para que no interfiera con UI components */
+.leaflet-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-map-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-control-container {
+  z-index: 2 !important;
+}
+
+/* Asegurar que los componentes de UI tengan mayor z-index */
+[role="dialog"],
+[role="alertdialog"],
+[role="menu"],
+[role="listbox"],
+[data-radix-popper-content-wrapper] {
+  z-index: 50 !important;
+}
