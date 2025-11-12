@@ -31,6 +31,21 @@ import {
   crearReporte, 
   subirImagenReporte 
 } from "@/database/queries/reportes/nuevo"
+import { useIsMobile } from "@/hooks/use-mobile"
+import dynamic from "next/dynamic"
+
+// Cargar el mapa dinámicamente solo en el cliente
+const LocationPickerMap = dynamic(
+  () => import("@/components/location-picker-map").then(mod => mod.LocationPickerMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[400px] bg-muted rounded-lg flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+      </div>
+    )
+  }
+)
 
 
 export default function NuevoReportePage() {
@@ -53,6 +68,7 @@ export default function NuevoReportePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const supabase = createClient()
+  const isMobile = useIsMobile()
   
   useEffect(() => {
     const checkUserAndLoadData = async () => {
@@ -84,29 +100,39 @@ export default function NuevoReportePage() {
     checkUserAndLoadData()
   }, [])
 
-  // Obtener ubicación automáticamente del dispositivo del usuario
+  // Obtener ubicación automáticamente solo en dispositivos móviles
   useEffect(() => {
     if (typeof window === "undefined") return
-    if (!("geolocation" in navigator)) {
-      setGeoStatus("error")
+    
+    // En desktop, marcamos como OK inmediatamente para que el usuario seleccione manualmente
+    if (isMobile === false) {
+      setGeoStatus("ok")
       return
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setFormData((prev) => ({
-          ...prev,
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-        }))
-        setGeoStatus("ok")
-      },
-      () => {
+    
+    // En mobile, intentar obtener ubicación automáticamente
+    if (isMobile === true) {
+      if (!("geolocation" in navigator)) {
         setGeoStatus("error")
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }, [])
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setFormData((prev) => ({
+            ...prev,
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+          }))
+          setGeoStatus("ok")
+        },
+        () => {
+          setGeoStatus("error")
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      )
+    }
+  }, [isMobile])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -128,8 +154,27 @@ export default function NuevoReportePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validar que se haya seleccionado una ubicación
+    if (!formData.lat || !formData.lon) {
+      toast.error("Ubicación requerida", {
+        description: isMobile 
+          ? "Por favor, permite el acceso a tu ubicación" 
+          : "Por favor, selecciona una ubicación en el mapa"
+      })
+      return
+    }
+    
     // Mostrar el diálogo de confirmación
     setShowConfirmDialog(true)
+  }
+
+  const handleLocationSelect = (lat: number, lon: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      lat,
+      lon,
+    }))
   }
 
   const confirmSubmit = async () => {
@@ -293,21 +338,52 @@ export default function NuevoReportePage() {
                 </div>
               </div>
 
-              {/* Location (auto) */}
+              {/* Location */}
               <div className="space-y-2">
-                <Label>Ubicación (automática)</Label>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="w-4 h-4" />
-                  {geoStatus === "ok" && (
-                    <span>
-                      Lat: {formData.lat?.toFixed(5)}, Lon: {formData.lon?.toFixed(5)}
-                    </span>
-                  )}
-                  {geoStatus === "pending" && <span>Detectando ubicación…</span>}
-                  {geoStatus === "error" && (
-                    <span>No se pudo obtener tu ubicación. Permití el acceso al GPS.</span>
-                  )}
-                </div>
+                <Label>Ubicación *</Label>
+                
+                {/* Mobile: Ubicación automática */}
+                {isMobile && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    {geoStatus === "ok" && formData.lat && formData.lon && (
+                      <span>
+                        Lat: {formData.lat.toFixed(5)}, Lon: {formData.lon.toFixed(5)}
+                      </span>
+                    )}
+                    {geoStatus === "pending" && <span>Detectando ubicación…</span>}
+                    {geoStatus === "error" && (
+                      <span>No se pudo obtener tu ubicación. Permití el acceso al GPS.</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Desktop: Selección manual en mapa */}
+                {!isMobile && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Haz clic en el mapa para seleccionar la ubicación del problema
+                    </p>
+                    <LocationPickerMap 
+                      onLocationSelect={handleLocationSelect}
+                      initialLat={formData.lat}
+                      initialLon={formData.lon}
+                    />
+                    {formData.lat && formData.lon && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="w-4 h-4" />
+                        <span>
+                          Ubicación seleccionada: {formData.lat.toFixed(5)}, {formData.lon.toFixed(5)}
+                        </span>
+                      </div>
+                    )}
+                    {!formData.lat && !formData.lon && (
+                      <p className="text-sm text-amber-600">
+                        ⚠️ Debes seleccionar una ubicación en el mapa
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Image Upload */}
@@ -368,7 +444,11 @@ export default function NuevoReportePage() {
 
               {/* Submit Button */}
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1" disabled={geoStatus !== "ok" || loading || isSubmitting}>
+                <Button 
+                  type="submit" 
+                  className="flex-1" 
+                  disabled={!formData.lat || !formData.lon || loading || isSubmitting}
+                >
                   <Send className="w-4 h-4 mr-2" />
                   {isSubmitting ? "Enviando..." : "Enviar Reporte"}
                 </Button>
