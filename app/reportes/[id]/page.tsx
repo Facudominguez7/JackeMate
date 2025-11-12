@@ -165,6 +165,12 @@ export default function ReporteDetallePage({
   const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false);
   const [comentarioToDelete, setComentarioToDelete] = useState<number | null>(null);
   
+  // Estados para controlar los AlertDialogs de Admin
+  const [showAdminChangeEstadoDialog, setShowAdminChangeEstadoDialog] = useState(false);
+  const [showAdminDeleteReporteDialog, setShowAdminDeleteReporteDialog] = useState(false);
+  const [showAdminDeleteCommentDialog, setShowAdminDeleteCommentDialog] = useState(false);
+  const [adminComentarioToDelete, setAdminComentarioToDelete] = useState<number | null>(null);
+  
   const supabase = createClient();
 
   // IDs de estados según la base de datos: 1 = Pendiente, 2 = Reparado, 3 = Rechazado
@@ -561,12 +567,11 @@ export default function ReporteDetallePage({
   // ===== FUNCIONES DE ADMINISTRADOR =====
   const handleAdminChangeEstado = async () => {
     if (!currentUser || !reporte || !estadoSeleccionado) return;
+    setShowAdminChangeEstadoDialog(true);
+  };
 
-    const confirmChange = window.confirm(
-      `¿Estás seguro de que querés cambiar el estado de este reporte? Esta acción quedará registrada en el historial.`
-    );
-
-    if (!confirmChange) return;
+  const confirmAdminChangeEstado = async () => {
+    if (!currentUser || !reporte || !estadoSeleccionado) return;
 
     setIsChangingEstado(true);
     try {
@@ -579,29 +584,35 @@ export default function ReporteDetallePage({
       );
 
       if (!success || error) {
-        alert("Error al cambiar el estado del reporte");
+        toast.error("Error al cambiar el estado del reporte", {
+          description: "Por favor, intenta nuevamente"
+        });
         return;
       }
 
-      alert("Estado actualizado exitosamente");
+      toast.success("Estado actualizado exitosamente", {
+        description: "El cambio ha sido registrado en el historial"
+      });
       // Recargar la página para mostrar los cambios
-      window.location.reload();
+      setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar el cambio de estado");
+      toast.error("Error al procesar el cambio de estado", {
+        description: "Por favor, intenta nuevamente"
+      });
     } finally {
       setIsChangingEstado(false);
+      setShowAdminChangeEstadoDialog(false);
     }
   };
 
   const handleAdminDeleteReporte = async () => {
     if (!currentUser || !reporte) return;
+    setShowAdminDeleteReporteDialog(true);
+  };
 
-    const confirmDelete = window.confirm(
-      "¿Estás seguro de que querés eliminar este reporte como administrador? Esta acción no se puede deshacer."
-    );
-
-    if (!confirmDelete) return;
+  const confirmAdminDeleteReporte = async () => {
+    if (!currentUser || !reporte) return;
 
     try {
       const { success } = await eliminarReporteAdmin(
@@ -611,46 +622,63 @@ export default function ReporteDetallePage({
       );
 
       if (!success) {
-        alert("Error al eliminar el reporte. Por favor, intenta nuevamente.");
+        toast.error("Error al eliminar el reporte", {
+          description: "Por favor, intenta nuevamente"
+        });
         return;
       }
 
-      alert("Reporte eliminado exitosamente por el administrador");
+      toast.success("Reporte eliminado exitosamente", {
+        description: "Redirigiendo..."
+      });
       // Redirigir al dashboard
-      window.location.href = "/reportes";
+      setTimeout(() => window.location.href = "/reportes", 1000);
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar la eliminación");
+      toast.error("Error al procesar la eliminación", {
+        description: "Por favor, intenta nuevamente"
+      });
+    } finally {
+      setShowAdminDeleteReporteDialog(false);
     }
   };
 
   const handleAdminDeleteComment = async (comentarioId: number) => {
     if (!currentUser) return;
+    setAdminComentarioToDelete(comentarioId);
+    setShowAdminDeleteCommentDialog(true);
+  };
 
-    const confirmDelete = window.confirm(
-      "¿Estás seguro de que querés eliminar este comentario como administrador?"
-    );
-
-    if (!confirmDelete) return;
+  const confirmAdminDeleteComment = async () => {
+    if (!currentUser || adminComentarioToDelete === null) return;
 
     try {
       const { success } = await eliminarComentarioAdmin(
         supabase,
-        comentarioId,
+        adminComentarioToDelete,
         currentUser.id
       );
 
       if (!success) {
-        alert("Error al eliminar el comentario");
+        toast.error("Error al eliminar el comentario", {
+          description: "Por favor, intenta nuevamente"
+        });
         return;
       }
 
       // Actualizar lista de comentarios (filtrar el eliminado)
-      setComentarios(comentarios.filter((c) => c.id !== comentarioId));
-      alert("Comentario eliminado por el administrador");
+      setComentarios(comentarios.filter((c) => c.id !== adminComentarioToDelete));
+      toast.success("Comentario eliminado por el administrador", {
+        description: "El comentario ha sido eliminado correctamente"
+      });
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar la eliminación");
+      toast.error("Error al procesar la eliminación", {
+        description: "Por favor, intenta nuevamente"
+      });
+    } finally {
+      setAdminComentarioToDelete(null);
+      setShowAdminDeleteCommentDialog(false);
     }
   };
 
@@ -1360,6 +1388,157 @@ export default function ReporteDetallePage({
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Admin: Cambiar Estado */}
+      <AlertDialog open={showAdminChangeEstadoDialog} onOpenChange={setShowAdminChangeEstadoDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-purple-600" />
+              ¿Cambiar estado del reporte?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por cambiar el estado de este reporte como administrador:</p>
+                <div className="bg-muted p-4 rounded-lg space-y-2">
+                  <p className="font-semibold text-foreground">{reporte?.titulo}</p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Estado actual:</span>
+                    <Badge variant={getStatusVariant(getNombre(reporte?.estados))}>
+                      {getNombre(reporte?.estados)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Nuevo estado:</span>
+                    <Badge variant="default">
+                      {estados.find(e => e.id.toString() === estadoSeleccionado)?.nombre || "N/A"}
+                    </Badge>
+                  </div>
+                  {comentarioEstado.trim() && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground mb-1">Descripción:</p>
+                      <p className="text-sm text-foreground">{comentarioEstado}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900 rounded-md p-3">
+                  <p className="text-sm text-purple-700 dark:text-purple-400">
+                    ℹ️ Esta acción quedará registrada en el historial del reporte
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isChangingEstado}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAdminChangeEstado}
+              disabled={isChangingEstado}
+              className="bg-purple-600 text-white hover:bg-purple-700"
+            >
+              {isChangingEstado ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Actualizando...
+                </>
+              ) : (
+                <>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Confirmar Cambio
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Admin: Eliminar Reporte */}
+      <AlertDialog open={showAdminDeleteReporteDialog} onOpenChange={setShowAdminDeleteReporteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-purple-600" />
+              ¿Eliminar reporte como administrador?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por eliminar permanentemente este reporte como administrador:</p>
+                <div className="bg-muted p-4 rounded-lg space-y-2">
+                  <p className="font-semibold text-foreground">{reporte?.titulo}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{reporte?.descripcion}</p>
+                  <div className="flex items-center gap-2 text-sm pt-2 border-t">
+                    <span className="text-muted-foreground">Estado actual:</span>
+                    <Badge variant={getStatusVariant(getNombre(reporte?.estados))}>
+                      {getNombre(reporte?.estados)}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
+                  <p className="text-sm text-red-700 dark:text-red-400 font-medium">
+                    ⚠️ Esta acción no se puede deshacer
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-500 mt-1">
+                    El reporte y todos sus comentarios serán eliminados permanentemente
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAdminDeleteReporte}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar Reporte (Admin)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Admin: Eliminar Comentario */}
+      <AlertDialog open={showAdminDeleteCommentDialog} onOpenChange={setShowAdminDeleteCommentDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-purple-600" />
+              ¿Eliminar comentario como administrador?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por eliminar este comentario como administrador:</p>
+                <div className="bg-muted p-4 rounded-lg max-h-40 overflow-y-auto">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {comentarios.find(c => c.id === adminComentarioToDelete)?.contenido}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 pt-2 border-t">
+                    <span>Autor:</span>
+                    <span className="font-medium">
+                      {getComentarioUsername(comentarios.find(c => c.id === adminComentarioToDelete)?.profiles)}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
+                  <p className="text-sm text-red-700 dark:text-red-400">
+                    ⚠️ Esta acción no se puede deshacer
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAdminDeleteComment}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar (Admin)
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
