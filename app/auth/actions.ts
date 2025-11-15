@@ -38,9 +38,20 @@ export async function signup(_prevState: AuthFormState | void, formData: FormDat
 
   // type-casting here for convenience
   // in practice, you should validate your inputs
+  const name = formData.get('name') as string
+  const lastname = formData.get('lastname') as string
+  const displayName = `${name} ${lastname}`.trim()
+  
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
+    options: {
+      data: {
+        display_name: displayName,
+        name: name,
+        lastname: lastname,
+      }
+    }
   }
 
   const { data: signUpData, error } = await supabase.auth.signUp(data)

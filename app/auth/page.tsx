@@ -142,7 +142,7 @@ export default function AuthPage() {
                       </Label>
                       <div className="relative">
                         <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <Input id="register-name" type="text" placeholder="Juan" className="pl-10" required />
+                        <Input id="register-name" name="name" type="text" placeholder="Juan" className="pl-10" required />
                       </div>
                     </div>
 
@@ -150,7 +150,7 @@ export default function AuthPage() {
                       <Label htmlFor="register-lastname" className="text-sm font-medium text-slate-700">
                         Apellido
                       </Label>
-                      <Input id="register-lastname" type="text" placeholder="Pérez" required />
+                      <Input id="register-lastname" name="lastname" type="text" placeholder="Pérez" required />
                     </div>
                   </div>
 

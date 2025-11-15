@@ -30,24 +30,26 @@ export default async function Header() {
             <div className="container mx-auto px-1 py-1">
                 <div className="flex items-center justify-between gap-4">
                     {/* Logo - Izquierda */}
-                    <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label="Ir al inicio">
-                        <div className="w-20 h-20 rounded-lg relative overflow-hidden">
-                            <Image
-                                src="/logo/logoJackeMate.png"
-                                alt="JackeMate logo"
-                                fill
-                                sizes="40px"
-                                className="object-cover"
-                                priority
-                            />
-                        </div>
-                        <div className="hidden lg:block">
-                            <h1 className="text-xl font-bold text-foreground">JackeMate</h1>
-                            <p className="text-sm text-muted-foreground">Mejoremos nuestra ciudad juntos</p>
-                        </div>
-                    </Link>
+                    <div className="flex-1">
+                        <Link href="/" className="flex items-center gap-3 flex-shrink-0 w-fit" aria-label="Ir al inicio">
+                            <div className="w-20 h-20 rounded-lg relative overflow-hidden">
+                                <Image
+                                    src="/logo/logoJackeMate.png"
+                                    alt="JackeMate logo"
+                                    fill
+                                    sizes="40px"
+                                    className="object-cover"
+                                    priority
+                                />
+                            </div>
+                            <div className="hidden lg:block">
+                                <h1 className="text-xl font-bold text-foreground">JackeMate</h1>
+                                <p className="text-sm text-muted-foreground">Mejoremos nuestra ciudad juntos</p>
+                            </div>
+                        </Link>
+                    </div>
 
-                    {/* Navegación Central - Desktop only */}
+                    {/* Navegación Central y Derecha */}
                     <HeaderClient user={user} displayName={displayName} />
                 </div>
             </div>

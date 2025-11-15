@@ -94,6 +94,39 @@ export const getCategoryIcon = (category: string, className: string = "w-3 h-3")
   }
 }
 
+// Exportar función para obtener color de prioridad (coincide con variantes del badge)
+export const getPriorityColor = (priority: string): string => {
+  switch (priority) {
+    case "Alta":
+      return "#dc2626" // red-600 (coincide con variante "alta" del badge)
+    case "Media":
+      return "#ea580c" // orange-600 (coincide con variante "media" del badge)
+    case "Baja":
+      return "#ca8a04" // yellow-600 (coincide con variante "baja" del badge)
+    default:
+      return "#6b7280" // gray-500
+  }
+}
+
+// Exportar función para obtener color de estado (coincide con variantes del badge)
+export const getStatusColor = (status: string): string => {
+  switch (status) {
+    case "Reparado":
+      return "#15803d" // green-700 (coincide con variante "reparado" del badge)
+    case "Pendiente":
+      return "#ca8a04" // yellow-600 (coincide con variante "pendiente" del badge)
+    case "Rechazado":
+      return "#b91c1c" // red-700 (coincide con variante "rechazado" del badge)
+    default:
+      return "#6b7280" // gray-500
+  }
+}
+
+// Exportar función para obtener color de categoría (coincide con variante "blue" del badge)
+export const getCategoryColor = (): string => {
+  return "#2563eb" // blue-600 (coincide con variante "blue" del badge)
+}
+
 /**
  * Componente de tarjeta que muestra la información principal de un reporte y enlaza a su vista detallada.
  *
