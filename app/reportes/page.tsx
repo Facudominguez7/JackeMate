@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { ReportCard } from "@/components/report-card"
-import { FiltrosReportes } from "@/components/filtros-reportes"
+import { ReportesClientWrapper } from "./reportes-client"
 import { getReportes, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 
 /**
@@ -68,10 +68,10 @@ const formatLocation = (lat: number | null, lon: number | null) => {
 }
 
 /**
- * Renderiza la página de reportes públicos con filtros, estado de error y una lista de tarjetas de reporte.
+ * Muestra la página de reportes públicos incluyendo controles de filtrado, mensajes de estado y la lista de tarjetas de reporte.
  *
- * @param searchParams - Promesa que resuelve un objeto con parámetros opcionales de filtrado: `search`, `categoria`, `estado` y `prioridad`.
- * @returns Elemento React que representa la interfaz completa de la página de reportes.
+ * @param searchParams - Parámetros opcionales de filtrado: `search`, `categoria`, `estado` y `prioridad`.
+ * @returns El elemento React que representa la interfaz completa de la página de reportes.
  */
 export default async function ReportesPage({ searchParams }: ReportesPageProps) {
   // Obtener los parámetros de búsqueda
@@ -131,7 +131,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
         </div>
 
         {/* Sección de filtros con funcionalidad real */}
-        <FiltrosReportes
+        <ReportesClientWrapper
           categorias={categorias ?? []}
           estados={estados ?? []}
           prioridades={prioridades ?? []}

@@ -10,19 +10,53 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { MapPin, Upload, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
 import { sumarPuntos, PUNTOS } from "@/database/queries/puntos"
+import { LoadingLogo } from "@/components/loading-logo"
+import { toast } from "sonner"
+import { 
+  getCategorias, 
+  getPrioridades, 
+  crearReporte, 
+  subirImagenReporte 
+} from "@/database/queries/reportes/nuevo"
+import { useIsMobile } from "@/hooks/use-mobile"
+import dynamic from "next/dynamic"
+
+// Cargar el mapa dinámicamente solo en el cliente
+const LocationPickerMap = dynamic(
+  () => import("@/components/location-picker-map").then(mod => mod.LocationPickerMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[400px] bg-muted rounded-lg flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+      </div>
+    )
+  }
+)
+
 
 /**
- * Componente de página que muestra un formulario para crear un nuevo reporte ciudadano.
+ * Componente de página que muestra un formulario para crear y enviar un nuevo reporte.
  *
- * Carga las categorías y prioridades disponibles, verifica el usuario autenticado y obtiene
- * la ubicación del dispositivo. Permite completar título, descripción, categoría, prioridad,
- * adjuntar una única imagen y enviar el reporte al backend; tras la creación, asigna puntos
- * al usuario y redirige al listado de reportes.
+ * Gestiona la autenticación del usuario, carga las categorías y prioridades disponibles,
+ * obtiene la geolocalización automáticamente en móviles o permite la selección manual en escritorio,
+ * permite adjuntar una única imagen, muestra un diálogo de confirmación y realiza el envío final
+ * del reporte (creación, subida de imagen si existe, asignación de puntos y redirección).
  *
- * @returns El elemento React que renderiza la interfaz de creación de reportes.
+ * @returns El elemento JSX que renderiza la interfaz completa para crear y enviar un reporte.
  */
 export default function NuevoReportePage() {
   const [formData, setFormData] = useState({
@@ -40,8 +74,11 @@ export default function NuevoReportePage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [geoStatus, setGeoStatus] = useState<"pending" | "ok" | "error">("pending")
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const supabase = createClient()
+  const isMobile = useIsMobile()
   
   useEffect(() => {
     const checkUserAndLoadData = async () => {
@@ -56,25 +93,13 @@ export default function NuevoReportePage() {
 
         setUser(user)
 
-        // Cargar categorías
-        const { data: categoriasData, error: categoriasError } = await supabase
-          .from('categorias')
-          .select('id, nombre')
-          .order('nombre')
+        // Cargar categorías usando la query
+        const categoriasData = await getCategorias(supabase)
+        setCategorias(categoriasData)
 
-        if (!categoriasError) {
-          setCategorias(categoriasData || [])
-        }
-
-        // Cargar prioridades
-        const { data: prioridadesData, error: prioridadesError } = await supabase
-          .from('prioridades')
-          .select('id, nombre')
-          .order('nombre')
-
-        if (!prioridadesError) {
-          setPrioridades(prioridadesData || [])
-        }
+        // Cargar prioridades usando la query
+        const prioridadesData = await getPrioridades(supabase)
+        setPrioridades(prioridadesData)
       } catch (error) {
         // Manejar error silenciosamente
       } finally {
@@ -85,29 +110,39 @@ export default function NuevoReportePage() {
     checkUserAndLoadData()
   }, [])
 
-  // Obtener ubicación automáticamente del dispositivo del usuario
+  // Obtener ubicación automáticamente solo en dispositivos móviles
   useEffect(() => {
     if (typeof window === "undefined") return
-    if (!("geolocation" in navigator)) {
-      setGeoStatus("error")
+    
+    // En desktop, marcamos como OK inmediatamente para que el usuario seleccione manualmente
+    if (isMobile === false) {
+      setGeoStatus("ok")
       return
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setFormData((prev) => ({
-          ...prev,
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-        }))
-        setGeoStatus("ok")
-      },
-      () => {
+    
+    // En mobile, intentar obtener ubicación automáticamente
+    if (isMobile === true) {
+      if (!("geolocation" in navigator)) {
         setGeoStatus("error")
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }, [])
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setFormData((prev) => ({
+            ...prev,
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+          }))
+          setGeoStatus("ok")
+        },
+        () => {
+          setGeoStatus("error")
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      )
+    }
+  }, [isMobile])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -130,67 +165,53 @@ export default function NuevoReportePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Validar que se haya seleccionado una ubicación
+    if (!formData.lat || !formData.lon) {
+      toast.error("Ubicación requerida", {
+        description: isMobile 
+          ? "Por favor, permite el acceso a tu ubicación" 
+          : "Por favor, selecciona una ubicación en el mapa"
+      })
+      return
+    }
+    
+    // Mostrar el diálogo de confirmación
+    setShowConfirmDialog(true)
+  }
+
+  const handleLocationSelect = (lat: number, lon: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      lat,
+      lon,
+    }))
+  }
+
+  const confirmSubmit = async () => {
     try {
-      setLoading(true)
+      setIsSubmitting(true)
 
-      // Insertar el reporte en la base de datos
-      const { data: reporteData, error: reporteError } = await supabase
-        .from('reportes')
-        .insert({
-          usuario_id: user.id,
-          titulo: formData.title,
-          descripcion: formData.description,
-          categoria_id: parseInt(formData.category),
-          prioridad_id: parseInt(formData.priority),
-          estado_id: 1, // 1 = Pendiente
-          lat: formData.lat,
-          lon: formData.lon
-        })
-        .select()
-        .single()
+      // Crear el reporte usando la query
+      const reporteData = await crearReporte(supabase, {
+        usuarioId: user.id,
+        titulo: formData.title,
+        descripcion: formData.description,
+        categoriaId: parseInt(formData.category),
+        prioridadId: parseInt(formData.priority),
+        lat: formData.lat,
+        lon: formData.lon
+      })
 
-      if (reporteError) {
-        console.error("Error al crear el reporte:", reporteError)
-        alert("Error al crear el reporte. Por favor, intenta nuevamente.")
-        return
-      }
-
-      // Si hay una imagen, subirla al storage y guardar la URL
+      // Si hay una imagen, subirla usando la query
       if (formData.images.length > 0) {
         const image = formData.images[0]
-        const fileExt = image.name.split('.').pop()
-        const fileName = `${reporteData.id}_${Date.now()}.${fileExt}`
-        const filePath = `${fileName}`
-
-        // Subir imagen al bucket 'reportes'
-        const { error: uploadError } = await supabase.storage
-          .from('reportes')
-          .upload(filePath, image, {
-            cacheControl: '3600',
-            upsert: false
-          })
-
-        if (uploadError) {
-          console.error("Error al subir la imagen:", uploadError)
+        const result = await subirImagenReporte(supabase, reporteData.id, image)
+        
+        if (!result) {
           // El reporte ya fue creado, solo notificar del error de la imagen
-          alert("Reporte creado, pero hubo un error al subir la imagen.")
-        } else {
-          // Obtener URL pública de la imagen
-          const { data: { publicUrl } } = supabase.storage
-            .from('reportes')
-            .getPublicUrl(filePath)
-
-          // Guardar la foto en la tabla fotos_reporte
-          const { error: fotoError } = await supabase
-            .from('fotos_reporte')
-            .insert({
-              reporte_id: reporteData.id,
-              url: publicUrl
-            })
-
-          if (fotoError) {
-            console.error("Error al guardar la URL de la foto:", fotoError)
-          }
+          toast.warning("Reporte creado, pero hubo un error al subir la imagen.", {
+            description: "El reporte se creó correctamente pero sin imagen"
+          })
         }
       }
 
@@ -202,16 +223,23 @@ export default function NuevoReportePage() {
         "Crear nuevo reporte"
       );
 
-      alert(`¡Reporte creado exitosamente! +${PUNTOS.CREAR_REPORTE} puntos`)
+      toast.success(`¡Reporte creado exitosamente! +${PUNTOS.CREAR_REPORTE} puntos`, {
+        description: "Redirigiendo a la lista de reportes..."
+      })
       
       // Redirigir a la página de reportes
-      window.location.href = "/reportes"
+      setTimeout(() => {
+        window.location.href = "/reportes"
+      }, 1500)
       
     } catch (error) {
       console.error("Error inesperado:", error)
-      alert("Ocurrió un error inesperado. Por favor, intenta nuevamente.")
+      toast.error("Error al crear el reporte", {
+        description: "Por favor, intenta nuevamente."
+      })
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
+      setShowConfirmDialog(false)
     }
   }
 
@@ -219,9 +247,7 @@ export default function NuevoReportePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Cargando...</p>
-        </div>
+        <LoadingLogo size="lg" text="Preparando formulario..." />
       </div>
     )
   }
@@ -322,21 +348,52 @@ export default function NuevoReportePage() {
                 </div>
               </div>
 
-              {/* Location (auto) */}
+              {/* Location */}
               <div className="space-y-2">
-                <Label>Ubicación (automática)</Label>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="w-4 h-4" />
-                  {geoStatus === "ok" && (
-                    <span>
-                      Lat: {formData.lat?.toFixed(5)}, Lon: {formData.lon?.toFixed(5)}
-                    </span>
-                  )}
-                  {geoStatus === "pending" && <span>Detectando ubicación…</span>}
-                  {geoStatus === "error" && (
-                    <span>No se pudo obtener tu ubicación. Permití el acceso al GPS.</span>
-                  )}
-                </div>
+                <Label>Ubicación *</Label>
+                
+                {/* Mobile: Ubicación automática */}
+                {isMobile && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    {geoStatus === "ok" && formData.lat && formData.lon && (
+                      <span>
+                        Lat: {formData.lat.toFixed(5)}, Lon: {formData.lon.toFixed(5)}
+                      </span>
+                    )}
+                    {geoStatus === "pending" && <span>Detectando ubicación…</span>}
+                    {geoStatus === "error" && (
+                      <span>No se pudo obtener tu ubicación. Permití el acceso al GPS.</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Desktop: Selección manual en mapa */}
+                {!isMobile && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Haz clic en el mapa para seleccionar la ubicación del problema
+                    </p>
+                    <LocationPickerMap 
+                      onLocationSelect={handleLocationSelect}
+                      initialLat={formData.lat}
+                      initialLon={formData.lon}
+                    />
+                    {formData.lat && formData.lon && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="w-4 h-4" />
+                        <span>
+                          Ubicación seleccionada: {formData.lat.toFixed(5)}, {formData.lon.toFixed(5)}
+                        </span>
+                      </div>
+                    )}
+                    {!formData.lat && !formData.lon && (
+                      <p className="text-sm text-amber-600">
+                        ⚠️ Debes seleccionar una ubicación en el mapa
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Image Upload */}
@@ -345,23 +402,24 @@ export default function NuevoReportePage() {
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <Camera className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Sube una foto del problema</p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG hasta 10MB (máximo 1 imagen)</p>
+                      <p className="text-sm font-medium">Toma una foto del problema</p>
+                      <p className="text-xs text-muted-foreground">Usa tu cámara para capturar la imagen en el momento</p>
                     </div>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" asChild>
                         <label htmlFor="images" className="cursor-pointer">
                           <Camera className="w-4 h-4 mr-2" />
-                          Seleccionar Foto
+                          Tomar Foto
                         </label>
                       </Button>
                       <input
                         id="images"
                         type="file"
                         accept="image/*"
+                        capture="environment"
                         onChange={handleImageUpload}
                         className="hidden"
                       />
@@ -396,11 +454,15 @@ export default function NuevoReportePage() {
 
               {/* Submit Button */}
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1" disabled={geoStatus !== "ok" || loading}>
+                <Button 
+                  type="submit" 
+                  className="flex-1" 
+                  disabled={!formData.lat || !formData.lon || loading || isSubmitting}
+                >
                   <Send className="w-4 h-4 mr-2" />
-                  {loading ? "Enviando..." : "Enviar Reporte"}
+                  {isSubmitting ? "Enviando..." : "Enviar Reporte"}
                 </Button>
-                <Button type="button" variant="outline" asChild disabled={loading}>
+                <Button type="button" variant="outline" asChild disabled={loading || isSubmitting}>
                   <Link href="/reportes">Cancelar</Link>
                 </Button>
               </div>
@@ -408,6 +470,59 @@ export default function NuevoReportePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Alert Dialog de Confirmación */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar envío del reporte?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por crear un nuevo reporte con la siguiente información:</p>
+                <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
+                  <div>
+                    <span className="font-semibold">Título:</span> {formData.title}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Categoría:</span>{" "}
+                    {categorias.find(c => c.id === parseInt(formData.category))?.nombre}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Prioridad:</span>{" "}
+                    {prioridades.find(p => p.id === parseInt(formData.priority))?.nombre}
+                  </div>
+                  {formData.images.length > 0 && (
+                    <div>
+                      <span className="font-semibold">Imagen:</span> Sí
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Al confirmar, ganarás <span className="font-bold text-primary">{PUNTOS.CREAR_REPORTE} puntos</span> por crear este reporte.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Confirmar y Enviar
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -13,34 +13,55 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Search, X, Filter, SlidersHorizontal } from "lucide-react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import { useCallback, useTransition, useState } from "react"
+import { useCallback, useTransition, useState, useEffect, useRef, type TransitionStartFunction } from "react"
 
 type FiltrosReportesProps = {
   categorias?: { id: number; nombre: string }[]
   estados?: { id: number; nombre: string }[]
   prioridades?: { id: number; nombre: string }[]
   onFilterApplied?: () => void
+  externalIsPending?: boolean
+  externalStartTransition?: TransitionStartFunction
 }
 
 /**
- * Renderiza un panel de controles para filtrar reportes y sincroniza los filtros con los parámetros de la URL.
+ * Panel de controles para filtrar reportes sincronizado con los parámetros de la URL.
  *
- * El componente mantiene el estado de visibilidad del panel, refleja los valores de filtro actuales desde los query params
- * (`search`, `categoria`, `estado`, `prioridad`), permite aplicar y limpiar filtros (actualizando la URL) y muestra un indicador
- * de carga durante las transiciones. Llama a `onFilterApplied` si se proporciona después de aplicar un filtro.
+ * Sincroniza los valores de filtros (`search`, `categoria`, `estado`, `prioridad`) con los query params,
+ * permite aplicar y limpiar filtros, gestiona un input de búsqueda con debounce y usa transiciones para las actualizaciones
+ * de URL. Invoca `onFilterApplied` tras aplicar filtros distintos de la búsqueda cuando se proporciona.
  *
- * @param categorias - Lista de categorías disponibles (cada objeto debe incluir `id` y `nombre`) para poblar el selector de categoría.
- * @param estados - Lista de estados disponibles (cada objeto debe incluir `id` y `nombre`) para poblar el selector de estado.
- * @param prioridades - Lista de prioridades disponibles (cada objeto debe incluir `id` y `nombre`) para poblar el selector de prioridad.
- * @param onFilterApplied - Callback opcional que se invoca después de que se aplica un filtro.
- * @returns El elemento React que renderiza la interfaz de filtros. 
+ * @param categorias - Array de categorías disponibles ({ id, nombre }) para poblar el selector de categoría.
+ * @param estados - Array de estados disponibles ({ id, nombre }) para poblar el selector de estado.
+ * @param prioridades - Array de prioridades disponibles ({ id, nombre }) para poblar el selector de prioridad.
+ * @param onFilterApplied - Callback opcional que se invoca después de aplicar un filtro distinto de la búsqueda.
+ * @param externalIsPending - Indicador externo opcional de estado pendiente; si se proporciona, se usa en lugar del interno.
+ * @param externalStartTransition - Función externa opcional para iniciar transiciones; si se proporciona, se usa en lugar de la interna.
+ * @returns El elemento React que renderiza la interfaz de filtros.
  */
-export function FiltrosReportes({ categorias = [], estados = [], prioridades = [], onFilterApplied }: FiltrosReportesProps) {
+export function FiltrosReportes({ 
+  categorias = [], 
+  estados = [], 
+  prioridades = [], 
+  onFilterApplied,
+  externalIsPending,
+  externalStartTransition 
+}: FiltrosReportesProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [isPending, startTransition] = useTransition()
+  const [internalIsPending, internalStartTransition] = useTransition()
   const [showFilters, setShowFilters] = useState(true)
+  
+  // Usar el isPending y startTransition externos si están disponibles, sino usar los internos
+  const isPending = externalIsPending ?? internalIsPending
+  const startTransition = externalStartTransition ?? internalStartTransition
+  
+  // Estado local para el input de búsqueda (para debounce)
+  const [searchInput, setSearchInput] = useState(() => searchParams.get("search") ?? "")
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isTypingRef = useRef(false)
+  const lastSearchValueRef = useRef("")
 
   // Obtener valores actuales de los filtros desde la URL
   const searchValue = searchParams.get("search") ?? ""
@@ -48,11 +69,18 @@ export function FiltrosReportes({ categorias = [], estados = [], prioridades = [
   const estadoValue = searchParams.get("estado") ?? "all"
   const prioridadValue = searchParams.get("prioridad") ?? "all"
 
+  // Sincronizar el estado local con el valor de la URL solo cuando NO estamos escribiendo
+  useEffect(() => {
+    if (!isTypingRef.current) {
+      setSearchInput(searchValue)
+    }
+  }, [searchValue])
+
   /**
    * Actualiza los parámetros de búsqueda en la URL
    */
   const actualizarFiltros = useCallback(
-    (key: string, value: string) => {
+    (key: string, value: string, silent = false) => {
       const params = new URLSearchParams(searchParams.toString())
       
       if (value && value !== "all" && value !== "") {
@@ -61,22 +89,92 @@ export function FiltrosReportes({ categorias = [], estados = [], prioridades = [
         params.delete(key)
       }
 
-      startTransition(() => {
+      // Solo usar startTransition para filtros que NO son búsqueda (para evitar indicador de carga)
+      if (silent || key === "search") {
         router.replace(`${pathname}?${params.toString()}`)
-      })
+      } else {
+        startTransition(() => {
+          router.replace(`${pathname}?${params.toString()}`)
+        })
+      }
 
-      // Llamar al callback después de aplicar el filtro
-      if (onFilterApplied) {
-        onFilterApplied()
+      // Llamar al callback después de aplicar el filtro con un pequeño delay
+      // para dar tiempo a que el select se cierre correctamente
+      // NO cerrar el panel cuando es búsqueda de texto
+      if (onFilterApplied && !silent && key !== "search") {
+        setTimeout(() => {
+          onFilterApplied()
+        }, 150)
       }
     },
     [pathname, router, searchParams, onFilterApplied]
   )
 
   /**
+   * Maneja el cambio en el input de búsqueda con debounce
+   */
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      // Marcar que estamos escribiendo
+      isTypingRef.current = true
+      
+      // Actualizar el estado local inmediatamente para una UI responsiva
+      setSearchInput(value)
+
+      // Limpiar el timer anterior si existe
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+
+      // Crear un nuevo timer para actualizar la URL después de 300ms
+      debounceTimerRef.current = setTimeout(() => {
+        // Solo actualizar si el valor cambió realmente
+        if (value !== lastSearchValueRef.current) {
+          lastSearchValueRef.current = value
+          isTypingRef.current = false
+          
+          const params = new URLSearchParams(window.location.search)
+          
+          if (value && value !== "") {
+            params.set("search", value)
+          } else {
+            params.delete("search")
+          }
+          
+          router.replace(`${pathname}?${params.toString()}`)
+        } else {
+          isTypingRef.current = false
+        }
+      }, 300)
+    },
+    [pathname, router]
+  )
+
+  /**
+   * Limpia el timer cuando el componente se desmonta
+   */
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
+
+  /**
    * Limpia todos los filtros activos
    */
   const limpiarFiltros = useCallback(() => {
+    // Limpiar también el estado local del input
+    isTypingRef.current = false
+    lastSearchValueRef.current = ""
+    setSearchInput("")
+    
+    // Limpiar el timer de debounce si existe
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    
     startTransition(() => {
       router.replace(pathname)
     })
@@ -146,13 +244,25 @@ export function FiltrosReportes({ categorias = [], estados = [], prioridades = [
               <Input
                 placeholder="Buscar en título o descripción..."
                 className="pl-10 h-11 border-2 focus:border-primary transition-all bg-background/50 hover:bg-background"
-                value={searchValue}
-                onChange={(e) => actualizarFiltros("search", e.target.value)}
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 disabled={isPending}
               />
-              {searchValue && (
+              {searchInput && (
                 <button
-                  onClick={() => actualizarFiltros("search", "")}
+                  onClick={() => {
+                    isTypingRef.current = false
+                    lastSearchValueRef.current = ""
+                    setSearchInput("")
+                    
+                    if (debounceTimerRef.current) {
+                      clearTimeout(debounceTimerRef.current)
+                    }
+                    
+                    const params = new URLSearchParams(window.location.search)
+                    params.delete("search")
+                    router.replace(`${pathname}?${params.toString()}`)
+                  }}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="w-4 h-4" />
@@ -246,18 +356,6 @@ export function FiltrosReportes({ categorias = [], estados = [], prioridades = [
           </div>
         </div>
       </div>
-      
-      {/* Indicador de carga */}
-      {isPending && (
-        <div className="px-6 pb-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
-            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"></div>
-            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            <span className="ml-2">Aplicando filtros...</span>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

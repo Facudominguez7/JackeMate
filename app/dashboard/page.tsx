@@ -4,10 +4,13 @@ import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, Calendar, Trophy, Star, TrendingUp } from "lucide-react"
+import { Plus, Calendar, Trophy, Star, TrendingUp, FileText, CheckCircle, Clock, AlertCircle, BarChart3, Timer } from "lucide-react"
 import Link from "next/link"
 import { ReportCard } from "@/components/report-card"
 import { getPuntosUsuario } from "@/database/queries/puntos"
+import { LoadingLogo } from "@/components/loading-logo"
+import { verificarPuedeVerDashboard, getEstadisticasInteresado, getReportesPorCategoria, getTiempoPromedioResolucion, getZonasConMasReportes } from "@/database/queries/interesado"
+import { GraficoReportesPorCategoria, GraficoZonasCalientes, MetricCard, MapaCalorZonas } from "@/components/dashboard"
 
 type UserReport = {
   id: number
@@ -43,17 +46,23 @@ const getUsername = (profiles: any): string => {
 }
 
 /**
- * Renderiza la página de dashboard del usuario mostrando su perfil, métricas (reportes, problemas resueltos y puntos) y la lista de sus reportes.
+ * Renderiza la página de dashboard del usuario.
  *
- * La página gestiona la carga de datos del usuario, sus reportes y sus puntos, muestra un estado de carga mientras se obtienen los datos y renderiza vistas condicionales según haya o no reportes.
+ * Muestra el perfil, métricas (reportes, problemas resueltos y puntos) y la lista de reportes personales;
+ * alterna a un dashboard de analíticas con métricas y gráficos si el usuario tiene rol Admin (rol_id = 1) o Interesado (rol_id = 3).
  *
- * @returns El elemento React que representa la página de dashboard del usuario.
+ * @returns El elemento React que representa la página de dashboard.
  */
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [userReports, setUserReports] = useState<UserReport[]>([])
   const [puntos, setPuntos] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [isInteresado, setIsInteresado] = useState(false)
+  const [estadisticas, setEstadisticas] = useState<any>(null)
+  const [reportesPorCategoria, setReportesPorCategoria] = useState<any[]>([])
+  const [tiempoResolucion, setTiempoResolucion] = useState<any>(null)
+  const [zonasCalientes, setZonasCalientes] = useState<any[]>([])
   const supabase = createClient()
 
   useEffect(() => {
@@ -69,31 +78,50 @@ export default function DashboardPage() {
 
         setUser(user)
 
-        // Obtener reportes del usuario
-        const { data: reportes, error: reportesError } = await supabase
-          .from('reportes')
-          .select(`
-            id,
-            titulo,
-            descripcion,
-            created_at,
-            categorias (nombre),
-            prioridades (nombre),
-            estados (nombre),
-            fotos_reporte (url),
-            profiles (username)
-          `)
-          .eq('usuario_id', user.id)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false })
+        // Verificar si el usuario puede ver el dashboard de analíticas (Admin o Interesado)
+        const { puedeVerDashboard } = await verificarPuedeVerDashboard(supabase, user.id)
+        setIsInteresado(puedeVerDashboard)
 
-        if (!reportesError && reportes) {
-          setUserReports(reportes)
+        if (puedeVerDashboard) {
+          // Si es interesado, cargar estadísticas generales
+          const [stats, categorias, tiempo, zonas] = await Promise.all([
+            getEstadisticasInteresado(supabase),
+            getReportesPorCategoria(supabase),
+            getTiempoPromedioResolucion(supabase),
+            getZonasConMasReportes(supabase, 10)
+          ])
+          
+          setEstadisticas(stats)
+          setReportesPorCategoria(categorias)
+          setTiempoResolucion(tiempo)
+          setZonasCalientes(zonas)
+        } else {
+          // Si no es interesado, cargar sus reportes personales
+          const { data: reportes, error: reportesError } = await supabase
+            .from('reportes')
+            .select(`
+              id,
+              titulo,
+              descripcion,
+              created_at,
+              categorias (nombre),
+              prioridades (nombre),
+              estados (nombre),
+              fotos_reporte (url),
+              profiles (username)
+            `)
+            .eq('usuario_id', user.id)
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false })
+
+          if (!reportesError && reportes) {
+            setUserReports(reportes)
+          }
+
+          // Obtener puntos del usuario
+          const { puntos: userPuntos } = await getPuntosUsuario(supabase, user.id)
+          setPuntos(userPuntos)
         }
-
-        // Obtener puntos del usuario
-        const { puntos: userPuntos } = await getPuntosUsuario(supabase, user.id)
-        setPuntos(userPuntos)
       } catch (error) {
         console.error("Error fetching data:", error)
       } finally {
@@ -107,9 +135,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Cargando...</p>
-        </div>
+        <LoadingLogo size="lg" text="Cargando dashboard..." />
       </div>
     )
   }
@@ -118,6 +144,111 @@ export default function DashboardPage() {
     return email.substring(0, 2).toUpperCase()
   }
 
+  // Dashboard para usuarios con rol "Admin" o "Interesado"
+  if (isInteresado) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Dashboard de Analíticas
+            </h1>
+            <p className="text-muted-foreground">
+              Métricas y estadísticas generales de la plataforma
+            </p>
+          </div>
+
+          {/* Métricas Principales */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <MetricCard
+              title="Total de Reportes"
+              value={estadisticas?.totalReportes || 0}
+              icon={FileText}
+              iconColor="text-blue-600 dark:text-blue-400"
+              iconBgColor="bg-blue-100 dark:bg-blue-950/40"
+            />
+            <MetricCard
+              title="Reportes Resueltos"
+              value={estadisticas?.reportesResueltos || 0}
+              icon={CheckCircle}
+              description={`${estadisticas?.tasaResolucion || 0}% de resolución`}
+              iconColor="text-green-600 dark:text-green-400"
+              iconBgColor="bg-green-100 dark:bg-green-950/40"
+            />
+            <MetricCard
+              title="Reportes Pendientes"
+              value={estadisticas?.reportesPendientes || 0}
+              icon={Clock}
+              iconColor="text-yellow-600 dark:text-yellow-400"
+              iconBgColor="bg-yellow-100 dark:bg-yellow-950/40"
+            />
+            <MetricCard
+              title="En Progreso"
+              value={estadisticas?.reportesEnProgreso || 0}
+              icon={AlertCircle}
+              iconColor="text-orange-600 dark:text-orange-400"
+              iconBgColor="bg-orange-100 dark:bg-orange-950/40"
+            />
+          </div>
+
+          {/* Tiempo Promedio de Resolución */}
+          {tiempoResolucion && (
+            <div className="mb-8">
+              <Card className="border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-purple-100 dark:bg-purple-950/40 rounded-lg flex items-center justify-center">
+                      <Timer className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-foreground mb-1">
+                        Tiempo Promedio de Resolución
+                      </h3>
+                      <div className="flex items-baseline gap-3">
+                        <p className="text-3xl font-bold text-foreground">
+                          {tiempoResolucion.diasPromedio}
+                        </p>
+                        <span className="text-muted-foreground">días</span>
+                        <span className="text-muted-foreground mx-2">≈</span>
+                        <p className="text-2xl font-bold text-foreground">
+                          {tiempoResolucion.horasPromedio}
+                        </p>
+                        <span className="text-muted-foreground">horas</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Gráficos */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <GraficoReportesPorCategoria data={reportesPorCategoria} />
+            <GraficoZonasCalientes zonas={zonasCalientes} />
+          </div>
+
+          {/* Mapa de Calor */}
+          <div className="mb-8">
+            <MapaCalorZonas zonas={zonasCalientes} height="500px" />
+          </div>
+
+          {/* Botón para ver mapa completo */}
+          <div className="flex justify-center">
+            <Button asChild size="lg" className="gap-2">
+              <Link href="/mapa">
+                <BarChart3 className="w-5 h-5" />
+                Ver Todos los Reportes en el Mapa
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Dashboard normal para usuarios regulares
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">

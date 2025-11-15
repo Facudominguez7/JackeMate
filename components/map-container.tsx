@@ -11,6 +11,8 @@
 
 import dynamic from "next/dynamic"
 import type { LeafletMapProps } from "@/components/leaflet-map"
+import { getPriorityColor } from "@/components/report-card"
+import { LoadingLogo } from "@/components/loading-logo"
 
 /**
  * Interfaz que representa un reporte con sus datos para visualizar en el mapa
@@ -46,19 +48,19 @@ const LeafletMap = dynamic<LeafletMapProps>(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
-        Cargando mapa…
+      <div className="w-full h-full flex items-center justify-center">
+        <LoadingLogo size="md" />
       </div>
     ),
   }
 )
 
 /**
- * Componente contenedor que renderiza el mapa y superpone la leyenda e instrucciones de uso.
+ * Renderiza el contenedor del mapa con el componente de Leaflet y las superposiciones de interfaz.
  *
- * @param reports - Array de informes que se mostrarán como marcadores en el mapa.
- * @param showLegend - Indica si se debe mostrar la leyenda de colores; por defecto `true`.
- * @returns El elemento contenedor del mapa con sus superposiciones de interfaz (leyenda e instrucciones).
+ * @param reports - Array de informes que se mostrarán como marcadores en el mapa
+ * @param showLegend - Indica si se debe mostrar la leyenda de colores; por defecto `true`
+ * @returns El elemento JSX que contiene el mapa y sus superposiciones (leyenda e instrucciones)
  */
 export function MapContainer({ reports, showLegend = true }: MapContainerProps) {
   return (
@@ -72,15 +74,24 @@ export function MapContainer({ reports, showLegend = true }: MapContainerProps) 
           <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3">Leyenda</h4>
           <div className="space-y-1.5 md:space-y-2">
             <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs">
-              <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500 flex-shrink-0"></div>
-              <span>Alta / Urgente</span>
+              <div 
+                className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 ring-1 ring-black/10" 
+                style={{ backgroundColor: getPriorityColor("Alta") }}
+              ></div>
+              <span>Alta</span>
             </div>
             <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs">
-              <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-amber-500 flex-shrink-0"></div>
+              <div 
+                className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 ring-1 ring-black/10" 
+                style={{ backgroundColor: getPriorityColor("Media") }}
+              ></div>
               <span>Media</span>
             </div>
             <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs">
-              <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-emerald-500 flex-shrink-0"></div>
+              <div 
+                className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 ring-1 ring-black/10" 
+                style={{ backgroundColor: getPriorityColor("Baja") }}
+              ></div>
               <span>Baja</span>
             </div>
           </div>

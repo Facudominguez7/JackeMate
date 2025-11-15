@@ -13,6 +13,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   MapPin,
   ArrowLeft,
   Calendar,
@@ -24,13 +34,24 @@ import {
   Send,
   CheckCircle2,
   Clock,
+  Shield,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import dynamic from "next/dynamic";
+import { LoadingLogo } from "@/components/loading-logo";
+import { toast } from "sonner";
 import {
   getReporteDetalle,
   getVotosNoExiste,
@@ -47,10 +68,20 @@ import {
   crearComentario,
   eliminarComentario,
   getHistorialEstados,
+  getUserEmail,
   type Comentario,
 } from "@/database/queries/reportes/[id]/index";
+import { 
+  verificarEsAdmin, 
+  getEstados, 
+  cambiarEstadoReporteAdmin,
+  eliminarReporteAdmin,
+  eliminarComentarioAdmin,
+  type Estado
+} from "@/database/queries/admin/index";
 import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, getCategoryIcon } from "@/components/report-card";
 import { PUNTOS } from "@/database/queries/puntos";
+import { getUserUsername } from "@/database/queries/profiles";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -60,9 +91,7 @@ const MiniMap = dynamic(() => import("@/components/mini-map").then((m) => m.Mini
   ssr: false,
   loading: () => (
     <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground">Cargando mapa…</p>
-      </div>
+      <LoadingLogo size="sm" />
     </div>
   ),
 });
@@ -103,12 +132,10 @@ const getUserInitials = (username: string) => {
 };
 
 /**
- * Componente de página que muestra el detalle interactivo de un reporte, incluyendo metadata, mapa, votaciones ("No Existe" y "Reparado"), comentarios y acciones del usuario.
+ * Página que muestra el detalle completo de un reporte: estado, prioridad, ubicación, descripción, imágenes, comentarios y controles de interacción.
  *
- * Carga datos del reporte y del usuario, gestiona el estado local (votos, comentarios, cargas y operaciones como eliminar o actualizar estado) y renderiza la interfaz completa para ver y actuar sobre el reporte.
- *
- * @param params - Promise que resuelve los parámetros de ruta; debe contener `{ id: string }` con el identificador del reporte a mostrar.
- * @returns El elemento React que representa la vista detallada del reporte.
+ * @param params - Objeto con la propiedad `id` (cadena) del reporte a mostrar; se recibe como Promise y se resuelve internamente.
+ * @returns El elemento JSX que representa la página de detalle del reporte con sus interacciones (votos, comentarios y controles administrativos).
  */
 export default function ReporteDetallePage({
   params,
@@ -130,12 +157,36 @@ export default function ReporteDetallePage({
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [fechaCambioEstado, setFechaCambioEstado] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [estados, setEstados] = useState<Estado[]>([]);
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState("");
+  const [comentarioEstado, setComentarioEstado] = useState("");
+  const [isChangingEstado, setIsChangingEstado] = useState(false);
+  
+  // Estados para controlar los AlertDialogs
+  const [showDeleteReporteDialog, setShowDeleteReporteDialog] = useState(false);
+  const [showVoteNoExisteDialog, setShowVoteNoExisteDialog] = useState(false);
+  const [showVoteReparadoDialog, setShowVoteReparadoDialog] = useState(false);
+  const [showPublishCommentDialog, setShowPublishCommentDialog] = useState(false);
+  const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false);
+  const [comentarioToDelete, setComentarioToDelete] = useState<number | null>(null);
+  
+  // Estados para controlar los AlertDialogs de Admin
+  const [showAdminChangeEstadoDialog, setShowAdminChangeEstadoDialog] = useState(false);
+  const [showAdminDeleteReporteDialog, setShowAdminDeleteReporteDialog] = useState(false);
+  const [showAdminDeleteCommentDialog, setShowAdminDeleteCommentDialog] = useState(false);
+  const [adminComentarioToDelete, setAdminComentarioToDelete] = useState<number | null>(null);
+  
   const supabase = createClient();
 
-  // Verificar si el reporte está cerrado (Reparado o Rechazado)
+  // IDs de estados según la base de datos: 1 = Pendiente, 2 = Reparado, 3 = Rechazado
+  const ESTADO_REPARADO = 2;
+  const ESTADO_RECHAZADO = 3;
+
+  // Verificar si el reporte está cerrado (Reparado o Rechazado) usando IDs
   const isReporteCerrado = reporte && (
-    getNombre(reporte.estados).toLowerCase() === 'reparado' || 
-    getNombre(reporte.estados).toLowerCase() === 'rechazado'
+    reporte.estado_id === ESTADO_REPARADO || 
+    reporte.estado_id === ESTADO_RECHAZADO
   );
 
   useEffect(() => {
@@ -146,6 +197,18 @@ export default function ReporteDetallePage({
           data: { user },
         } = await supabase.auth.getUser();
         setCurrentUser(user);
+
+        // Verificar si el usuario es admin
+        if (user) {
+          const { isAdmin: adminStatus } = await verificarEsAdmin(supabase, user.id);
+          setIsAdmin(adminStatus);
+
+          // Si es admin, cargar los estados disponibles
+          if (adminStatus) {
+            const { data: estadosData } = await getEstados(supabase);
+            setEstados(estadosData);
+          }
+        }
 
         // Obtener reporte
         const { data, error } = await getReporteDetalle(supabase, resolvedParams.id);
@@ -186,24 +249,20 @@ export default function ReporteDetallePage({
         );
         setComentarios(comentariosData);
 
-        // Obtener historial de estados para encontrar cuándo cambió a Reparado o Rechazado
-        if (data) {
-          const estadoActual = getNombre(data.estados).toLowerCase();
-          if (estadoActual === 'reparado' || estadoActual === 'rechazado') {
-            const { data: historial } = await getHistorialEstados(
-              supabase,
-              resolvedParams.id
-            );
-            
-            // Buscar el registro donde cambió a Reparado o Rechazado
-            const cambio = historial?.find((h: any) => {
-              const estadoNuevo = h.estado_nuevo?.nombre?.toLowerCase();
-              return estadoNuevo === 'reparado' || estadoNuevo === 'rechazado';
-            });
-            
-            if (cambio) {
-              setFechaCambioEstado(cambio.created_at);
-            }
+        // Obtener historial de estados para encontrar cuándo cambió a Reparado (2) o Rechazado (3)
+        if (data && (data.estado_id === ESTADO_REPARADO || data.estado_id === ESTADO_RECHAZADO)) {
+          const { data: historial } = await getHistorialEstados(
+            supabase,
+            resolvedParams.id
+          );
+          
+          // Buscar el registro donde cambió a Reparado (2) o Rechazado (3) usando IDs
+          const cambio = historial?.find((h: any) => {
+            return h.estado_nuevo_id === ESTADO_REPARADO || h.estado_nuevo_id === ESTADO_RECHAZADO;
+          });
+          
+          if (cambio) {
+            setFechaCambioEstado(cambio.created_at);
           }
         }
       } catch (error) {
@@ -218,6 +277,11 @@ export default function ReporteDetallePage({
 
   const handleVoteNoExiste = async () => {
     if (!currentUser || !reporte) return;
+    setShowVoteNoExisteDialog(true);
+  };
+
+  const confirmVoteNoExiste = async () => {
+    if (!currentUser || !reporte) return;
 
     setIsVoting(true);
     try {
@@ -229,7 +293,7 @@ export default function ReporteDetallePage({
       );
 
       if (!success || error) {
-        alert("Error al registrar el voto");
+        toast.error("Error al registrar el voto");
         return;
       }
 
@@ -239,10 +303,12 @@ export default function ReporteDetallePage({
       setHasVoted(true);
 
       // Mostrar mensaje de puntos ganados
-      alert(`¡Voto registrado! +${PUNTOS.VOTAR_NO_EXISTE} punto`);
+      toast.success(`¡Voto registrado! +${PUNTOS.VOTAR_NO_EXISTE} punto`, {
+        description: "Tu voto ha sido contabilizado correctamente"
+      });
 
       // Si llega a 5 votos, cambiar estado a Rechazado
-      if (newVotosCount >= 5) {
+      if (newVotosCount >= 5 ) {
         const { estadoId } = await getEstadoRechazadoId(supabase);
 
         if (estadoId) {
@@ -258,18 +324,29 @@ export default function ReporteDetallePage({
             "Rechazado automáticamente por 5 votos de 'No Existe'"
           );
           // Recargar página para mostrar el nuevo estado
-          window.location.reload();
+          toast.success("¡Reporte rechazado automáticamente!", {
+            description: "Se alcanzaron 5 votos. Redirigiendo..."
+          });
+          setTimeout(() => window.location.reload(), 1500);
         }
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar el voto");
+      toast.error("Error al procesar el voto", {
+        description: "Por favor, intenta nuevamente"
+      });
     } finally {
       setIsVoting(false);
+      setShowVoteNoExisteDialog(false);
     }
   };
 
   const handleVoteReparado = async () => {
+    if (!currentUser || !reporte) return;
+    setShowVoteReparadoDialog(true);
+  };
+
+  const confirmVoteReparado = async () => {
     if (!currentUser || !reporte) return;
 
     setIsVotingReparado(true);
@@ -282,7 +359,7 @@ export default function ReporteDetallePage({
       );
 
       if (!success || error) {
-        alert("Error al registrar el voto");
+        toast.error("Error al registrar el voto");
         return;
       }
 
@@ -292,7 +369,9 @@ export default function ReporteDetallePage({
       setHasVotedReparado(true);
 
       // Mostrar mensaje de puntos ganados
-      alert(`¡Voto registrado! +${PUNTOS.VOTAR_REPARADO} punto`);
+      toast.success(`¡Voto registrado! +${PUNTOS.VOTAR_REPARADO} punto`, {
+        description: "Gracias por mantener la información actualizada"
+      });
 
       // Si llega a 5 votos, cambiar estado a Reparado
       if (newVotosReparadoCount >= 5) {
@@ -311,26 +390,30 @@ export default function ReporteDetallePage({
             "Marcado como reparado por 5 votos de usuarios"
           );
           // Recargar página para mostrar el nuevo estado
-          window.location.reload();
+          toast.success("¡Reporte marcado como reparado!", {
+            description: "Se alcanzaron 5 votos. Redirigiendo..."
+          });
+          setTimeout(() => window.location.reload(), 1500);
         }
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar el voto");
+      toast.error("Error al procesar el voto", {
+        description: "Por favor, intenta nuevamente"
+      });
     } finally {
       setIsVotingReparado(false);
+      setShowVoteReparadoDialog(false);
     }
   };
 
   const handleDeleteReporte = async () => {
     if (!currentUser || !reporte) return;
+    setShowDeleteReporteDialog(true);
+  };
 
-    // Confirmar antes de borrar
-    const confirmDelete = window.confirm(
-      "¿Estás seguro de que querés eliminar este reporte? Esta acción no se puede deshacer."
-    );
-
-    if (!confirmDelete) return;
+  const confirmDeleteReporte = async () => {
+    if (!currentUser || !reporte) return;
 
     setIsDeleting(true);
     try {
@@ -341,18 +424,27 @@ export default function ReporteDetallePage({
       );
 
       if (!success) {
-        alert("Error al eliminar el reporte. Por favor, intenta nuevamente.");
+        toast.error("Error al eliminar el reporte", {
+          description: "Por favor, intenta nuevamente."
+        });
         return;
       }
 
-      alert(`Reporte eliminado exitosamente. ${PUNTOS.ELIMINAR_REPORTE_PROPIO} puntos`);
+      toast.success(`Reporte eliminado exitosamente`, {
+        description: `${PUNTOS.ELIMINAR_REPORTE_PROPIO} puntos. Redirigiendo al dashboard...`
+      });
       // Redirigir al dashboard
-      window.location.href = "/dashboard";
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar la eliminación");
+      toast.error("Error al procesar la eliminación", {
+        description: "Por favor, intenta nuevamente"
+      });
     } finally {
       setIsDeleting(false);
+      setShowDeleteReporteDialog(false);
     }
   };
 
@@ -361,12 +453,11 @@ export default function ReporteDetallePage({
 
     if (!currentUser || !reporte || !nuevoComentario.trim()) return;
 
-    // Confirmar antes de publicar
-    const confirmPublish = window.confirm(
-      "¿Estás seguro de que querés publicar este comentario?"
-    );
+    setShowPublishCommentDialog(true);
+  };
 
-    if (!confirmPublish) return;
+  const confirmPublishComment = async () => {
+    if (!currentUser || !reporte || !nuevoComentario.trim()) return;
 
     setIsSubmittingComment(true);
     try {
@@ -378,7 +469,9 @@ export default function ReporteDetallePage({
       );
 
       if (error || !data) {
-        alert("Error al publicar el comentario");
+        toast.error("Error al publicar el comentario", {
+          description: "Por favor, intenta nuevamente"
+        });
         return;
       }
 
@@ -386,41 +479,212 @@ export default function ReporteDetallePage({
       setNuevoComentario("");
       
       // Mostrar mensaje de puntos ganados
-      alert(`¡Comentario publicado! +${PUNTOS.COMENTAR_REPORTE} puntos`);
+      toast.success(`¡Comentario publicado! +${PUNTOS.COMENTAR_REPORTE} puntos`, {
+        description: "Tu comentario ha sido agregado correctamente"
+      });
+
+      // Enviar notificación por correo al dueño del reporte (solo si no es el mismo usuario)
+      if (currentUser.id !== reporte.usuario_id) {
+        try {
+          // Obtener el email del dueño del reporte usando la query directa
+          const { data: ownerEmail } = await getUserEmail(
+            supabase,
+            reporte.usuario_id
+          );
+
+          if (ownerEmail) {
+            // Obtener el username del comentarista usando la función de queries
+            const { data: commenterUsername } = await getUserUsername(
+              supabase,
+              currentUser.id
+            );
+
+            // Enviar la notificación
+            await fetch("/api/send-notification", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ownerEmail: ownerEmail,
+                ownerUsername: getUsername(reporte.profiles),
+                commenterUsername: commenterUsername || "Un usuario",
+                reporteId: reporte.id,
+                reporteTitulo: reporte.titulo,
+                comentarioContenido: nuevoComentario.trim(),
+              }),
+            });
+          }
+        } catch (notifError) {
+          // No fallar si la notificación no se envía, solo loguearlo
+          console.error("Error al enviar notificación por correo:", notifError);
+        }
+      }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar el comentario");
+      toast.error("Error al procesar el comentario", {
+        description: "Por favor, intenta nuevamente"
+      });
     } finally {
       setIsSubmittingComment(false);
+      setShowPublishCommentDialog(false);
     }
   };
 
   const handleDeleteComment = async (comentarioId: number) => {
     if (!currentUser) return;
+    setComentarioToDelete(comentarioId);
+    setShowDeleteCommentDialog(true);
+  };
 
-    const confirmDelete = window.confirm(
-      "¿Estás seguro de que querés eliminar este comentario?"
-    );
-
-    if (!confirmDelete) return;
+  const confirmDeleteComment = async () => {
+    if (!currentUser || comentarioToDelete === null) return;
 
     try {
       const { success } = await eliminarComentario(
         supabase,
-        comentarioId,
+        comentarioToDelete,
         currentUser.id
       );
 
       if (!success) {
-        alert("Error al eliminar el comentario");
+        toast.error("Error al eliminar el comentario", {
+          description: "Por favor, intenta nuevamente"
+        });
         return;
       }
 
       // Actualizar lista de comentarios (filtrar el eliminado)
-      setComentarios(comentarios.filter((c) => c.id !== comentarioId));
+      setComentarios(comentarios.filter((c) => c.id !== comentarioToDelete));
+      toast.success("Comentario eliminado", {
+        description: "El comentario ha sido eliminado correctamente"
+      });
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al procesar la eliminación");
+      toast.error("Error al procesar la eliminación", {
+        description: "Por favor, intenta nuevamente"
+      });
+    } finally {
+      setComentarioToDelete(null);
+      setShowDeleteCommentDialog(false);
+    }
+  };
+
+  // ===== FUNCIONES DE ADMINISTRADOR =====
+  const handleAdminChangeEstado = async () => {
+    if (!currentUser || !reporte || !estadoSeleccionado) return;
+    setShowAdminChangeEstadoDialog(true);
+  };
+
+  const confirmAdminChangeEstado = async () => {
+    if (!currentUser || !reporte || !estadoSeleccionado) return;
+
+    setIsChangingEstado(true);
+    try {
+      const { success, error } = await cambiarEstadoReporteAdmin(
+        supabase,
+        reporte.id,
+        parseInt(estadoSeleccionado),
+        currentUser.id,
+        comentarioEstado.trim() || undefined
+      );
+
+      if (!success || error) {
+        toast.error("Error al cambiar el estado del reporte", {
+          description: "Por favor, intenta nuevamente"
+        });
+        return;
+      }
+
+      toast.success("Estado actualizado exitosamente", {
+        description: "El cambio ha sido registrado en el historial"
+      });
+      // Recargar la página para mostrar los cambios
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al procesar el cambio de estado", {
+        description: "Por favor, intenta nuevamente"
+      });
+    } finally {
+      setIsChangingEstado(false);
+      setShowAdminChangeEstadoDialog(false);
+    }
+  };
+
+  const handleAdminDeleteReporte = async () => {
+    if (!currentUser || !reporte) return;
+    setShowAdminDeleteReporteDialog(true);
+  };
+
+  const confirmAdminDeleteReporte = async () => {
+    if (!currentUser || !reporte) return;
+
+    try {
+      const { success } = await eliminarReporteAdmin(
+        supabase,
+        reporte.id,
+        currentUser.id
+      );
+
+      if (!success) {
+        toast.error("Error al eliminar el reporte", {
+          description: "Por favor, intenta nuevamente"
+        });
+        return;
+      }
+
+      toast.success("Reporte eliminado exitosamente", {
+        description: "Redirigiendo..."
+      });
+      // Redirigir al dashboard
+      setTimeout(() => window.location.href = "/reportes", 1000);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al procesar la eliminación", {
+        description: "Por favor, intenta nuevamente"
+      });
+    } finally {
+      setShowAdminDeleteReporteDialog(false);
+    }
+  };
+
+  const handleAdminDeleteComment = async (comentarioId: number) => {
+    if (!currentUser) return;
+    setAdminComentarioToDelete(comentarioId);
+    setShowAdminDeleteCommentDialog(true);
+  };
+
+  const confirmAdminDeleteComment = async () => {
+    if (!currentUser || adminComentarioToDelete === null) return;
+
+    try {
+      const { success } = await eliminarComentarioAdmin(
+        supabase,
+        adminComentarioToDelete,
+        currentUser.id
+      );
+
+      if (!success) {
+        toast.error("Error al eliminar el comentario", {
+          description: "Por favor, intenta nuevamente"
+        });
+        return;
+      }
+
+      // Actualizar lista de comentarios (filtrar el eliminado)
+      setComentarios(comentarios.filter((c) => c.id !== adminComentarioToDelete));
+      toast.success("Comentario eliminado por el administrador", {
+        description: "El comentario ha sido eliminado correctamente"
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al procesar la eliminación", {
+        description: "Por favor, intenta nuevamente"
+      });
+    } finally {
+      setAdminComentarioToDelete(null);
+      setShowAdminDeleteCommentDialog(false);
     }
   };
 
@@ -435,9 +699,7 @@ export default function ReporteDetallePage({
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Cargando...</p>
-        </div>
+        <LoadingLogo size="lg" text="Cargando reporte..." />
       </div>
     );
   }
@@ -467,8 +729,14 @@ export default function ReporteDetallePage({
             </Link>
           </Button>
           
-          {/* Botones de acción rápida en desktop */}
+          {/* Badge de Admin y Botones de acción rápida en desktop */}
           <div className="hidden lg:flex items-center gap-2">
+            {isAdmin && (
+              <Badge variant="default" className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Shield className="w-3 h-3 mr-1" />
+                Administrador
+              </Badge>
+            )}
             <Button variant="outline" size="sm">
               <Share2 className="w-4 h-4 mr-2" />
               Compartir
@@ -683,19 +951,26 @@ export default function ReporteDetallePage({
                               </p>
                             </div>
                           </div>
-                          {currentUser &&
-                            currentUser.id === comentario.usuario_id && (
+                          {(currentUser &&
+                            currentUser.id === comentario.usuario_id) || isAdmin ? (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() =>
-                                  handleDeleteComment(comentario.id)
+                                  isAdmin && currentUser.id !== comentario.usuario_id
+                                    ? handleAdminDeleteComment(comentario.id)
+                                    : handleDeleteComment(comentario.id)
                                 }
                                 className="h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                title={
+                                  isAdmin && currentUser.id !== comentario.usuario_id
+                                    ? "Eliminar comentario (Admin)"
+                                    : "Eliminar comentario"
+                                }
                               >
                                 <Trash2 className="w-3 h-3 md:w-4 md:h-4 lg:w-4.5 lg:h-4.5" />
                               </Button>
-                            )}
+                            ) : null}
                         </div>
                         <p className="text-xs md:text-sm lg:text-base text-foreground leading-relaxed pl-9 md:pl-11 lg:pl-14">
                           {comentario.contenido}
@@ -710,6 +985,71 @@ export default function ReporteDetallePage({
 
           {/* Barra Lateral */}
           <div className="lg:col-span-4 space-y-4 md:space-y-6">
+            
+            {/* Panel de Administrador - Solo visible para admins */}
+            {isAdmin && (
+              <Card className="border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/20 lg:shadow-md">
+                <CardHeader className="pb-3 md:pb-4 lg:pb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shield className="w-5 h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
+                    <CardTitle className="text-base md:text-lg lg:text-xl text-purple-700 dark:text-purple-400">
+                      Panel de Administrador
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="text-xs md:text-sm">
+                    Controles exclusivos para gestionar este reporte
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-0">
+                  {/* Cambiar Estado */}
+                  <div className="space-y-2">
+                    <label className="text-xs md:text-sm font-medium text-foreground">
+                      Cambiar Estado
+                    </label>
+                    <Select value={estadoSeleccionado} onValueChange={setEstadoSeleccionado}>
+                      <SelectTrigger className="w-full text-xs md:text-sm">
+                        <SelectValue placeholder="Seleccionar estado..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {estados.map((estado) => (
+                          <SelectItem key={estado.id} value={estado.id.toString()}>
+                            {estado.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Textarea
+                      placeholder="Descripción del cambio (opcional)"
+                      value={comentarioEstado}
+                      onChange={(e) => setComentarioEstado(e.target.value)}
+                      className="min-h-[60px] text-xs md:text-sm resize-none"
+                    />
+                    <Button
+                      onClick={handleAdminChangeEstado}
+                      disabled={!estadoSeleccionado || isChangingEstado}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm"
+                      size="sm"
+                    >
+                      <Settings className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
+                      {isChangingEstado ? "Actualizando..." : "Actualizar Estado"}
+                    </Button>
+                  </div>
+
+                  {/* Eliminar Reporte */}
+                  <div className="pt-3 border-t border-purple-200 dark:border-purple-900">
+                    <Button
+                      onClick={handleAdminDeleteReporte}
+                      variant="outline"
+                      className="w-full text-xs md:text-sm text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                      size="sm"
+                    >
+                      <Trash2 className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
+                      Eliminar Reporte (Admin)
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             
             {/* Botón "Marcar como Reparado" - Solo si está PENDIENTE */}
             {currentUser && !isReporteCerrado && (
@@ -850,6 +1190,365 @@ export default function ReporteDetallePage({
           </div>
         </div>
       </div>
+
+      {/* AlertDialog - Eliminar Reporte */}
+      <AlertDialog open={showDeleteReporteDialog} onOpenChange={setShowDeleteReporteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este reporte?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por eliminar permanentemente este reporte:</p>
+                <div className="bg-muted p-4 rounded-lg space-y-2">
+                  <p className="font-semibold text-foreground">{reporte?.titulo}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{reporte?.descripcion}</p>
+                </div>
+                <p className="text-sm text-destructive font-medium">
+                  ⚠️ Esta acción no se puede deshacer
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Perderás <span className="font-bold text-destructive">{PUNTOS.ELIMINAR_REPORTE_PROPIO} puntos</span> al eliminar este reporte.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteReporte}
+              disabled={isDeleting}
+              className="bg-destructive text-accent-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-destructive-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                  Eliminando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar Reporte
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Votar No Existe */}
+      <AlertDialog open={showVoteNoExisteDialog} onOpenChange={setShowVoteNoExisteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar voto "No Existe"?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por votar que este reporte NO existe o fue reportado por error:</p>
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="font-semibold text-foreground mb-1">{reporte?.titulo}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Votantes actuales: {votosCount} / 5
+                  </p>
+                </div>
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
+                  <p className="text-sm text-red-700 dark:text-red-400">
+                    ⚠️ Con 5 votos, el reporte será <span className="font-bold">rechazado automáticamente</span>
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ganarás <span className="font-bold text-primary">{PUNTOS.VOTAR_NO_EXISTE} punto</span> por votar.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isVoting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmVoteNoExiste}
+              disabled={isVoting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {isVoting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Votando...
+                </>
+              ) : (
+                <>
+                  <ThumbsDown className="w-4 h-4 mr-2" />
+                  Confirmar Voto
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Votar Reparado */}
+      <AlertDialog open={showVoteReparadoDialog} onOpenChange={setShowVoteReparadoDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar que está reparado?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por confirmar que este problema ya fue solucionado:</p>
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="font-semibold text-foreground mb-1">{reporte?.titulo}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Votantes actuales: {votosReparadoCount} / 5
+                  </p>
+                </div>
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-md p-3">
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    ✓ Con 5 votos, el reporte se marcará como <span className="font-bold">Reparado</span>
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ganarás <span className="font-bold text-primary">{PUNTOS.VOTAR_REPARADO} punto</span> por votar.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isVotingReparado}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmVoteReparado}
+              disabled={isVotingReparado}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              {isVotingReparado ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Votando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Confirmar Voto
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Publicar Comentario */}
+      <AlertDialog open={showPublishCommentDialog} onOpenChange={setShowPublishCommentDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Publicar comentario?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por publicar el siguiente comentario:</p>
+                <div className="bg-muted p-4 rounded-lg max-h-40 overflow-y-auto">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{nuevoComentario}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ganarás <span className="font-bold text-primary">{PUNTOS.COMENTAR_REPORTE} puntos</span> por comentar.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmittingComment}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPublishComment} disabled={isSubmittingComment}>
+              {isSubmittingComment ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                  Publicando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Publicar Comentario
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Eliminar Comentario */}
+      <AlertDialog open={showDeleteCommentDialog} onOpenChange={setShowDeleteCommentDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar comentario?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por eliminar este comentario:</p>
+                <div className="bg-muted p-4 rounded-lg max-h-40 overflow-y-auto">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {comentarios.find(c => c.id === comentarioToDelete)?.contenido}
+                  </p>
+                </div>
+                <p className="text-sm text-destructive">
+                  Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteComment}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Admin: Cambiar Estado */}
+      <AlertDialog open={showAdminChangeEstadoDialog} onOpenChange={setShowAdminChangeEstadoDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-purple-600" />
+              ¿Cambiar estado del reporte?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por cambiar el estado de este reporte como administrador:</p>
+                <div className="bg-muted p-4 rounded-lg space-y-2">
+                  <p className="font-semibold text-foreground">{reporte?.titulo}</p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Estado actual:</span>
+                    <Badge variant={getStatusVariant(getNombre(reporte?.estados))}>
+                      {getNombre(reporte?.estados)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Nuevo estado:</span>
+                    <Badge variant="default">
+                      {estados.find(e => e.id.toString() === estadoSeleccionado)?.nombre || "N/A"}
+                    </Badge>
+                  </div>
+                  {comentarioEstado.trim() && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground mb-1">Descripción:</p>
+                      <p className="text-sm text-foreground">{comentarioEstado}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900 rounded-md p-3">
+                  <p className="text-sm text-purple-700 dark:text-purple-400">
+                    ℹ️ Esta acción quedará registrada en el historial del reporte
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isChangingEstado}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAdminChangeEstado}
+              disabled={isChangingEstado}
+              className="bg-purple-600 text-white hover:bg-purple-700"
+            >
+              {isChangingEstado ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Actualizando...
+                </>
+              ) : (
+                <>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Confirmar Cambio
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Admin: Eliminar Reporte */}
+      <AlertDialog open={showAdminDeleteReporteDialog} onOpenChange={setShowAdminDeleteReporteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-purple-600" />
+              ¿Eliminar reporte como administrador?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por eliminar permanentemente este reporte como administrador:</p>
+                <div className="bg-muted p-4 rounded-lg space-y-2">
+                  <p className="font-semibold text-foreground">{reporte?.titulo}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{reporte?.descripcion}</p>
+                  <div className="flex items-center gap-2 text-sm pt-2 border-t">
+                    <span className="text-muted-foreground">Estado actual:</span>
+                    <Badge variant={getStatusVariant(getNombre(reporte?.estados))}>
+                      {getNombre(reporte?.estados)}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
+                  <p className="text-sm text-red-700 dark:text-red-400 font-medium">
+                    ⚠️ Esta acción no se puede deshacer
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-500 mt-1">
+                    El reporte y todos sus comentarios serán eliminados permanentemente
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAdminDeleteReporte}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar Reporte (Admin)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Admin: Eliminar Comentario */}
+      <AlertDialog open={showAdminDeleteCommentDialog} onOpenChange={setShowAdminDeleteCommentDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-purple-600" />
+              ¿Eliminar comentario como administrador?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Estás por eliminar este comentario como administrador:</p>
+                <div className="bg-muted p-4 rounded-lg max-h-40 overflow-y-auto">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {comentarios.find(c => c.id === adminComentarioToDelete)?.contenido}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 pt-2 border-t">
+                    <span>Autor:</span>
+                    <span className="font-medium">
+                      {getComentarioUsername(comentarios.find(c => c.id === adminComentarioToDelete)?.profiles)}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
+                  <p className="text-sm text-red-700 dark:text-red-400">
+                    ⚠️ Esta acción no se puede deshacer
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAdminDeleteComment}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar (Admin)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

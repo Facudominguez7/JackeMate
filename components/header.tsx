@@ -5,14 +5,11 @@ import { createClient } from "@/utils/supabase/server"
 import { HeaderClient } from "./header-client"
 
 /**
- * Renderiza el encabezado de la aplicación con logo y controles de usuario.
+ * Renderiza el encabezado de la aplicación con el logotipo y los controles de usuario.
  *
- * Recupera el usuario autenticado desde Supabase, determina un `displayName`
- * a partir de la metadata del usuario o de la parte local del correo y devuelve
- * la estructura JSX del header que incluye el logo responsive y el componente
- * `HeaderClient` con el usuario y su nombre para mostrar.
+ * Incluye un logotipo responsive, el título visible en pantallas grandes y los controles de usuario en la zona derecha.
  *
- * @returns El elemento JSX del encabezado de la página que contiene el logo, el título responsive y el componente `HeaderClient` configurado con el usuario y `displayName`.
+ * @returns El elemento JSX del encabezado que contiene el logotipo, el título responsive y los controles de usuario.
  */
 export default async function Header() {
     const supabase = await createClient()
@@ -30,24 +27,26 @@ export default async function Header() {
             <div className="container mx-auto px-1 py-1">
                 <div className="flex items-center justify-between gap-4">
                     {/* Logo - Izquierda */}
-                    <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label="Ir al inicio">
-                        <div className="w-20 h-20 rounded-lg relative overflow-hidden">
-                            <Image
-                                src="/logo/logoJackeMate.png"
-                                alt="JackeMate logo"
-                                fill
-                                sizes="40px"
-                                className="object-cover"
-                                priority
-                            />
-                        </div>
-                        <div className="hidden lg:block">
-                            <h1 className="text-xl font-bold text-foreground">JackeMate</h1>
-                            <p className="text-sm text-muted-foreground">Mejoremos nuestra ciudad juntos</p>
-                        </div>
-                    </Link>
+                    <div className="flex-1">
+                        <Link href="/" className="flex items-center gap-3 flex-shrink-0 w-fit" aria-label="Ir al inicio">
+                            <div className="w-20 h-20 rounded-lg relative overflow-hidden">
+                                <Image
+                                    src="/logo/logoJackeMate.png"
+                                    alt="JackeMate logo"
+                                    fill
+                                    sizes="40px"
+                                    className="object-cover"
+                                    priority
+                                />
+                            </div>
+                            <div className="hidden lg:block">
+                                <h1 className="text-xl font-bold text-foreground">JackeMate</h1>
+                                <p className="text-sm text-muted-foreground">Mejoremos nuestra ciudad juntos</p>
+                            </div>
+                        </Link>
+                    </div>
 
-                    {/* Navegación Central - Desktop only */}
+                    {/* Navegación Central y Derecha */}
                     <HeaderClient user={user} displayName={displayName} />
                 </div>
             </div>

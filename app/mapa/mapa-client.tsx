@@ -9,7 +9,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +19,8 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 import { FiltrosReportes } from "@/components/filtros-reportes"
 import type { ReporteDB } from "@/database/queries/reportes/get-reportes"
+import { getPriorityColor, getStatusColor, getCategoryColor } from "@/components/report-card"
+import { LoadingLogo } from "@/components/loading-logo"
 
 /**
  * Importar el mapa solo en el cliente para evitar "window is not defined"
@@ -29,8 +31,8 @@ const MapContainer = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
-        Cargando mapa…
+      <div className="w-full h-full flex items-center justify-center">
+        <LoadingLogo size="md" text="Cargando mapa..." />
       </div>
     ),
   }
@@ -62,14 +64,12 @@ type MapaClientProps = {
 }
 
 /**
- * Componente cliente que renderiza un mapa interactivo de reportes con una barra lateral listando reportes y un panel de filtros.
+ * Componente cliente que renderiza un mapa interactivo de reportes con una barra lateral y un panel de filtros.
  *
- * Renderiza el mapa (cliente-only), controla la visibilidad responsiva del sidebar y del panel de filtros, transforma los registros de base de datos al formato esperado por el mapa y muestra estados de error o vacío.
+ * Transforma los registros crudos de la base de datos al formato esperado por el mapa, controla la visibilidad responsiva del sidebar y del panel de filtros, y muestra estados de error o de lista vacía.
  *
- * @param reportesDB - Array de registros crudos de reportes tal como provienen de la base de datos; se transforma internamente al formato usado por el mapa.
- * @param categorias - Opciones de categorías disponibles para los filtros.
- * @param estados - Opciones de estados disponibles para los filtros.
- * @param prioridades - Opciones de prioridades disponibles para los filtros.
+ * @param reportesDB - Array de reportes tal como vienen de la base de datos; se convierte internamente al formato utilizado por el mapa (incluye campos como id, titulo, lat, lon, autor, fotos, etc.).
+ * @param error - Mensaje de error opcional que, si está presente, se muestra en la interfaz en lugar del mapa o de la lista.
  * @returns Un elemento React que contiene el mapa interactivo, la barra lateral de reportes y el panel de filtros.
  */
 export function MapaClient({ reportesDB, categorias, estados, prioridades, error }: MapaClientProps) {
@@ -78,6 +78,7 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
   const [showSidebar, setShowSidebar] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [mapKey, setMapKey] = useState(0)
+  const [isPending, startTransition] = useTransition()
 
   /**
    * Efecto para inicializar y actualizar el estado del sidebar según el tamaño de pantalla
@@ -117,57 +118,29 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
   }))
 
   /**
-   * Maneja el cierre del panel de filtros en mobile después de aplicar un filtro
+   * Maneja el cierre del panel de filtros después de aplicar un filtro
    */
   const handleFilterApplied = useCallback(() => {
-    // Solo cerrar en dispositivos móviles (< 640px)
-    if (typeof window !== 'undefined' && window.innerWidth < 640) {
-      setShowFilters(false)
-    }
+    // Cerrar el panel de filtros siempre que se aplique un filtro
+    setShowFilters(false)
   }, [])
-
-  /**
-   * Obtiene el color para la prioridad del reporte
-   * @param priority - Nombre de la prioridad
-   * @returns Color hex para la prioridad
-   */
-  const getPriorityColor = (priority: string) => {
-    const normalized = priority.toLowerCase()
-    switch (normalized) {
-      case "urgente":
-      case "alta":
-        return "#ef4444" // red
-      case "media":
-        return "#f59e0b" // amber
-      case "baja":
-        return "#10b981" // emerald
-      default:
-        return "#6b7280" // gray
-    }
-  }
-
-  /**
-   * Obtiene el color para el estado del reporte
-   * @param status - Nombre del estado
-   * @returns Color hex para el estado
-   */
-  const getStatusColor = (status: string) => {
-    const normalized = status.toLowerCase()
-    switch (normalized) {
-      case "resuelto":
-        return "#10b981" // emerald
-      case "en progreso":
-        return "#3b82f6" // blue
-      case "reportado":
-      case "pendiente":
-        return "#f59e0b" // amber
-      default:
-        return "#6b7280" // gray
-    }
-  }
 
   return (
     <div className="bg-background">
+      {/* Loader flotante sobre toda la página */}
+      {isPending && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-5 duration-300">
+          <div className="bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce"></div>
+              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+            <span className="font-medium text-sm">Aplicando filtros...</span>
+          </div>
+        </div>
+      )}
+      
       {/* Barra de control superior */}
       <div className="border-b bg-background shadow-sm z-30">
         <div className="container mx-auto px-3 sm:px-4 py-3">
@@ -244,6 +217,8 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
               estados={estados}
               prioridades={prioridades}
               onFilterApplied={handleFilterApplied}
+              externalIsPending={isPending}
+              externalStartTransition={startTransition}
             />
           </div>
         </div>
@@ -352,8 +327,19 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
                                 >
                                   {report.status}
                                 </Badge>
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-[10px] px-1.5 py-0"
+                                  style={{ borderColor: getCategoryColor(), color: getCategoryColor() }}
+                                >
                                   {report.category}
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0"
+                                  style={{ borderColor: getPriorityColor(report.priority), color: getPriorityColor(report.priority) }}
+                                >
+                                  {report.priority}
                                 </Badge>
                               </div>
                             </Link>
