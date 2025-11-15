@@ -1,13 +1,12 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Verifica si un usuario puede ver el dashboard de analíticas.
- * 
- * Un usuario puede ver el dashboard si es Admin (rol_id = 1) o Interesado (rol_id = 3).
- * 
- * @param supabase - Cliente de Supabase
+ * Determina si un usuario puede ver el panel de analíticas.
+ *
+ * Un usuario puede ver el panel si tiene rol Admin (rol_id = 1) o Interesado (rol_id = 3).
+ *
  * @param usuarioId - ID del usuario a verificar
- * @returns Un objeto con `puedeVerDashboard` (boolean) y `error` (null o el error ocurrido)
+ * @returns Objeto con `puedeVerDashboard`: `true` si el usuario puede ver el panel, `false` en caso contrario; y `error`: el error ocurrido o `null`
  */
 export async function verificarPuedeVerDashboard(
   supabase: SupabaseClient,
@@ -31,8 +30,11 @@ export async function verificarPuedeVerDashboard(
 }
 
 /**
- * @deprecated Usar verificarPuedeVerDashboard en su lugar
- * Mantiene compatibilidad con código existente
+ * Wrapper en desuso que verifica si un usuario puede ver el dashboard y devuelve el resultado con la propiedad `isInteresado`.
+ *
+ * @deprecated Usar `verificarPuedeVerDashboard` en su lugar.
+ * @param usuarioId - Identificador del usuario a comprobar.
+ * @returns Un objeto con `isInteresado` igual a `true` si el usuario puede ver el dashboard, `false` en caso contrario; y `error` con el error original o `null`.
  */
 export async function verificarEsInteresado(
   supabase: SupabaseClient,

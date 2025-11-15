@@ -64,14 +64,12 @@ type MapaClientProps = {
 }
 
 /**
- * Componente cliente que renderiza un mapa interactivo de reportes con una barra lateral listando reportes y un panel de filtros.
+ * Componente cliente que renderiza un mapa interactivo de reportes con una barra lateral y un panel de filtros.
  *
- * Renderiza el mapa (cliente-only), controla la visibilidad responsiva del sidebar y del panel de filtros, transforma los registros de base de datos al formato esperado por el mapa y muestra estados de error o vacío.
+ * Transforma los registros crudos de la base de datos al formato esperado por el mapa, controla la visibilidad responsiva del sidebar y del panel de filtros, y muestra estados de error o de lista vacía.
  *
- * @param reportesDB - Array de registros crudos de reportes tal como provienen de la base de datos; se transforma internamente al formato usado por el mapa.
- * @param categorias - Opciones de categorías disponibles para los filtros.
- * @param estados - Opciones de estados disponibles para los filtros.
- * @param prioridades - Opciones de prioridades disponibles para los filtros.
+ * @param reportesDB - Array de reportes tal como vienen de la base de datos; se convierte internamente al formato utilizado por el mapa (incluye campos como id, titulo, lat, lon, autor, fotos, etc.).
+ * @param error - Mensaje de error opcional que, si está presente, se muestra en la interfaz en lugar del mapa o de la lista.
  * @returns Un elemento React que contiene el mapa interactivo, la barra lateral de reportes y el panel de filtros.
  */
 export function MapaClient({ reportesDB, categorias, estados, prioridades, error }: MapaClientProps) {

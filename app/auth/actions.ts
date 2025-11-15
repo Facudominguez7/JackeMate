@@ -33,6 +33,17 @@ export async function login(_prevState: AuthFormState | void, formData: FormData
   return {}
 }
 
+/**
+ * Registra un nuevo usuario usando los campos del formulario y gestiona la navegación tras el registro.
+ *
+ * @param _prevState - Estado anterior del formulario (no utilizado).
+ * @param formData - FormData que debe contener los campos `name`, `lastname`, `email` y `password`.
+ * @returns Un objeto `AuthFormState` que contiene:
+ *  - `error`: mensaje de error si la creación de la cuenta falla,
+ *  - `message`: instrucción para confirmar el correo si se requiere verificación,
+ *  - o un objeto vacío en caso de que la sesión se cree y se redirija al inicio.
+ * Además, si el registro crea una sesión activa, la función revalida la caché del layout raíz y redirige a `/`.
+ */
 export async function signup(_prevState: AuthFormState | void, formData: FormData): Promise<AuthFormState> {
   const supabase = await createClient()
 

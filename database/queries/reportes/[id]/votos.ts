@@ -27,11 +27,11 @@ export async function getVotosNoExiste(supabase: SupabaseClient, reporteId: stri
 }
 
 /**
- * Comprueba si un usuario ya ha votado "no existe" en un reporte.
+ * Comprueba si un usuario ha votado "no existe" en un reporte.
  *
  * @param reporteId - ID del reporte a comprobar
- * @param usuarioId - ID del usuario que se consulta
- * @returns Un objeto con `hasVoted`: `true` si el usuario ya votó "no existe" en el reporte, `false` en caso contrario; y `error`: el error ocurrido o `null` si no hubo error
+ * @param usuarioId - ID del usuario a comprobar
+ * @returns Objeto con `hasVoted`: `true` si el usuario ya votó "no existe" para el reporte, `false` en caso contrario; y `error`: el error ocurrido o `null` si no hubo error
  */
 export async function verificarVotoUsuario(
   supabase: SupabaseClient,
@@ -186,10 +186,11 @@ export async function getEstadoRechazadoId(supabase: SupabaseClient) {
 }
 
 /**
- * Devuelve el identificador del estado "Reparado".
- * ID según base de datos: 2
+ * Obtiene el identificador del estado "Reparado".
  *
- * @returns Un objeto con `estadoId` (siempre 2 para Reparado) y `error` (null)
+ * Devuelve el valor fijo usado para representar el estado "Reparado" en la base de datos.
+ *
+ * @returns Un objeto con `estadoId` igual a 2 y `error` siempre `null`.
  */
 export async function getEstadoReparadoId(supabase: SupabaseClient) {
   // ID fijo según la base de datos
@@ -197,14 +198,16 @@ export async function getEstadoReparadoId(supabase: SupabaseClient) {
 }
 
 /**
- * Actualiza el estado de un reporte, ajusta puntos según la transición y registra el cambio en el historial.
+ * Actualiza el estado de un reporte, ajusta puntos según la transición, registra el cambio en el historial y notifica al propietario cuando procede.
+ *
+ * Actualiza la columna `estado_id` del reporte indicado; aplica penalización o bonificación de puntos al autor si el nuevo estado es `Rechazado` (3) o `Reparado` (2) respectivamente; inserta un registro en `historial_estados` (si el registro de historial falla se registra en consola pero no invalida la operación principal); y, si procede, intenta enviar una notificación por correo al propietario con el nuevo estado y el comentario (fallos en la notificación se registran pero no provocan error de la operación).
  *
  * @param reporteId - ID del reporte cuyo estado se actualizará
- * @param estadoId - ID del nuevo estado que se asignará al reporte
+ * @param estadoId - ID del nuevo estado que se asignará al reporte (2 = Reparado, 3 = Rechazado)
  * @param estadoAnteriorId - ID del estado previo, si está disponible
  * @param usuarioId - ID del usuario que realiza el cambio, si corresponde
  * @param comentario - Comentario opcional asociado al cambio de estado
- * @returns Un objeto con `success`: `true` si la actualización del estado se realizó (aunque el registro en historial pueda fallar), `false` en caso de error; `error` contiene el detalle del fallo o `null`
+ * @returns Un objeto con `success`: `true` si la actualización del estado se realizó; `error` contiene el detalle del fallo o `null` (la función devuelve `success: true` aunque fallen el registro en historial o el envío de notificación)
  */
 export async function actualizarEstadoReporte(
   supabase: SupabaseClient,

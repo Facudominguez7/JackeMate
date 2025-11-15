@@ -9,6 +9,14 @@ type ReportesClientWrapperProps = {
   prioridades: { id: number; nombre: string }[]
 }
 
+/**
+ * Componente cliente que muestra la interfaz de filtros para reportes y un indicador flotante mientras hay una transición pendiente.
+ *
+ * @param categorias - Array de categorías, cada elemento con `id` (número) y `nombre` (cadena).
+ * @param estados - Array de estados, cada elemento con `id` (número) y `nombre` (cadena).
+ * @param prioridades - Array de prioridades, cada elemento con `id` (número) y `nombre` (cadena).
+ * @returns Elemento JSX que renderiza el componente de filtros y muestra un badge flotante con "Aplicando filtros..." durante la transición.
+ */
 export function ReportesClientWrapper({ categorias, estados, prioridades }: ReportesClientWrapperProps) {
   const [isPending, startTransition] = useTransition()
 

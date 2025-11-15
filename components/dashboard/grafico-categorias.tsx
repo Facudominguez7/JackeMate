@@ -9,9 +9,9 @@ type Props = {
 }
 
 /**
- * Componente que muestra un gráfico de barras con la cantidad de reportes por categoría.
- * 
- * @param data - Array de objetos con categoría, cantidad y color
+ * Muestra un gráfico de barras con la cantidad de reportes por categoría.
+ *
+ * @param data - Array de objetos con las propiedades `categoria` (etiqueta X), `cantidad` (valor numérico) y `color` (color del segmento)
  */
 export function GraficoReportesPorCategoria({ data }: Props) {
   if (!data || data.length === 0) {

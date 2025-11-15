@@ -205,15 +205,13 @@ const createPopupContent = (
 }
 
 /**
- * Renderiza un grupo de clusters de marcadores en el mapa y añade un marcador por cada reporte con su popup sanitizado.
+ * Renderiza en el mapa un grupo de clusters que contiene un marcador por cada reporte y enlaza sus popups sanitizados.
  *
- * Crea un MarkerClusterGroup con configuración personalizada, genera el icono del cluster según la cantidad de marcadores, añade marcadores coloreados según la prioridad y vincula popups que usan el color del estado.
- *
- * @param reports - Lista de reportes que se representarán como marcadores
- * @param getIcon - Función que recibe la prioridad del reporte y devuelve el `L.DivIcon` correspondiente
- * @param getStatusColor - Función que recibe el estado del reporte y devuelve el color (hex) usado en el contenido del popup
- * @param getPriorityColor - Función que recibe la prioridad del reporte y devuelve el color (hex) usado en el contenido del popup
- * @param getCategoryColor - Función que devuelve el color (hex) usado para categorías en el contenido del popup
+ * @param reports - Array de reportes a representar como marcadores
+ * @param getIcon - Devuelve el `L.DivIcon` correspondiente a la prioridad proporcionada
+ * @param getStatusColor - Devuelve el color (hex) asociado al estado, usado para estilizar el contenido del popup
+ * @param getPriorityColor - Devuelve el color (hex) asociado a la prioridad, usado para estilizar el contenido del popup
+ * @param getCategoryColor - Devuelve el color (hex) usado para categorías en el contenido del popup
  */
 function MarkerClusterGroup({ 
   reports, 
@@ -293,14 +291,13 @@ function MarkerClusterGroup({
 }
 
 /**
- * Renderiza un mapa interactivo con Leaflet que muestra reportes como marcadores agrupados y priorizados.
+ * Renderiza un mapa Leaflet con marcadores agrupados que representan los reportes.
  *
- * El mapa incluye tiles de OpenStreetMap, ajuste automático de vista según los reportes, agrupamiento (clustering)
- * de marcadores y popups sanitizados con detalles de cada reporte. Los marcadores se colorean según la prioridad
- * y el estado del reporte.
+ * Ajusta automáticamente la vista para incluir todos los reportes, utiliza tiles de OpenStreetMap,
+ * colorea marcadores según prioridad y muestra popups sanitizados con los detalles de cada reporte.
  *
- * @param reports - Lista de reportes cuya ubicación y metadatos se usan para crear marcadores y popups.
- * @returns El elemento React que contiene el mapa Leaflet con clustering y ajuste automático de vista.
+ * @param reports - Lista de objetos `Report` que se mostrarán como marcadores en el mapa
+ * @returns El elemento React que contiene el mapa Leaflet con clustering, ajuste automático de vista y popups por reporte
  */
 export default function LeafletMap({ reports }: LeafletMapProps) {
   const [mapKey, setMapKey] = useState(0)

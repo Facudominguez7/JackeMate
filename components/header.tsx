@@ -5,14 +5,11 @@ import { createClient } from "@/utils/supabase/server"
 import { HeaderClient } from "./header-client"
 
 /**
- * Renderiza el encabezado de la aplicación con logo y controles de usuario.
+ * Renderiza el encabezado de la aplicación con el logotipo y los controles de usuario.
  *
- * Recupera el usuario autenticado desde Supabase, determina un `displayName`
- * a partir de la metadata del usuario o de la parte local del correo y devuelve
- * la estructura JSX del header que incluye el logo responsive y el componente
- * `HeaderClient` con el usuario y su nombre para mostrar.
+ * Incluye un logotipo responsive, el título visible en pantallas grandes y los controles de usuario en la zona derecha.
  *
- * @returns El elemento JSX del encabezado de la página que contiene el logo, el título responsive y el componente `HeaderClient` configurado con el usuario y `displayName`.
+ * @returns El elemento JSX del encabezado que contiene el logotipo, el título responsive y los controles de usuario.
  */
 export default async function Header() {
     const supabase = await createClient()

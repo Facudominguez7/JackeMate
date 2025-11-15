@@ -11,11 +11,12 @@ export interface CrearReporteParams {
 }
 
 /**
- * Crea un nuevo reporte en la base de datos.
- * 
- * @param supabase - Cliente de Supabase
- * @param params - Parámetros del reporte a crear
- * @returns El reporte creado o null si hubo un error
+ * Inserta un nuevo reporte en la tabla `reportes` y devuelve el registro creado.
+ *
+ * @param supabase - Cliente de Supabase usado para ejecutar la consulta
+ * @param params - Parámetros del reporte a crear (usuarioId, titulo, descripcion, categoriaId, prioridadId, lat, lon)
+ * @returns El registro insertado del reporte
+ * @throws Error si la creación del reporte falla
  */
 export async function crearReporte(supabase: SupabaseClient, params: CrearReporteParams) {
   const { data, error } = await supabase

@@ -2,15 +2,12 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { verificarEsAdmin } from "./verificar-admin";
 
 /**
- * Elimina un comentario (soft delete). Solo usuarios con rol admin pueden ejecutar esta acción.
- * 
- * A diferencia de la función eliminarComentario normal, esta permite al admin eliminar
- * cualquier comentario, no solo los propios.
- * 
- * @param supabase - Cliente de Supabase
- * @param comentarioId - ID del comentario a eliminar
- * @param usuarioId - ID del usuario admin que realiza la eliminación
- * @returns Un objeto con `success` (boolean) y `error` (null o el error ocurrido)
+ * Marca como eliminado un comentario por su ID; solo usuarios con rol de administrador pueden ejecutar la acción.
+ *
+ * @param supabase - Cliente de Supabase usado para realizar la operación en la base de datos
+ * @param comentarioId - ID del comentario a marcar como eliminado
+ * @param usuarioId - ID del usuario que realiza la acción (debe ser administrador)
+ * @returns `success` es `true` si la operación se completó correctamente, `false` en caso contrario; `error` contiene el `Error` ocurrido o `null`
  */
 export async function eliminarComentarioAdmin(
   supabase: SupabaseClient,

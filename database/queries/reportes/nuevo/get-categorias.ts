@@ -1,10 +1,9 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 
 /**
- * Obtiene la lista de todas las categorías disponibles para reportes.
- * 
- * @param supabase - Cliente de Supabase
- * @returns Lista de categorías ordenadas por nombre
+ * Obtiene la lista de categorías disponibles para reportes.
+ *
+ * @returns Array de objetos con las propiedades `id` y `nombre`, ordenados por `nombre`. Devuelve un array vacío si ocurre un error o no se encuentran registros.
  */
 export async function getCategorias(supabase: SupabaseClient) {
   const { data, error } = await supabase
