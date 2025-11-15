@@ -3,14 +3,11 @@ import { verificarEsAdmin } from "./verificar-admin";
 import { actualizarEstadoReporte } from "@/database/queries/reportes/[id]/votos";
 
 /**
- * Cambia el estado de un reporte. Solo usuarios con rol admin pueden ejecutar esta acción.
- * 
- * @param supabase - Cliente de Supabase
- * @param reporteId - ID del reporte a modificar
- * @param nuevoEstadoId - ID del nuevo estado
- * @param usuarioId - ID del usuario que realiza el cambio (debe ser admin)
- * @param comentario - Comentario opcional sobre el cambio de estado
- * @returns Un objeto con `success` (boolean) y `error` (null o el error ocurrido)
+ * Cambia el estado de un reporte, restringido a usuarios con rol de administrador.
+ *
+ * @param usuarioId - ID del usuario que realiza el cambio; debe tener rol de administrador
+ * @param comentario - Comentario opcional sobre el cambio; si no se proporciona se usa `"Cambio de estado realizado por administrador"`
+ * @returns Objeto con `success` y `error`: `success` es `true` si la actualización se realizó, `false` en caso contrario; `error` contiene el error ocurrido o `null`
  */
 export async function cambiarEstadoReporteAdmin(
   supabase: SupabaseClient,

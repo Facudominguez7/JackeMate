@@ -1,13 +1,12 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Verifica si un usuario tiene permisos de administrador.
- * 
- * Un usuario es considerado admin si su rol_id es 1 (rol "Admin").
- * 
- * @param supabase - Cliente de Supabase
+ * Determina si un usuario tiene permisos de administrador.
+ *
+ * Un usuario se considera administrador cuando su `rol_id` es 1.
+ *
  * @param usuarioId - ID del usuario a verificar
- * @returns Un objeto con `isAdmin` (boolean) y `error` (null o el error ocurrido)
+ * @returns Objeto con `isAdmin`: `true` si el usuario tiene rol de administrador (`rol_id === 1`), `false` en caso contrario; `error`: `null` si la consulta fue exitosa o el error ocurrido en caso contrario
  */
 export async function verificarEsAdmin(
   supabase: SupabaseClient,

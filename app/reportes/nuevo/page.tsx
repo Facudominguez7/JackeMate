@@ -48,6 +48,16 @@ const LocationPickerMap = dynamic(
 )
 
 
+/**
+ * Componente de página que muestra un formulario para crear y enviar un nuevo reporte.
+ *
+ * Gestiona la autenticación del usuario, carga las categorías y prioridades disponibles,
+ * obtiene la geolocalización automáticamente en móviles o permite la selección manual en escritorio,
+ * permite adjuntar una única imagen, muestra un diálogo de confirmación y realiza el envío final
+ * del reporte (creación, subida de imagen si existe, asignación de puntos y redirección).
+ *
+ * @returns El elemento JSX que renderiza la interfaz completa para crear y enviar un reporte.
+ */
 export default function NuevoReportePage() {
   const [formData, setFormData] = useState({
     title: "",

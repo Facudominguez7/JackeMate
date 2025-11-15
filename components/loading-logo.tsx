@@ -5,6 +5,13 @@ interface LoadingLogoProps {
   text?: string
 }
 
+/**
+ * Muestra un logo animado centrado con tamaño configurable y texto opcional.
+ *
+ * @param size - Tamaño del contenedor del logo: `"sm"`, `"md"` o `"lg"`. Valor por defecto: `"md"`.
+ * @param text - Texto opcional que se muestra debajo del logo.
+ * @returns Un elemento React que renderiza el logo con animaciones y, si se proporciona, una leyenda de texto.
+ */
 export function LoadingLogo({ size = "md", text }: LoadingLogoProps) {
   const sizeClasses = {
     sm: "w-12 h-12",

@@ -56,11 +56,11 @@ const LeafletMap = dynamic<LeafletMapProps>(
 )
 
 /**
- * Componente contenedor que renderiza el mapa y superpone la leyenda e instrucciones de uso.
+ * Renderiza el contenedor del mapa con el componente de Leaflet y las superposiciones de interfaz.
  *
- * @param reports - Array de informes que se mostrarán como marcadores en el mapa.
- * @param showLegend - Indica si se debe mostrar la leyenda de colores; por defecto `true`.
- * @returns El elemento contenedor del mapa con sus superposiciones de interfaz (leyenda e instrucciones).
+ * @param reports - Array de informes que se mostrarán como marcadores en el mapa
+ * @param showLegend - Indica si se debe mostrar la leyenda de colores; por defecto `true`
+ * @returns El elemento JSX que contiene el mapa y sus superposiciones (leyenda e instrucciones)
  */
 export function MapContainer({ reports, showLegend = true }: MapContainerProps) {
   return (

@@ -1,9 +1,11 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Obtiene las estadísticas generales de la plataforma
- * @param supabase Cliente de Supabase
- * @returns Objeto con totalUsers, totalReports y resolvedReports
+ * Recupera contadores generales de la plataforma: usuarios activos, reportes totales y reportes resueltos.
+ *
+ * Si ocurre un error durante las consultas, devuelve ceros para todos los contadores.
+ *
+ * @returns `totalUsers` — número de usuarios activos; `totalReports` — número de reportes no eliminados; `resolvedReports` — número de reportes con estado "Reparado" (estado_id = 2). Los contadores serán 0 si no se obtiene un valor o si ocurre un error.
  */
 export async function getEstadisticas(supabase: SupabaseClient) {
   try {
