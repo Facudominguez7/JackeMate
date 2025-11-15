@@ -36,6 +36,16 @@ interface LocationPickerMapProps {
   initialLon?: number | null
 }
 
+/**
+ * Muestra y controla un marcador en el mapa que permite seleccionar una ubicación mediante clics y notifica las coordenadas seleccionadas.
+ *
+ * Mantiene el estado del marcador inicializado desde `initialLat`/`initialLon` si se proporcionan, actualiza su posición al hacer clic en el mapa (solo si la ubicación está dentro de los límites definidos) y llama a `onLocationSelect` con la latitud y longitud seleccionadas.
+ *
+ * @param onLocationSelect - Callback invocado con `lat` y `lon` cuando el usuario selecciona una ubicación válida
+ * @param initialLat - Latitud inicial del marcador; si no se proporciona, el marcador no aparece hasta que el usuario haga clic
+ * @param initialLon - Longitud inicial del marcador; se usa junto con `initialLat` para posicionar el marcador inicial
+ * @returns El componente `Marker` posicionado en las coordenadas seleccionadas, o `null` si no hay posición definida
+ */
 function LocationMarker({ onLocationSelect, initialLat, initialLon }: LocationPickerMapProps) {
   const [position, setPosition] = useState<[number, number] | null>(
     initialLat && initialLon ? [initialLat, initialLon] : null
@@ -73,6 +83,18 @@ function LocationMarker({ onLocationSelect, initialLat, initialLon }: LocationPi
   return position ? <Marker position={position} icon={markerIcon} /> : null
 }
 
+/**
+ * Renderiza un mapa interactivo centrado en Posadas que permite seleccionar una ubicación vía clic.
+ *
+ * Muestra un marcador en la posición seleccionada (o en las coordenadas iniciales si se proporcionan),
+ * restringe la navegación al área definida de Posadas y llama a `onLocationSelect` con latitud y longitud
+ * cuando el usuario selecciona una posición válida dentro de los límites.
+ *
+ * @param onLocationSelect - Callback que recibe `(lat, lon)` cuando el usuario selecciona una ubicación válida
+ * @param initialLat - Latitud inicial opcional para centrar el mapa y posicionar el marcador
+ * @param initialLon - Longitud inicial opcional para centrar el mapa y posicionar el marcador
+ * @returns El elemento React que renderiza el mapa y su interfaz de selección de ubicación
+ */
 export function LocationPickerMap({ onLocationSelect, initialLat, initialLon }: LocationPickerMapProps) {
   const [mounted, setMounted] = useState(false)
 

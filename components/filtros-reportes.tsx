@@ -25,17 +25,19 @@ type FiltrosReportesProps = {
 }
 
 /**
- * Renderiza un panel de controles para filtrar reportes y sincroniza los filtros con los parámetros de la URL.
+ * Panel de controles para filtrar reportes sincronizado con los parámetros de la URL.
  *
- * El componente mantiene el estado de visibilidad del panel, refleja los valores de filtro actuales desde los query params
- * (`search`, `categoria`, `estado`, `prioridad`), permite aplicar y limpiar filtros (actualizando la URL) y muestra un indicador
- * de carga durante las transiciones. Llama a `onFilterApplied` si se proporciona después de aplicar un filtro.
+ * Sincroniza los valores de filtros (`search`, `categoria`, `estado`, `prioridad`) con los query params,
+ * permite aplicar y limpiar filtros, gestiona un input de búsqueda con debounce y usa transiciones para las actualizaciones
+ * de URL. Invoca `onFilterApplied` tras aplicar filtros distintos de la búsqueda cuando se proporciona.
  *
- * @param categorias - Lista de categorías disponibles (cada objeto debe incluir `id` y `nombre`) para poblar el selector de categoría.
- * @param estados - Lista de estados disponibles (cada objeto debe incluir `id` y `nombre`) para poblar el selector de estado.
- * @param prioridades - Lista de prioridades disponibles (cada objeto debe incluir `id` y `nombre`) para poblar el selector de prioridad.
- * @param onFilterApplied - Callback opcional que se invoca después de que se aplica un filtro.
- * @returns El elemento React que renderiza la interfaz de filtros. 
+ * @param categorias - Array de categorías disponibles ({ id, nombre }) para poblar el selector de categoría.
+ * @param estados - Array de estados disponibles ({ id, nombre }) para poblar el selector de estado.
+ * @param prioridades - Array de prioridades disponibles ({ id, nombre }) para poblar el selector de prioridad.
+ * @param onFilterApplied - Callback opcional que se invoca después de aplicar un filtro distinto de la búsqueda.
+ * @param externalIsPending - Indicador externo opcional de estado pendiente; si se proporciona, se usa en lugar del interno.
+ * @param externalStartTransition - Función externa opcional para iniciar transiciones; si se proporciona, se usa en lugar de la interna.
+ * @returns El elemento React que renderiza la interfaz de filtros.
  */
 export function FiltrosReportes({ 
   categorias = [], 

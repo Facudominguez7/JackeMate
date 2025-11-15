@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+/**
+ * Envía una notificación por correo al propietario cuando se añade un nuevo comentario a un reporte.
+ *
+ * @param request - Petición POST cuya carga JSON debe incluir `ownerEmail`, `reporteId`, `reporteTitulo` y `comentarioContenido`. Opcionales: `ownerUsername` y `commenterUsername`.
+ * @returns Un objeto JSON con:
+ *  - `{ success: true, messageId }` en caso de envío correcto,
+ *  - `{ error: "Faltan datos requeridos" }` con estado 400 si faltan campos obligatorios,
+ *  - `{ error: "Error al enviar el correo" }` o `{ error: "Error interno del servidor" }` con estado 500 en caso de fallo al enviar el correo o error interno.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { 

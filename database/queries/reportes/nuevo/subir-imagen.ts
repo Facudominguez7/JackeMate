@@ -1,12 +1,9 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 
 /**
- * Sube una imagen al storage de Supabase y guarda su URL en la tabla fotos_reporte.
- * 
- * @param supabase - Cliente de Supabase
- * @param reporteId - ID del reporte al que pertenece la imagen
- * @param image - Archivo de imagen a subir
- * @returns URL pública de la imagen o null si hubo un error
+ * Sube una imagen al bucket "reportes" de Supabase, guarda su URL en la tabla `fotos_reporte` y devuelve la URL pública.
+ *
+ * @returns La URL pública de la imagen subida, o `null` si se produce algún error.
  */
 export async function subirImagenReporte(
   supabase: SupabaseClient,

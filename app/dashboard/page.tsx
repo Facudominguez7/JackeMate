@@ -46,13 +46,12 @@ const getUsername = (profiles: any): string => {
 }
 
 /**
- * Renderiza la página de dashboard del usuario mostrando su perfil, métricas (reportes, problemas resueltos y puntos) y la lista de sus reportes.
+ * Renderiza la página de dashboard del usuario.
  *
- * La página gestiona la carga de datos del usuario, sus reportes y sus puntos, muestra un estado de carga mientras se obtienen los datos y renderiza vistas condicionales según haya o no reportes.
- * 
- * Si el usuario tiene el rol de "Admin" (rol_id = 1) o "Interesado" (rol_id = 3), se muestra un dashboard con métricas y analíticas generales.
+ * Muestra el perfil, métricas (reportes, problemas resueltos y puntos) y la lista de reportes personales;
+ * alterna a un dashboard de analíticas con métricas y gráficos si el usuario tiene rol Admin (rol_id = 1) o Interesado (rol_id = 3).
  *
- * @returns El elemento React que representa la página de dashboard del usuario.
+ * @returns El elemento React que representa la página de dashboard.
  */
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)

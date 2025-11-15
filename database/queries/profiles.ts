@@ -1,11 +1,11 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Obtiene el username de un usuario específico desde su perfil.
+ * Recupera el nombre de usuario asociado a un ID de usuario desde la tabla `profiles`.
  *
- * @param supabase - Cliente de Supabase configurado
- * @param userId - ID del usuario del cual obtener el username
- * @returns Objeto con `data` (username del usuario o "Usuario" por defecto) y `error`
+ * @param supabase - Cliente de Supabase configurado para realizar la consulta
+ * @param userId - ID del usuario cuyo nombre de usuario se desea obtener
+ * @returns Un objeto con `data` siendo el nombre de usuario o `"Usuario"` si no existe o ocurre un error, y `error` con el error ocurrido o `null` en caso de éxito
  */
 export async function getUserUsername(
   supabase: SupabaseClient,
@@ -31,11 +31,10 @@ export async function getUserUsername(
 }
 
 /**
- * Obtiene información completa del perfil de un usuario.
+ * Obtiene el registro completo del perfil de un usuario.
  *
- * @param supabase - Cliente de Supabase configurado
- * @param userId - ID del usuario del cual obtener el perfil
- * @returns Objeto con `data` (perfil completo del usuario) y `error`
+ * @param userId - ID del usuario cuyo perfil se desea recuperar
+ * @returns `data` es el registro del perfil o `null` si ocurre un error; `error` contiene el error devuelto por Supabase o `null` en caso de éxito
  */
 export async function getUserProfile(
   supabase: SupabaseClient,

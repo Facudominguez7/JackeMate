@@ -1,10 +1,9 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 
 /**
- * Obtiene la lista de todas las prioridades disponibles para reportes.
- * 
- * @param supabase - Cliente de Supabase
- * @returns Lista de prioridades ordenadas por nombre
+ * Obtiene las prioridades disponibles para reportes.
+ *
+ * @returns Una matriz de objetos con las propiedades `id` y `nombre`, ordenada por `nombre`; devuelve una matriz vacía si no hay datos o si ocurre un error.
  */
 export async function getPrioridades(supabase: SupabaseClient) {
   const { data, error } = await supabase

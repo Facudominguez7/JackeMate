@@ -68,10 +68,10 @@ const formatLocation = (lat: number | null, lon: number | null) => {
 }
 
 /**
- * Renderiza la página de reportes públicos con filtros, estado de error y una lista de tarjetas de reporte.
+ * Muestra la página de reportes públicos incluyendo controles de filtrado, mensajes de estado y la lista de tarjetas de reporte.
  *
- * @param searchParams - Promesa que resuelve un objeto con parámetros opcionales de filtrado: `search`, `categoria`, `estado` y `prioridad`.
- * @returns Elemento React que representa la interfaz completa de la página de reportes.
+ * @param searchParams - Parámetros opcionales de filtrado: `search`, `categoria`, `estado` y `prioridad`.
+ * @returns El elemento React que representa la interfaz completa de la página de reportes.
  */
 export default async function ReportesPage({ searchParams }: ReportesPageProps) {
   // Obtener los parámetros de búsqueda

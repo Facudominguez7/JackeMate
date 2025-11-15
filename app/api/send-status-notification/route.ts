@@ -3,6 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+/**
+ * Envía una notificación por correo al propietario de un reporte cuando su estado cambia.
+ *
+ * Envía un email personalizado (HTML) usando Resend con detalles del reporte, el nuevo estado
+ * (por ejemplo "Reparado" o "Rechazado") y un comentario opcional; valida campos requeridos antes de enviar.
+ *
+ * @returns Un objeto JSON con `{ success: true, messageId }` y estado 200 si el envío fue exitoso;
+ *          `{ error: "Faltan datos requeridos" }` con estado 400 si faltan campos obligatorios;
+ *          `{ error: "Error al enviar el correo" }` o `{ error: "Error interno del servidor" }` con estado 500 en caso de fallo.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { 

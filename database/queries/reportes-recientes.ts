@@ -15,10 +15,13 @@ export type ReporteReciente = {
 };
 
 /**
- * Obtiene los reportes más recientes
- * @param supabase Cliente de Supabase
- * @param limit Cantidad de reportes a obtener (por defecto 3)
- * @returns Array de reportes recientes
+ * Devuelve los reportes más recientes, ordenados por fecha de creación y excluyendo los eliminados.
+ *
+ * La consulta filtra registros con `deleted_at` distinto de null, ordena por `created_at` en orden descendente
+ * y limita la cantidad de resultados según el parámetro `limit`.
+ *
+ * @param limit - Número máximo de reportes a devolver. Por defecto 3.
+ * @returns Array<ReporteReciente> con los reportes solicitados; devuelve un array vacío si ocurre un error o no hay resultados.
  */
 export async function getReportesRecientes(
   supabase: SupabaseClient,

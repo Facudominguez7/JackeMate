@@ -14,6 +14,15 @@ import Link from "next/link"
 import { login, signup, type AuthFormState } from "./actions"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+/**
+ * Página de autenticación con una interfaz dividida en pestañas para iniciar sesión o registrarse.
+ *
+ * Renderiza formularios de inicio de sesión y registro, muestra alertas de éxito/error, y permite
+ * alternar la visibilidad de las contraseñas. Los formularios envían los datos a las acciones
+ * de servidor correspondientes para autenticación y creación de cuenta.
+ *
+ * @returns El elemento React que renderiza la interfaz de autenticación.
+ */
 export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)

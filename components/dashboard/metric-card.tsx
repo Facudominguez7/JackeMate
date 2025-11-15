@@ -13,14 +13,12 @@ type Props = {
 }
 
 /**
- * Tarjeta de métrica para mostrar estadísticas del dashboard.
- * 
- * @param title - Título de la métrica
- * @param value - Valor de la métrica
- * @param icon - Icono de Lucide React
- * @param description - Descripción opcional
- * @param iconColor - Color del icono (clase de Tailwind)
- * @param iconBgColor - Color de fondo del icono (clase de Tailwind)
+ * Componente que renderiza una tarjeta de métrica con icono, valor y texto auxiliar.
+ *
+ * @param icon - Componente de icono (LucideIcon) que se renderiza dentro del contenedor de color
+ * @param iconColor - Clase(s) de Tailwind para el color del icono
+ * @param iconBgColor - Clase(s) de Tailwind para el fondo del contenedor del icono
+ * @returns El elemento JSX que representa la tarjeta de métrica
  */
 export function MetricCard({ 
   title, 

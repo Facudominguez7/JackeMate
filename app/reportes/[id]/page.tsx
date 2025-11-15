@@ -131,6 +131,12 @@ const getUserInitials = (username: string) => {
   return username.substring(0, 2).toUpperCase();
 };
 
+/**
+ * Página que muestra el detalle completo de un reporte: estado, prioridad, ubicación, descripción, imágenes, comentarios y controles de interacción.
+ *
+ * @param params - Objeto con la propiedad `id` (cadena) del reporte a mostrar; se recibe como Promise y se resuelve internamente.
+ * @returns El elemento JSX que representa la página de detalle del reporte con sus interacciones (votos, comentarios y controles administrativos).
+ */
 export default function ReporteDetallePage({
   params,
 }: {

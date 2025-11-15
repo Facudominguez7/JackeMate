@@ -2,15 +2,13 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { verificarEsAdmin } from "./verificar-admin";
 
 /**
- * Elimina un reporte (soft delete). Solo usuarios con rol admin pueden ejecutar esta acción.
- * 
- * A diferencia de la función eliminarReporte normal, esta permite al admin eliminar
- * cualquier reporte, no solo los propios.
- * 
- * @param supabase - Cliente de Supabase
+ * Realiza un borrado suave (soft delete) de un reporte, acción restringida a administradores.
+ *
+ * Un administrador puede eliminar cualquier reporte sin comprobar la propiedad del mismo.
+ *
  * @param reporteId - ID del reporte a eliminar
- * @param usuarioId - ID del usuario admin que realiza la eliminación
- * @returns Un objeto con `success` (boolean) y `error` (null o el error ocurrido)
+ * @param usuarioId - ID del usuario que realiza la acción (debe ser administrador)
+ * @returns Un objeto con `success` igual a `true` si la eliminación se realizó correctamente; `success` igual a `false` y `error` con el error ocurrido en caso contrario
  */
 export async function eliminarReporteAdmin(
   supabase: SupabaseClient,

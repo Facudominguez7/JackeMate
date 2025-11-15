@@ -13,7 +13,13 @@ type Props = {
 }
 
 /**
- * Componente interno que renderiza el mapa con Leaflet
+ * Renderiza un mapa interactivo de Leaflet que muestra marcadores circulares indicando la cantidad de reportes por zona.
+ *
+ * Cada marcador refleja la `cantidad` de reportes mediante color y tamaño (>=10: rojo y grande; 5–9: naranja y medio; 1–4: amarillo y pequeño)
+ * y muestra en un popup el número de reportes, la fecha del último reporte y las coordenadas.
+ *
+ * @param zonas - Array de zonas con al menos `lat`, `lon`, `cantidad` y `ultimoReporte` (fecha/fecha-hora) que se representarán en el mapa
+ * @param height - Altura CSS del contenedor del mapa (por ejemplo `"400px"`)
  */
 function MapaCalorInterno({ zonas, height }: { zonas: ZonaConReportes[], height: string }) {
   const mapRef = useRef<any>(null)
@@ -167,10 +173,11 @@ const MapaDinamico = dynamic(
 )
 
 /**
- * Componente que muestra un mapa de calor con las zonas que tienen más reportes.
- * 
- * @param zonas - Array de zonas con coordenadas y cantidad de reportes
- * @param height - Altura del mapa (default: "400px")
+ * Muestra un card con un mapa de calor interactivo que representa las zonas con más reportes.
+ *
+ * @param zonas - Lista de zonas que incluyen coordenadas (lat, lon), la cantidad de reportes y la fecha del último reporte
+ * @param height - Altura del contenedor del mapa (p. ej. `"400px"`). Por defecto `"400px"`.
+ * @returns Un elemento React que renderiza el card con el mapa, controles de mostrar/ocultar y la leyenda de colores
  */
 export function MapaCalorZonas({ zonas, height = "400px" }: Props) {
   const [isExpanded, setIsExpanded] = useState(false)

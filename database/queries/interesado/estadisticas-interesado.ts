@@ -28,10 +28,11 @@ export type ZonaConReportes = {
 };
 
 /**
- * Obtiene la cantidad de reportes agrupados por categoría.
- * 
- * @param supabase - Cliente de Supabase
- * @returns Array de objetos con el nombre de la categoría y la cantidad de reportes
+ * Agrupa los reportes por categoría y devuelve el conteo ordenado por cantidad.
+ *
+ * Asigna a cada categoría un color tomado de una paleta fija.
+ *
+ * @returns Arreglo de objetos ReportesPorCategoria con los campos `categoria`, `cantidad` y `color`, ordenados por `cantidad` de mayor a menor.
  */
 export async function getReportesPorCategoria(
   supabase: SupabaseClient
@@ -81,11 +82,11 @@ export async function getReportesPorCategoria(
 }
 
 /**
- * Calcula el tiempo promedio de resolución de reportes.
- * Considera reportes que pasaron del estado "Reportado" (1) a "Reparado" (2).
- * 
- * @param supabase - Cliente de Supabase
- * @returns Objeto con el tiempo promedio en días y horas
+ * Calcula el tiempo promedio desde la creación hasta la resolución de reportes.
+ *
+ * Considera como resolución el primer cambio de estado a "Reparado" (estado 2) para cada reporte; devuelve los promedios en días y en horas redondeados a una décima.
+ *
+ * @returns Un objeto con `diasPromedio` y `horasPromedio` (valores numéricos redondeados a una décima). Ambos serán `0` si no hay datos válidos.
  */
 export async function getTiempoPromedioResolucion(
   supabase: SupabaseClient
@@ -145,12 +146,9 @@ export async function getTiempoPromedioResolucion(
 }
 
 /**
- * Obtiene las zonas geográficas con más reportes.
- * Agrupa reportes cercanos (dentro de ~100m) y cuenta la cantidad.
- * 
- * @param supabase - Cliente de Supabase
- * @param limite - Número máximo de zonas a retornar (default: 10)
- * @returns Array de zonas con sus coordenadas y cantidad de reportes
+ * Obtiene las zonas geográficas con más reportes agrupando reportes cercanos (~0.001° ≈ 100 m).
+ *
+ * @returns Arreglo de zonas ordenado por cantidad descendente; cada elemento contiene `lat`, `lon`, `cantidad` y `ultimoReporte` (fecha ISO del reporte más reciente)
  */
 export async function getZonasConMasReportes(
   supabase: SupabaseClient,
@@ -205,10 +203,14 @@ export async function getZonasConMasReportes(
 }
 
 /**
- * Obtiene estadísticas generales para el dashboard de Interesado.
- * 
- * @param supabase - Cliente de Supabase
- * @returns Objeto con todas las estadísticas necesarias
+ * Obtiene estadísticas agregadas para el dashboard de Interesado.
+ *
+ * @returns Un objeto con las siguientes métricas:
+ * - `totalReportes`: número total de reportes no eliminados.
+ * - `reportesResueltos`: número de reportes con `estado_id = 2`.
+ * - `reportesPendientes`: número de reportes con `estado_id = 1`.
+ * - `reportesEnProgreso`: número de reportes con `estado_id = 3`.
+ * - `tasaResolucion`: porcentaje entero de reportes resueltos respecto del total (0–100).
  */
 export async function getEstadisticasInteresado(supabase: SupabaseClient) {
   try {
