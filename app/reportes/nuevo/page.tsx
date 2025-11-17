@@ -29,7 +29,8 @@ import {
   getCategorias, 
   getPrioridades, 
   crearReporte, 
-  subirImagenReporte 
+  subirImagenReporte,
+  verificarPuedeCrearReporte
 } from "@/database/queries/reportes/nuevo"
 import { useIsMobile } from "@/hooks/use-mobile"
 import dynamic from "next/dynamic"
@@ -73,6 +74,7 @@ export default function NuevoReportePage() {
   const [prioridades, setPrioridades] = useState<{ id: number; nombre: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [puedeCrear, setPuedeCrear] = useState(false)
   const [geoStatus, setGeoStatus] = useState<"pending" | "ok" | "error">("pending")
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -92,6 +94,15 @@ export default function NuevoReportePage() {
         }
 
         setUser(user)
+
+        // Verificar si el usuario puede crear reportes (Admin o Ciudadano)
+        const { puedeCrear: canCreate } = await verificarPuedeCrearReporte(supabase, user.id)
+        setPuedeCrear(canCreate)
+
+        if (!canCreate) {
+          setLoading(false)
+          return
+        }
 
         // Cargar categorías usando la query
         const categoriasData = await getCategorias(supabase)
@@ -252,6 +263,60 @@ export default function NuevoReportePage() {
     )
   }
 
+  // Si no hay usuario, redirigir al login
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md mx-4">
+          <CardHeader>
+            <CardTitle>Autenticación requerida</CardTitle>
+            <CardDescription>Debes iniciar sesión para crear reportes</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Para crear reportes y contribuir a mejorar tu comunidad, necesitas tener una cuenta.
+            </p>
+            <div className="flex gap-3">
+              <Button asChild className="flex-1">
+                <Link href="/auth">Iniciar Sesión</Link>
+              </Button>
+              <Button asChild variant="outline" className="flex-1">
+                <Link href="/">Volver al Inicio</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Si el usuario no tiene permisos para crear reportes
+  if (!puedeCrear) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md mx-4">
+          <CardHeader>
+            <CardTitle>Acceso no autorizado</CardTitle>
+            <CardDescription>Tu rol no permite crear reportes</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Solo los usuarios con rol <strong>Admin</strong> o <strong>Ciudadano</strong> pueden crear reportes.
+              Tu cuenta tiene permisos diferentes.
+            </p>
+            <div className="flex gap-3">
+              <Button asChild className="flex-1">
+                <Link href="/mapa">Ver Mapa</Link>
+              </Button>
+              <Button asChild variant="outline" className="flex-1">
+                <Link href="/">Volver al Inicio</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">

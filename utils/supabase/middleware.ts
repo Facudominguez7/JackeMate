@@ -49,6 +49,26 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Verificar permisos para crear reportes (solo Admin y Ciudadano)
+  if (user && request.nextUrl.pathname.startsWith('/reportes/nuevo')) {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('rol_id')
+      .eq('id', user.id)
+      .single()
+
+    const rolId = profileData?.rol_id
+    // Solo Admin (1) y Ciudadano (2) pueden crear reportes
+    const puedeCrear = rolId === 1 || rolId === 2
+
+    if (!puedeCrear) {
+      // Usuario autenticado pero sin permisos -> redirigir al mapa
+      const url = request.nextUrl.clone()
+      url.pathname = '/mapa'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   // If you're creating a new response object with NextResponse.next() make sure to:
   // 1. Pass the request in it, like so:

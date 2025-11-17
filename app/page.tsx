@@ -63,11 +63,24 @@ export default function HomePage() {
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
   const [topUsuarios, setTopUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRolId, setUserRolId] = useState<number | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Verificar si hay un usuario autenticado y obtener su rol
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("rol_id")
+            .eq("id", user.id)
+            .single();
+          
+          setUserRolId(profileData?.rol_id ?? null);
+        }
+
         // Obtener estadísticas generales usando la query
         const estadisticas = await getEstadisticas(supabase);
         setStats(estadisticas);
@@ -171,36 +184,56 @@ export default function HomePage() {
 
                 {/* Columna derecha - Acciones */}
                 <div className="space-y-6">
-                  {/* Botón principal */}
-                  <Button
-                    size="lg"
-                    className="w-full text-lg px-10 py-6 shadow-lg"
-                    asChild
-                  >
-                    <Link href="/reportes/nuevo">
-                      <Plus className="w-6 h-6 mr-2" />
-                      Reportar Problema
-                    </Link>
-                  </Button>
+                  {/* Solo Admin (1) y Ciudadano (2) pueden crear reportes */}
+                  {(userRolId === null || userRolId === 1 || userRolId === 2) && (
+                    <>
+                      {/* Botón principal */}
+                      <Button
+                        size="lg"
+                        className="w-full text-lg px-10 py-6 shadow-lg"
+                        asChild
+                      >
+                        <Link href="/reportes/nuevo">
+                          <Plus className="w-6 h-6 mr-2" />
+                          Reportar Problema
+                        </Link>
+                      </Button>
 
-                  {/* Botones secundarios */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Botones secundarios */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50"
+                          asChild
+                        >
+                          <Link href="/reportes">
+                            <Search className="w-5 h-5 mr-2" />
+                            Ver Reportes
+                          </Link>
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50"
+                          asChild
+                        >
+                          <Link href="/mapa">
+                            <Map className="w-5 h-5 mr-2" />
+                            Ver Mapa
+                          </Link>
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Solo mostrar botón del mapa para Interesado (3) */}
+                  {userRolId === 3 && (
                     <Button
                       variant="outline"
                       size="lg"
-                      className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50"
-                      asChild
-                    >
-                      <Link href="/reportes">
-                        <Search className="w-5 h-5 mr-2" />
-                        Ver Reportes
-                      </Link>
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50"
+                      className="w-full text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50"
                       asChild
                     >
                       <Link href="/mapa">
@@ -208,7 +241,7 @@ export default function HomePage() {
                         Ver Mapa
                       </Link>
                     </Button>
-                  </div>
+                  )}
 
                 </div>
               </div>
