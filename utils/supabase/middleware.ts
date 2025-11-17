@@ -38,7 +38,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Define which paths require authentication
-  const protectedPaths = ['/dashboard', '/reportes', '/mapa']
+  // /mapa is now publicly accessible for anonymous users to view reports
+  const protectedPaths = ['/dashboard', '/reportes', '/reportes/nuevo']
   const isProtected = protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p))
 
   if (!user && isProtected) {
