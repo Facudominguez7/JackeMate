@@ -56,36 +56,38 @@ export function HeaderClient({ user, displayName }: HeaderClientProps) {
     <>
       {/* Centro - Botones de navegación */}
       <div className="hidden md:flex items-center gap-3 flex-1 justify-center">
-        {/* Dropdown de Reportes */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              Reportes <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link
-                href="/reportes/nuevo"
-                className="cursor-pointer flex items-center"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Crear
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link
-                href="/reportes"
-                className="cursor-pointer flex items-center"
-              >
-                <List className="mr-2 h-4 w-4" />
-                Ver todos
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Dropdown de Reportes - Solo para usuarios autenticados */}
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                Reportes <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/reportes/nuevo"
+                  className="cursor-pointer flex items-center"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Crear
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/reportes"
+                  className="cursor-pointer flex items-center"
+                >
+                  <List className="mr-2 h-4 w-4" />
+                  Ver todos
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
-        {/* Botón del Mapa */}
+        {/* Botón del Mapa - Accesible para todos */}
         <Button variant="ghost" size="sm" asChild>
           <Link href="/mapa">
             <Map className="mr-2 h-4 w-4" />
@@ -172,18 +174,24 @@ export function HeaderClient({ user, displayName }: HeaderClientProps) {
                     Inicio
                   </Link>
                 </Button>
-                <Button variant="ghost" className="justify-start" asChild>
-                  <Link href="/reportes/nuevo">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Crear Reporte
-                  </Link>
-                </Button>
-                <Button variant="ghost" className="justify-start" asChild>
-                  <Link href="/reportes">
-                    <List className="mr-2 h-4 w-4" />
-                    Ver Reportes
-                  </Link>
-                </Button>
+                {/* Solo mostrar opciones de reportes a usuarios autenticados */}
+                {user && (
+                  <>
+                    <Button variant="ghost" className="justify-start" asChild>
+                      <Link href="/reportes/nuevo">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Crear Reporte
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" className="justify-start" asChild>
+                      <Link href="/reportes">
+                        <List className="mr-2 h-4 w-4" />
+                        Ver Reportes
+                      </Link>
+                    </Button>
+                  </>
+                )}
+                {/* Mapa disponible para todos */}
                 <Button variant="ghost" className="justify-start" asChild>
                   <Link href="/mapa">
                     <Map className="mr-2 h-4 w-4" />
