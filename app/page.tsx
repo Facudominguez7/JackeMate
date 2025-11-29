@@ -185,7 +185,7 @@ export default function HomePage() {
                 {/* Columna derecha - Acciones */}
                 <div className="space-y-6">
                   {/* Solo Admin (1) y Ciudadano (2) pueden crear reportes */}
-                  {(userRolId === null || userRolId === 1 || userRolId === 2) && (
+                  {(userRolId === 1 || userRolId === 2) && (
                     <>
                       {/* Botón principal */}
                       <Button
@@ -228,19 +228,52 @@ export default function HomePage() {
                     </>
                   )}
 
-                  {/* Solo mostrar botón del mapa para Interesado (3) */}
-                  {userRolId === 3 && (
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="w-full text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50"
-                      asChild
-                    >
-                      <Link href="/mapa">
-                        <Map className="w-5 h-5 mr-2" />
-                        Ver Mapa
-                      </Link>
-                    </Button>
+                  {/* Solo mostrar botón del mapa para Anónimos (null), Interesado (3) */}
+                  {(userRolId === null || userRolId === 3) && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="w-full text-base px-6 py-4 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/50"
+                        asChild
+                      >
+                        <Link href="/mapa">
+                          <Map className="w-5 h-5 mr-2" />
+                          Ver Mapa
+                        </Link>
+                      </Button>
+
+                      {/* Mensaje informativo para usuarios no registrados o interesados */}
+                      <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 sm:p-6">
+                        <div className="flex items-start gap-3">
+                          <div className="bg-primary/20 rounded-full p-2 flex-shrink-0 mt-0.5">
+                            <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-white font-bold text-sm sm:text-base mb-2">
+                              {userRolId === null ? "¿Querés reportar problemas?" : "Visualiza reportes"}
+                            </h3>
+                            <p className="text-white/80 text-xs sm:text-sm leading-relaxed mb-3">
+                              {userRolId === null 
+                                ? "Registrate gratis para crear reportes y ayudar a mejorar tu comunidad. Es rápido y sencillo."
+                                : "Tu cuenta te permite visualizar el mapa y reportes. Para crear reportes, contacta al administrador."}
+                            </p>
+                            {userRolId === null && (
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="w-full sm:w-auto"
+                                asChild
+                              >
+                                <Link href="/auth">
+                                  Registrarme Ahora
+                                </Link>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </>
                   )}
 
                 </div>
@@ -515,25 +548,72 @@ export default function HomePage() {
             <p className="text-xl md:text-2xl font-semibold text-primary mb-12">
               Tu voz importa, tu reporte hace la diferencia.
             </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-              <Button size="lg" className="text-lg px-12 py-7 shadow-xl hover:shadow-2xl transition-all hover:scale-105" asChild>
-                <Link href="/reportes/nuevo">
-                  <Plus className="w-6 h-6 mr-2" />
-                  Crear mi Primer Reporte
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="text-lg px-12 py-7 shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-white/50 dark:bg-background/50"
-                asChild
-              >
-                <Link href="/mapa">
-                  <Map className="w-6 h-6 mr-2" />
-                  Explorar el Mapa
-                </Link>
-              </Button>
-            </div>
+            
+            {/* Botones para Admin (1) y Ciudadano (2) */}
+            {(userRolId === 1 || userRolId === 2) && (
+              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+                <Button size="lg" className="text-lg px-12 py-7 shadow-xl hover:shadow-2xl transition-all hover:scale-105" asChild>
+                  <Link href="/reportes/nuevo">
+                    <Plus className="w-6 h-6 mr-2" />
+                    Crear mi Primer Reporte
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="text-lg px-12 py-7 shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-white/50 dark:bg-background/50"
+                  asChild
+                >
+                  <Link href="/mapa">
+                    <Map className="w-6 h-6 mr-2" />
+                    Explorar el Mapa
+                  </Link>
+                </Button>
+              </div>
+            )}
+
+            {/* Solo botón de mapa para Anónimos (null) e Interesado (3) */}
+            {(userRolId === null || userRolId === 3) && (
+              <div className="flex flex-col gap-6 items-center max-w-md mx-auto">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full text-lg px-12 py-7 shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-white/50 dark:bg-background/50"
+                  asChild
+                >
+                  <Link href="/mapa">
+                    <Map className="w-6 h-6 mr-2" />
+                    Explorar el Mapa
+                  </Link>
+                </Button>
+                
+                {/* Mensaje informativo */}
+                <div className="bg-white/70 dark:bg-background/70 backdrop-blur-sm border-2 border-primary/30 rounded-2xl p-6 text-left">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-primary/20 rounded-full p-3 flex-shrink-0">
+                      <Plus className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg mb-2 text-foreground">
+                        {userRolId === null ? "¿Querés crear reportes?" : "Acceso de visualización"}
+                      </h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+                        {userRolId === null 
+                          ? "Para reportar problemas y colaborar con tu comunidad, necesitás crear una cuenta gratuita. Es rápido y fácil."
+                          : "Tu cuenta actual te permite explorar el mapa y visualizar reportes. Para crear reportes, contactá al administrador."}
+                      </p>
+                      {userRolId === null && (
+                        <Button variant="default" className="w-full" asChild>
+                          <Link href="/auth">
+                            Crear Cuenta Gratis
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
