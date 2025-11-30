@@ -951,26 +951,43 @@ export default function ReporteDetallePage({
                               </p>
                             </div>
                           </div>
-                          {(currentUser &&
-                            currentUser.id === comentario.usuario_id) || isAdmin ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  isAdmin && currentUser.id !== comentario.usuario_id
-                                    ? handleAdminDeleteComment(comentario.id)
-                                    : handleDeleteComment(comentario.id)
-                                }
-                                className="h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                title={
-                                  isAdmin && currentUser.id !== comentario.usuario_id
-                                    ? "Eliminar comentario (Admin)"
-                                    : "Eliminar comentario"
-                                }
-                              >
-                                <Trash2 className="w-3 h-3 md:w-4 md:h-4 lg:w-4.5 lg:h-4.5" />
-                              </Button>
-                            ) : null}
+                          {currentUser && (
+                            // Si el reporte está cerrado, solo admin puede eliminar
+                            isReporteCerrado ? (
+                              isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleAdminDeleteComment(comentario.id)}
+                                  className="h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title="Eliminar comentario (Admin)"
+                                >
+                                  <Trash2 className="w-3 h-3 md:w-4 md:h-4 lg:w-4.5 lg:h-4.5" />
+                                </Button>
+                              )
+                            ) : (
+                              // Si el reporte está abierto, el dueño del comentario o admin pueden eliminar
+                              ((currentUser.id === comentario.usuario_id) || isAdmin) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    isAdmin && currentUser.id !== comentario.usuario_id
+                                      ? handleAdminDeleteComment(comentario.id)
+                                      : handleDeleteComment(comentario.id)
+                                  }
+                                  className="h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title={
+                                    isAdmin && currentUser.id !== comentario.usuario_id
+                                      ? "Eliminar comentario (Admin)"
+                                      : "Eliminar comentario"
+                                  }
+                                >
+                                  <Trash2 className="w-3 h-3 md:w-4 md:h-4 lg:w-4.5 lg:h-4.5" />
+                                </Button>
+                              )
+                            )
+                          )}
                         </div>
                         <p className="text-xs md:text-sm lg:text-base text-foreground leading-relaxed pl-9 md:pl-11 lg:pl-14">
                           {comentario.contenido}
