@@ -22,6 +22,18 @@ export default async function Header() {
         user?.email?.split("@")[0] ||
         "usuario"
 
+    // Obtener el rol del usuario si está autenticado
+    let userRolId: number | null = null
+    if (user) {
+        const { data: profileData } = await supabase
+            .from("profiles")
+            .select("rol_id")
+            .eq("id", user.id)
+            .single()
+        
+        userRolId = profileData?.rol_id ?? null
+    }
+
     return (
         <header className="border-b-4 border-b-primary bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-md">
             <div className="container mx-auto px-1 py-1">
@@ -47,7 +59,7 @@ export default async function Header() {
                     </div>
 
                     {/* Navegación Central y Derecha */}
-                    <HeaderClient user={user} displayName={displayName} />
+                    <HeaderClient user={user} displayName={displayName} userRolId={userRolId} />
                 </div>
             </div>
         </header>

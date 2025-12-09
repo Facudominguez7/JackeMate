@@ -61,6 +61,7 @@ type MapaClientProps = {
   estados: { id: number; nombre: string }[]
   prioridades: { id: number; nombre: string }[]
   error: string | null
+  isAuthenticated: boolean
 }
 
 /**
@@ -70,9 +71,10 @@ type MapaClientProps = {
  *
  * @param reportesDB - Array de reportes tal como vienen de la base de datos; se convierte internamente al formato utilizado por el mapa (incluye campos como id, titulo, lat, lon, autor, fotos, etc.).
  * @param error - Mensaje de error opcional que, si está presente, se muestra en la interfaz en lugar del mapa o de la lista.
+ * @param isAuthenticated - Indica si el usuario está autenticado para mostrar información contextual.
  * @returns Un elemento React que contiene el mapa interactivo, la barra lateral de reportes y el panel de filtros.
  */
-export function MapaClient({ reportesDB, categorias, estados, prioridades, error }: MapaClientProps) {
+export function MapaClient({ reportesDB, categorias, estados, prioridades, error, isAuthenticated }: MapaClientProps) {
   // Inicializar siempre con false para evitar hydration mismatch
   // El useEffect ajustará el valor según el tamaño de pantalla
   const [showSidebar, setShowSidebar] = useState(false)
@@ -137,6 +139,32 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
               <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce" style={{ animationDelay: '0.2s' }}></div>
             </div>
             <span className="font-medium text-sm">Aplicando filtros...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Banner informativo para usuarios anónimos */}
+      {!isAuthenticated && (
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-primary/20">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="bg-primary/20 rounded-full p-2 flex-shrink-0">
+                  <MapPin className="w-4 h-4 text-primary" />
+                </div>
+                <p className="text-foreground">
+                  <span className="font-semibold">Estás viendo el mapa como visitante.</span>
+                  <span className="hidden sm:inline text-muted-foreground ml-2">
+                    Regístrate para crear y gestionar reportes
+                  </span>
+                </p>
+              </div>
+              <Link href="/auth">
+                <Button size="sm" className="whitespace-nowrap shadow-md">
+                  Crear cuenta gratis
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       )}

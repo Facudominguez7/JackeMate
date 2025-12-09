@@ -34,6 +34,7 @@ import type { User } from "@supabase/supabase-js";
 interface HeaderClientProps {
   user: User | null | undefined;
   displayName: string;
+  userRolId: number | null;
 }
 
 /**
@@ -45,47 +46,53 @@ interface HeaderClientProps {
  *
  * @param user - Objeto `User` de Supabase o `null`/`undefined` que determina la renderización de las acciones de cuenta
  * @param displayName - Nombre que se muestra cuando el usuario está autenticado
+ * @param userRolId - ID del rol del usuario (1: Admin, 2: Ciudadano, 3: Interesado)
  * @returns El elemento JSX de la cabecera con la navegación y los controles de cuenta según el estado de autenticación
  */
-export function HeaderClient({ user, displayName }: HeaderClientProps) {
+export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps) {
   const getUserInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };
+
+  // Solo Admin (1) y Ciudadano (2) pueden crear reportes
+  const puedeCrearReportes = userRolId === 1 || userRolId === 2;
 
   return (
     <>
       {/* Centro - Botones de navegación */}
       <div className="hidden md:flex items-center gap-3 flex-1 justify-center">
-        {/* Dropdown de Reportes */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              Reportes <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link
-                href="/reportes/nuevo"
-                className="cursor-pointer flex items-center"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Crear
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link
-                href="/reportes"
-                className="cursor-pointer flex items-center"
-              >
-                <List className="mr-2 h-4 w-4" />
-                Ver todos
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Dropdown de Reportes - Solo para Admin y Ciudadano */}
+        {user && puedeCrearReportes && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                Reportes <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/reportes/nuevo"
+                  className="cursor-pointer flex items-center"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Crear
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/reportes"
+                  className="cursor-pointer flex items-center"
+                >
+                  <List className="mr-2 h-4 w-4" />
+                  Ver todos
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
-        {/* Botón del Mapa */}
+        {/* Botón del Mapa - Accesible para todos */}
         <Button variant="ghost" size="sm" asChild>
           <Link href="/mapa">
             <Map className="mr-2 h-4 w-4" />
@@ -172,18 +179,24 @@ export function HeaderClient({ user, displayName }: HeaderClientProps) {
                     Inicio
                   </Link>
                 </Button>
-                <Button variant="ghost" className="justify-start" asChild>
-                  <Link href="/reportes/nuevo">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Crear Reporte
-                  </Link>
-                </Button>
-                <Button variant="ghost" className="justify-start" asChild>
-                  <Link href="/reportes">
-                    <List className="mr-2 h-4 w-4" />
-                    Ver Reportes
-                  </Link>
-                </Button>
+                {/* Solo mostrar opciones de reportes a Admin y Ciudadano */}
+                {user && puedeCrearReportes && (
+                  <>
+                    <Button variant="ghost" className="justify-start" asChild>
+                      <Link href="/reportes/nuevo">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Crear Reporte
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" className="justify-start" asChild>
+                      <Link href="/reportes">
+                        <List className="mr-2 h-4 w-4" />
+                        Ver Reportes
+                      </Link>
+                    </Button>
+                  </>
+                )}
+                {/* Mapa disponible para todos */}
                 <Button variant="ghost" className="justify-start" asChild>
                   <Link href="/mapa">
                     <Map className="mr-2 h-4 w-4" />

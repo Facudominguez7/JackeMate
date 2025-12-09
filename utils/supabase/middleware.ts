@@ -38,7 +38,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Define which paths require authentication
-  const protectedPaths = ['/dashboard', '/reportes', '/mapa']
+  // /mapa is now publicly accessible for anonymous users to view reports
+  const protectedPaths = ['/dashboard', '/reportes', '/reportes/nuevo']
   const isProtected = protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p))
 
   if (!user && isProtected) {
@@ -46,6 +47,26 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
     return NextResponse.redirect(url)
+  }
+
+  // Verificar permisos para crear reportes (solo Admin y Ciudadano)
+  if (user && request.nextUrl.pathname.startsWith('/reportes/nuevo')) {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('rol_id')
+      .eq('id', user.id)
+      .single()
+
+    const rolId = profileData?.rol_id
+    // Solo Admin (1) y Ciudadano (2) pueden crear reportes
+    const puedeCrear = rolId === 1 || rolId === 2
+
+    if (!puedeCrear) {
+      // Usuario autenticado pero sin permisos -> redirigir al mapa
+      const url = request.nextUrl.clone()
+      url.pathname = '/mapa'
+      return NextResponse.redirect(url)
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
