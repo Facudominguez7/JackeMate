@@ -16,8 +16,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { ReportCard } from "@/components/report-card"
 import { ReportesClientWrapper } from "./reportes-client"
+import { ListaReportesClient, type ReportCardData } from "@/components/lista-reportes-client"
 import { getReportes, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 
 /**
@@ -25,23 +25,6 @@ import { getReportes, getCategorias, getEstados, getPrioridades } from "@/databa
  * Evita que Next.js cachee esta página para mostrar siempre datos actualizados
  */
 export const dynamic = "force-dynamic"
-
-/**
- * Tipo simplificado para renderizar las tarjetas de reportes
- * Transforma los datos de la base de datos a un formato más amigable para la UI
- */
-type ReportCardData = {
-  id: number
-  title: string
-  description: string
-  category: string
-  priority: string
-  status: string
-  location: string
-  author: string
-  createdAt: string
-  image: string | null
-}
 
 /**
  * Props del componente - searchParams de Next.js para filtros
@@ -57,10 +40,6 @@ type ReportesPageProps = {
 
 /**
  * Formatea las coordenadas geográficas para mostrar en la UI
- * 
- * @param lat - Latitud
- * @param lon - Longitud
- * @returns String formateado con coordenadas o mensaje de no disponible
  */
 const formatLocation = (lat: number | null, lon: number | null) => {
   if (lat === null || lon === null) return "Ubicación no disponible"
@@ -78,13 +57,14 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
   const params = await searchParams
   const { search, categoria, estado, prioridad } = params
 
-  // Obtener reportes con filtros aplicados
-  const { data, error } = await getReportes({
+  // Obtener reportes con filtros aplicados (SSR inicial)
+  const { data, error, hasMore } = await getReportes({
     search,
     categoria,
     estado,
     prioridad,
-    limite: 12
+    limite: 12,
+    offset: 0
   })
 
   // Obtener opciones para los filtros
@@ -145,24 +125,12 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
           </Alert>
         )}
 
-        {/* Renderizado condicional: Grid de reportes, mensaje vacío, o nada si hay error */}
+        {/* Renderizado condicional: Lista de reportes con paginación, mensaje vacío, o nada si hay error */}
         {reports.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reports.map((report) => (
-              <ReportCard
-                key={report.id}
-                id={report.id}
-                titulo={report.title}
-                descripcion={report.description}
-                categoria={report.category}
-                prioridad={report.priority}
-                estado={report.status}
-                imageUrl={report.image}
-                createdAt={report.createdAt}
-                autor={report.author}
-              />
-            ))}
-          </div>
+          <ListaReportesClient
+            initialReports={reports}
+            initialHasMore={hasMore ?? false}
+          />
         ) : !error ? (
           // Mensaje cuando no hay reportes y no hubo error
           <Alert className="mt-6">
@@ -172,13 +140,6 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
             </AlertDescription>
           </Alert>
         ) : null}
-
-        {/* Botón para cargar más reportes (UI únicamente, sin funcionalidad) */}
-        <div className="text-center mt-12">
-          <Button variant="outline" size="lg">
-            Cargar Más Reportes
-          </Button>
-        </div>
       </div>
     </div>
   )

@@ -31,6 +31,7 @@ export type FiltrosReportes = {
   prioridad?: string
   soloConCoordenadas?: boolean
   limite?: number
+  offset?: number
 }
 
 /**
@@ -52,12 +53,14 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     estado,
     prioridad,
     soloConCoordenadas = false,
-    limite = 12
+    limite = 12,
+    offset = 0
   } = filtros
 
   const supabase = await createClient()
 
   // Iniciar la consulta base con todas las relaciones
+  // Usamos { count: 'exact' } para obtener el total de registros
   let query = supabase
     .from("reportes")
     .select(
@@ -71,7 +74,8 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
       prioridad:prioridades!reportes_prioridad_id_fkey(nombre),
       estado:estados!reportes_estado_id_fkey(nombre),
       autor:profiles!reportes_usuario_id_fkey(username),
-      fotos:fotos_reporte(url)`
+      fotos:fotos_reporte(url)`,
+      { count: 'exact' }
     )
     .is("deleted_at", null)
 
@@ -88,7 +92,7 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
       .select("id")
       .ilike("nombre", categoria)
       .single()
-    
+
     if (categoriaData) {
       query = query.eq("categoria_id", categoriaData.id)
     }
@@ -102,7 +106,7 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
       .select("id")
       .ilike("nombre", estado)
       .single()
-    
+
     if (estadoData) {
       query = query.eq("estado_id", estadoData.id)
     }
@@ -116,7 +120,7 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
       .select("id")
       .ilike("nombre", prioridad)
       .single()
-    
+
     if (prioridadData) {
       query = query.eq("prioridad_id", prioridadData.id)
     }
@@ -127,13 +131,16 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     query = query.not("lat", "is", null).not("lon", "is", null)
   }
 
-  // Ordenar y limitar resultados
-  const { data, error } = await query
+  // Ordenar y aplicar paginación con range
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .limit(limite)
+    .range(offset, offset + limite - 1)
     .returns<ReporteDB[]>()
 
-  return { data, error }
+  // Calcular si hay más resultados
+  const hasMore = count !== null ? (offset + limite) < count : false
+
+  return { data, error, count, hasMore }
 }
 
 /**
@@ -143,12 +150,12 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
  */
 export async function getCategorias() {
   const supabase = await createClient()
-  
+
   const { data, error } = await supabase
     .from("categorias")
     .select("id, nombre")
     .order("nombre")
-  
+
   return { data, error }
 }
 
@@ -159,12 +166,12 @@ export async function getCategorias() {
  */
 export async function getEstados() {
   const supabase = await createClient()
-  
+
   const { data, error } = await supabase
     .from("estados")
     .select("id, nombre")
     .order("nombre")
-  
+
   return { data, error }
 }
 
@@ -175,11 +182,11 @@ export async function getEstados() {
  */
 export async function getPrioridades() {
   const supabase = await createClient()
-  
+
   const { data, error } = await supabase
     .from("prioridades")
     .select("id, nombre")
     .order("nombre")
-  
+
   return { data, error }
 }
