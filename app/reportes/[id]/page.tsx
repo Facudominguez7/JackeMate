@@ -71,9 +71,9 @@ import {
   getUserEmail,
   type Comentario,
 } from "@/database/queries/reportes/[id]/index";
-import { 
-  verificarEsAdmin, 
-  getEstados, 
+import {
+  verificarEsAdmin,
+  getEstados,
   cambiarEstadoReporteAdmin,
   eliminarReporteAdmin,
   eliminarComentarioAdmin,
@@ -162,7 +162,7 @@ export default function ReporteDetallePage({
   const [estadoSeleccionado, setEstadoSeleccionado] = useState("");
   const [comentarioEstado, setComentarioEstado] = useState("");
   const [isChangingEstado, setIsChangingEstado] = useState(false);
-  
+
   // Estados para controlar los AlertDialogs
   const [showDeleteReporteDialog, setShowDeleteReporteDialog] = useState(false);
   const [showVoteNoExisteDialog, setShowVoteNoExisteDialog] = useState(false);
@@ -170,13 +170,13 @@ export default function ReporteDetallePage({
   const [showPublishCommentDialog, setShowPublishCommentDialog] = useState(false);
   const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false);
   const [comentarioToDelete, setComentarioToDelete] = useState<number | null>(null);
-  
+
   // Estados para controlar los AlertDialogs de Admin
   const [showAdminChangeEstadoDialog, setShowAdminChangeEstadoDialog] = useState(false);
   const [showAdminDeleteReporteDialog, setShowAdminDeleteReporteDialog] = useState(false);
   const [showAdminDeleteCommentDialog, setShowAdminDeleteCommentDialog] = useState(false);
   const [adminComentarioToDelete, setAdminComentarioToDelete] = useState<number | null>(null);
-  
+
   const supabase = createClient();
 
   // IDs de estados según la base de datos: 1 = Pendiente, 2 = Reparado, 3 = Rechazado
@@ -185,7 +185,7 @@ export default function ReporteDetallePage({
 
   // Verificar si el reporte está cerrado (Reparado o Rechazado) usando IDs
   const isReporteCerrado = reporte && (
-    reporte.estado_id === ESTADO_REPARADO || 
+    reporte.estado_id === ESTADO_REPARADO ||
     reporte.estado_id === ESTADO_RECHAZADO
   );
 
@@ -255,12 +255,12 @@ export default function ReporteDetallePage({
             supabase,
             resolvedParams.id
           );
-          
+
           // Buscar el registro donde cambió a Reparado (2) o Rechazado (3) usando IDs
           const cambio = historial?.find((h: any) => {
             return h.estado_nuevo_id === ESTADO_REPARADO || h.estado_nuevo_id === ESTADO_RECHAZADO;
           });
-          
+
           if (cambio) {
             setFechaCambioEstado(cambio.created_at);
           }
@@ -307,25 +307,25 @@ export default function ReporteDetallePage({
         description: "Tu voto ha sido contabilizado correctamente"
       });
 
-      // Si llega a 5 votos, cambiar estado a Rechazado
-      if (newVotosCount >= 5 ) {
+      // Si llega a 1 voto, cambiar estado a Rechazado (DEMO: reducido de 5 a 1)
+      if (newVotosCount >= 1) {
         const { estadoId } = await getEstadoRechazadoId(supabase);
 
         if (estadoId) {
           // Obtener el estado actual del reporte (usar estado_id directamente)
           const estadoAnteriorId = reporte.estado_id;
-          
+
           await actualizarEstadoReporte(
-            supabase, 
-            reporte.id, 
-            estadoId, 
+            supabase,
+            reporte.id,
+            estadoId,
             estadoAnteriorId,
             currentUser.id,
-            "Rechazado automáticamente por 5 votos de 'No Existe'"
+            "Rechazado automáticamente por 1 voto de 'No Existe'"
           );
           // Recargar página para mostrar el nuevo estado
           toast.success("¡Reporte rechazado automáticamente!", {
-            description: "Se alcanzaron 5 votos. Redirigiendo..."
+            description: "Se alcanzó 1 voto. Redirigiendo..."
           });
           setTimeout(() => window.location.reload(), 1500);
         }
@@ -373,25 +373,25 @@ export default function ReporteDetallePage({
         description: "Gracias por mantener la información actualizada"
       });
 
-      // Si llega a 5 votos, cambiar estado a Reparado
-      if (newVotosReparadoCount >= 5) {
+      // Si llega a 1 voto, cambiar estado a Reparado (DEMO: reducido de 5 a 1)
+      if (newVotosReparadoCount >= 1) {
         const { estadoId } = await getEstadoReparadoId(supabase);
 
         if (estadoId) {
           // Obtener el estado actual del reporte (usar estado_id directamente)
           const estadoAnteriorId = reporte.estado_id;
-          
+
           await actualizarEstadoReporte(
-            supabase, 
-            reporte.id, 
+            supabase,
+            reporte.id,
             estadoId,
             estadoAnteriorId,
             currentUser.id,
-            "Marcado como reparado por 5 votos de usuarios"
+            "Marcado como reparado por 1 voto de usuarios"
           );
           // Recargar página para mostrar el nuevo estado
           toast.success("¡Reporte marcado como reparado!", {
-            description: "Se alcanzaron 5 votos. Redirigiendo..."
+            description: "Se alcanzó 1 voto. Redirigiendo..."
           });
           setTimeout(() => window.location.reload(), 1500);
         }
@@ -477,7 +477,7 @@ export default function ReporteDetallePage({
 
       setComentarios([...comentarios, data]);
       setNuevoComentario("");
-      
+
       // Mostrar mensaje de puntos ganados
       toast.success(`¡Comentario publicado! +${PUNTOS.COMENTAR_REPORTE} puntos`, {
         description: "Tu comentario ha sido agregado correctamente"
@@ -728,7 +728,7 @@ export default function ReporteDetallePage({
               <span className="text-xs md:text-sm">Volver</span>
             </Link>
           </Button>
-          
+
           {/* Badge de Admin y Botones de acción rápida en desktop */}
           <div className="hidden lg:flex items-center gap-2">
             {isAdmin && (
@@ -776,11 +776,10 @@ export default function ReporteDetallePage({
                     </div>
                     {/* Mostrar fecha de cambio si está Reparado o Rechazado */}
                     {fechaCambioEstado && isReporteCerrado && (
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs md:text-sm font-medium ${
-                        getNombre(reporte.estados).toLowerCase() === 'reparado'
+                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs md:text-sm font-medium ${getNombre(reporte.estados).toLowerCase() === 'reparado'
                           ? 'bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900'
                           : 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900'
-                      }`}>
+                        }`}>
                         <Clock className="w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0" />
                         <span>
                           {getNombre(reporte.estados)} el{" "}
@@ -805,7 +804,7 @@ export default function ReporteDetallePage({
                     <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-9 md:w-9 lg:hidden">
                       <Share2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     </Button>
-                    
+
                     {/* Botón eliminar - solo para el creador */}
                     {currentUser && currentUser.id === reporte.usuario_id && (
                       <Button
@@ -879,7 +878,7 @@ export default function ReporteDetallePage({
                   <span>Actualizaciones y Comentarios</span>
                 </CardTitle>
                 <CardDescription className="text-xs md:text-sm lg:text-base">
-                  {isReporteCerrado 
+                  {isReporteCerrado
                     ? "Este reporte está cerrado. Solo se muestran comentarios anteriores."
                     : "Compartí actualizaciones sobre el estado de este reporte"}
                 </CardDescription>
@@ -1002,7 +1001,7 @@ export default function ReporteDetallePage({
 
           {/* Barra Lateral */}
           <div className="lg:col-span-4 space-y-4 md:space-y-6">
-            
+
             {/* Panel de Administrador - Solo visible para admins */}
             {isAdmin && (
               <Card className="border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/20 lg:shadow-md">
@@ -1067,7 +1066,7 @@ export default function ReporteDetallePage({
                 </CardContent>
               </Card>
             )}
-            
+
             {/* Botón "Marcar como Reparado" - Solo si está PENDIENTE */}
             {currentUser && !isReporteCerrado && (
               <Card className="border-2 border-green-500/20 bg-green-50/50 dark:bg-green-950/20 lg:shadow-md hover:shadow-lg transition-shadow">
@@ -1088,18 +1087,17 @@ export default function ReporteDetallePage({
                       </p>
                       <div className="bg-green-100 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-md p-2 mt-2">
                         <p className="text-[10px] md:text-xs lg:text-sm text-green-700 dark:text-green-400 font-medium">
-                          ✓ Con 5 votos, el reporte se marcará como reparado
+                          ✓ Con 1 voto, el reporte se marcará como reparado
                         </p>
                       </div>
                     </div>
                     <Button
                       variant={hasVotedReparado ? "secondary" : "default"}
                       size="sm"
-                      className={`w-full h-9 md:h-10 lg:h-11 ${
-                        hasVotedReparado 
-                          ? "bg-gray-500 hover:bg-gray-600" 
+                      className={`w-full h-9 md:h-10 lg:h-11 ${hasVotedReparado
+                          ? "bg-gray-500 hover:bg-gray-600"
                           : "bg-green-600 hover:bg-green-700 text-white"
-                      }`}
+                        }`}
                       onClick={handleVoteReparado}
                       disabled={hasVotedReparado || isVotingReparado}
                     >
@@ -1111,20 +1109,20 @@ export default function ReporteDetallePage({
                     <div className="flex items-center justify-center gap-1.5 md:gap-2 text-xs md:text-sm lg:text-base flex-wrap">
                       <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-950/40 rounded-md border border-green-200 dark:border-green-900">
                         <span className="font-bold text-green-700 dark:text-green-400">
-                          {votosReparadoCount} / 5
+                          {votosReparadoCount} / 1
                         </span>
                         <span className="text-green-600 dark:text-green-500">votos</span>
                       </div>
                       <span className="text-muted-foreground">•</span>
                       <span className="text-muted-foreground">
-                        Faltan <span className="font-semibold text-green-600 dark:text-green-500">{5 - votosReparadoCount}</span> para marcar como reparado
+                        Faltan <span className="font-semibold text-green-600 dark:text-green-500">{1 - votosReparadoCount}</span> para marcar como reparado
                       </span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             )}
-            
+
             {/* Botón "No Existe" - Solo si está PENDIENTE y no es el creador */}
             {currentUser && currentUser.id !== reporte.usuario_id && !isReporteCerrado && (
               <Card className="border-2 border-red-500/30 bg-red-50/50 dark:bg-red-950/20 lg:shadow-md hover:shadow-lg transition-shadow">
@@ -1142,18 +1140,17 @@ export default function ReporteDetallePage({
                       </p>
                       <div className="bg-red-100 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md p-2 mt-2">
                         <p className="text-[10px] md:text-xs lg:text-sm text-red-700 dark:text-red-400 font-medium">
-                          ⚠️ Con 5 votos, el reporte será rechazado permanentemente
+                          ⚠️ Con 1 voto, el reporte será rechazado permanentemente
                         </p>
                       </div>
                     </div>
                     <Button
                       variant={hasVoted ? "secondary" : "default"}
                       size="sm"
-                      className={`w-full h-9 md:h-10 lg:h-11 ${
-                        hasVoted 
-                          ? "bg-gray-500 hover:bg-gray-600" 
+                      className={`w-full h-9 md:h-10 lg:h-11 ${hasVoted
+                          ? "bg-gray-500 hover:bg-gray-600"
                           : "bg-red-600 hover:bg-red-700 text-white"
-                      }`}
+                        }`}
                       onClick={handleVoteNoExiste}
                       disabled={hasVoted || isVoting}
                     >
@@ -1165,13 +1162,13 @@ export default function ReporteDetallePage({
                     <div className="flex items-center justify-center gap-1.5 md:gap-2 text-xs md:text-sm lg:text-base flex-wrap">
                       <div className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-950/40 rounded-md border border-red-200 dark:border-red-900">
                         <span className="font-bold text-red-700 dark:text-red-400">
-                          {votosCount} / 5
+                          {votosCount} / 1
                         </span>
                         <span className="text-red-600 dark:text-red-500">votos</span>
                       </div>
                       <span className="text-muted-foreground">•</span>
                       <span className="text-muted-foreground">
-                        Faltan <span className="font-semibold text-red-600 dark:text-red-500">{5 - votosCount}</span> para rechazar
+                        Faltan <span className="font-semibold text-red-600 dark:text-red-500">{1 - votosCount}</span> para rechazar
                       </span>
                     </div>
                   </div>
@@ -1263,12 +1260,12 @@ export default function ReporteDetallePage({
                 <div className="bg-muted p-4 rounded-lg">
                   <p className="font-semibold text-foreground mb-1">{reporte?.titulo}</p>
                   <p className="text-xs text-muted-foreground">
-                    Votantes actuales: {votosCount} / 5
+                    Votantes actuales: {votosCount} / 1
                   </p>
                 </div>
                 <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
                   <p className="text-sm text-red-700 dark:text-red-400">
-                    ⚠️ Con 5 votos, el reporte será <span className="font-bold">rechazado automáticamente</span>
+                    ⚠️ Con 1 voto, el reporte será <span className="font-bold">rechazado automáticamente</span>
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -1311,12 +1308,12 @@ export default function ReporteDetallePage({
                 <div className="bg-muted p-4 rounded-lg">
                   <p className="font-semibold text-foreground mb-1">{reporte?.titulo}</p>
                   <p className="text-xs text-muted-foreground">
-                    Votantes actuales: {votosReparadoCount} / 5
+                    Votantes actuales: {votosReparadoCount} / 1
                   </p>
                 </div>
                 <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-md p-3">
                   <p className="text-sm text-green-700 dark:text-green-400">
-                    ✓ Con 5 votos, el reporte se marcará como <span className="font-bold">Reparado</span>
+                    ✓ Con 1 voto, el reporte se marcará como <span className="font-bold">Reparado</span>
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">
