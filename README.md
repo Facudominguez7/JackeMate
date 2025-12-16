@@ -39,38 +39,46 @@ JackeMate es una plataforma web creada **por vecinos, para vecinos**. Permite a 
 ## 🏗️ Arquitectura
 
 ```mermaid
-flowchart TB
-    subgraph Cliente["🖥️ Cliente"]
-        UI["React Components"]
-        CC["Client Components"]
-        SC["Server Components"]
+flowchart LR
+    subgraph Frontend["🖥️ Frontend"]
+        direction TB
+        User["👤 Usuario"]
+        RC["React Components"]
     end
-    
+
     subgraph NextJS["⚡ Next.js 15"]
-        AR["API Routes"]
+        direction TB
+        Pages["Pages & Layouts"]
+        API["API Routes"]
         MW["Middleware"]
-        RSC["React Server Components"]
     end
-    
-    subgraph Backend["🗄️ Supabase"]
-        Auth["Auth Service"]
-        DB[("PostgreSQL")]
-        Storage["File Storage"]
+
+    subgraph Services["🔌 Servicios"]
+        direction TB
+        subgraph Supabase["Supabase"]
+            Auth["🔐 Auth"]
+            DB[("🗄️ PostgreSQL")]
+            Storage["📁 Storage"]
+        end
+        Resend["📧 Resend"]
     end
-    
-    subgraph Email["📧 Resend"]
-        EmailService["Email Service"]
-    end
-    
-    UI --> CC
-    CC --> AR
-    SC --> RSC
-    RSC --> DB
-    AR --> DB
-    AR --> EmailService
+
+    User --> RC
+    RC --> Pages
+    RC --> API
+    Pages --> DB
+    API --> DB
+    API --> Resend
     MW --> Auth
-    CC --> Storage
+    RC --> Storage
 ```
+
+**Flujo principal:**
+1. El **Usuario** interactúa con los **React Components**
+2. Los componentes se comunican con **Pages** (SSR) o **API Routes** (cliente)
+3. Next.js consulta **PostgreSQL** para datos y **Storage** para imágenes
+4. Las **API Routes** envían emails via **Resend** cuando corresponde
+5. El **Middleware** valida sesiones con **Supabase Auth**
 
 ---
 
