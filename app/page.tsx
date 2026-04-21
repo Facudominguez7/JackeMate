@@ -18,6 +18,7 @@ import {
   MapPin,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { ReportCard } from "@/components/report-card";
 import { getTopUsuarios } from "@/database/queries/puntos";
 import { getEstadisticas } from "@/database/queries/estadisticas";
@@ -108,19 +109,14 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* Sección Hero - Pantalla Completa Modernizada */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Video de fondo */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover scale-105"
-        >
-          <source
-            src="/background_inicio/videoplaybackk.mp4#t=69"
-            type="video/mp4"
-          />
-        </video>
+        {/* Imagen de fondo */}
+        <Image
+          src="/background_inicio/Posadas.jpeg"
+          alt="Vista de Posadas"
+          fill
+          priority
+          className="absolute inset-0 object-cover scale-105"
+        />
 
         {/* Overlays graduales */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
