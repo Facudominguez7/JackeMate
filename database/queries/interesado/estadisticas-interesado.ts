@@ -209,7 +209,7 @@ export async function getZonasConMasReportes(
  * - `totalReportes`: número total de reportes no eliminados.
  * - `reportesResueltos`: número de reportes con `estado_id = 2`.
  * - `reportesPendientes`: número de reportes con `estado_id = 1`.
- * - `reportesEnProgreso`: número de reportes con `estado_id = 3`.
+ * - `reportesEnProgreso`: número de reportes con estados distintos de Pendiente/Reparado/Rechazado.
  * - `tasaResolucion`: porcentaje entero de reportes resueltos respecto del total (0–100).
  */
 export async function getEstadisticasInteresado(supabase: SupabaseClient) {
@@ -235,7 +235,7 @@ export async function getEstadisticasInteresado(supabase: SupabaseClient) {
     const { count: reportesEnProgreso } = await supabase
       .from("reportes")
       .select("*", { count: "exact", head: true })
-      .eq("estado_id", 3)
+      .not("estado_id", "in", "(1,2,3)")
       .is("deleted_at", null);
 
     // Calcular tasa de resolución
