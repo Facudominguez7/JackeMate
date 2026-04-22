@@ -3,6 +3,150 @@ import { sumarPuntos, actualizarPuntos, PUNTOS } from "@/database/queries/puntos
 import { getUserEmail } from "./get-owner-email";
 import { ADMIN_REPORT_STATE_IDS, REPORT_STATE_IDS } from "@/lib/authz/catalog";
 
+type VoteAggregateRow = {
+  reporte_id: number;
+  votos_no_existe_count: number | null;
+  votos_reparado_count: number | null;
+};
+
+export type ReporteVoteSummary = {
+  noExiste: {
+    count: number;
+    hasVoted: boolean;
+  };
+  reparado: {
+    count: number;
+    hasVoted: boolean;
+  };
+};
+
+function isMissingVoteSummaryRelationError(error: { code?: string; message?: string } | null) {
+  return error?.code === "42P01" || error?.code === "42703";
+}
+
+async function getLegacyVoteCount(
+  supabase: SupabaseClient,
+  table: "votos_no_existe" | "votos_reparado",
+  reporteId: string,
+) {
+  const { count, error } = await supabase
+    .from(table)
+    .select("*", { count: "exact", head: true })
+    .eq("reporte_id", reporteId);
+
+  return { count: count || 0, error };
+}
+
+async function getVoteAggregateCounts(
+  supabase: SupabaseClient,
+  reporteId: string,
+) {
+  const { data, error } = await supabase
+    .from("reportes_vote_summary")
+    .select("reporte_id, votos_no_existe_count, votos_reparado_count")
+    .eq("reporte_id", reporteId)
+    .maybeSingle();
+
+  const summaryRow = (data ?? null) as VoteAggregateRow | null;
+
+  if (!error) {
+    return {
+      noExisteCount: summaryRow?.votos_no_existe_count ?? 0,
+      reparadoCount: summaryRow?.votos_reparado_count ?? 0,
+      error: null,
+    };
+  }
+
+  if (!isMissingVoteSummaryRelationError(error)) {
+    return {
+      noExisteCount: 0,
+      reparadoCount: 0,
+      error,
+    };
+  }
+
+  const [legacyNoExiste, legacyReparado] = await Promise.all([
+    getLegacyVoteCount(supabase, "votos_no_existe", reporteId),
+    getLegacyVoteCount(supabase, "votos_reparado", reporteId),
+  ]);
+
+  return {
+    noExisteCount: legacyNoExiste.count,
+    reparadoCount: legacyReparado.count,
+    error: legacyNoExiste.error ?? legacyReparado.error,
+  };
+}
+
+async function getVotePresence(
+  supabase: SupabaseClient,
+  table: "votos_no_existe" | "votos_reparado",
+  reporteId: string,
+  usuarioId: string,
+) {
+  const { data, error } = await supabase
+    .from(table)
+    .select("id")
+    .eq("reporte_id", reporteId)
+    .eq("usuario_id", usuarioId)
+    .maybeSingle();
+
+  return {
+    hasVoted: !!data,
+    error,
+  };
+}
+
+export async function getReporteVoteSummary(
+  supabase: SupabaseClient,
+  reporteId: string,
+  usuarioId?: string | null,
+) {
+  const countsResult = await getVoteAggregateCounts(supabase, reporteId);
+
+  if (countsResult.error) {
+    console.error("Error al obtener resumen agregado de votos:", countsResult.error);
+  }
+
+  if (!usuarioId) {
+    return {
+      data: {
+        noExiste: { count: countsResult.noExisteCount, hasVoted: false },
+        reparado: { count: countsResult.reparadoCount, hasVoted: false },
+      } satisfies ReporteVoteSummary,
+      error: countsResult.error,
+    };
+  }
+
+  const [noExistePresence, reparadoPresence] = await Promise.all([
+    getVotePresence(supabase, "votos_no_existe", reporteId, usuarioId),
+    getVotePresence(supabase, "votos_reparado", reporteId, usuarioId),
+  ]);
+
+  const error = countsResult.error ?? noExistePresence.error ?? reparadoPresence.error;
+
+  if (noExistePresence.error) {
+    console.error("Error al verificar voto no existe:", noExistePresence.error);
+  }
+
+  if (reparadoPresence.error) {
+    console.error("Error al verificar voto reparado:", reparadoPresence.error);
+  }
+
+  return {
+    data: {
+      noExiste: {
+        count: countsResult.noExisteCount,
+        hasVoted: noExistePresence.hasVoted,
+      },
+      reparado: {
+        count: countsResult.reparadoCount,
+        hasVoted: reparadoPresence.hasVoted,
+      },
+    } satisfies ReporteVoteSummary,
+    error,
+  };
+}
+
 // ============================================
 // FUNCIONES DE VOTOS "NO EXISTE"
 // ============================================
@@ -14,17 +158,13 @@ import { ADMIN_REPORT_STATE_IDS, REPORT_STATE_IDS } from "@/lib/authz/catalog";
  * @returns Un objeto con `count` — número de votos "no existe" para el reporte (0 si no hay o en caso de error) y `error` — el error ocurrido o `null`
  */
 export async function getVotosNoExiste(supabase: SupabaseClient, reporteId: string) {
-  const { count, error } = await supabase
-    .from("votos_no_existe")
-    .select("*", { count: "exact", head: true })
-    .eq("reporte_id", reporteId);
+  const { data, error } = await getReporteVoteSummary(supabase, reporteId);
 
   if (error) {
-    console.error("Error al obtener votos no existe:", error);
-    return { count: 0, error };
+    return { count: data.noExiste.count, error };
   }
 
-  return { count: count || 0, error: null };
+  return { count: data.noExiste.count, error: null };
 }
 
 /**
@@ -39,19 +179,13 @@ export async function verificarVotoUsuario(
   reporteId: string,
   usuarioId: string
 ) {
-  const { data, error } = await supabase
-    .from("votos_no_existe")
-    .select("id")
-    .eq("reporte_id", reporteId)
-    .eq("usuario_id", usuarioId)
-    .maybeSingle();
+  const { data, error } = await getReporteVoteSummary(supabase, reporteId, usuarioId);
 
   if (error) {
-    console.error("Error al verificar voto no existe:", error);
-    return { hasVoted: false, error };
+    return { hasVoted: data.noExiste.hasVoted, error };
   }
 
-  return { hasVoted: !!data, error: null };
+  return { hasVoted: data.noExiste.hasVoted, error: null };
 }
 
 /**
@@ -98,17 +232,13 @@ export async function votarNoExiste(
  * @returns `count` con el número de votos; `error` con el error ocurrido o `null` si no hubo error.
  */
 export async function getVotosReparado(supabase: SupabaseClient, reporteId: string) {
-  const { count, error } = await supabase
-    .from("votos_reparado")
-    .select("*", { count: "exact", head: true })
-    .eq("reporte_id", reporteId);
+  const { data, error } = await getReporteVoteSummary(supabase, reporteId);
 
   if (error) {
-    console.error("Error al obtener votos reparado:", error);
-    return { count: 0, error };
+    return { count: data.reparado.count, error };
   }
 
-  return { count: count || 0, error: null };
+  return { count: data.reparado.count, error: null };
 }
 
 /**
@@ -123,19 +253,13 @@ export async function verificarVotoReparadoUsuario(
   reporteId: string,
   usuarioId: string
 ) {
-  const { data, error } = await supabase
-    .from("votos_reparado")
-    .select("id")
-    .eq("reporte_id", reporteId)
-    .eq("usuario_id", usuarioId)
-    .maybeSingle();
+  const { data, error } = await getReporteVoteSummary(supabase, reporteId, usuarioId);
 
   if (error) {
-    console.error("Error al verificar voto reparado:", error);
-    return { hasVoted: false, error };
+    return { hasVoted: data.reparado.hasVoted, error };
   }
 
-  return { hasVoted: !!data, error: null };
+  return { hasVoted: data.reparado.hasVoted, error: null };
 }
 
 /**

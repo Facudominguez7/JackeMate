@@ -6,6 +6,7 @@ import {
   resolveReportImageRows,
 } from "@/lib/media/report-images";
 import { getPublicProfile } from "@/database/queries/profiles";
+import { getReporteVoteSummary, type ReporteVoteSummary } from "./votos";
 
 const buildReporteDetalleSelect = (includeCanonicalImageFields: boolean) => `
       id,
@@ -46,6 +47,7 @@ type ReporteDetalleRow = {
 
 type ReporteDetalleView = Omit<ReporteDetalleRow, "fotos_reporte"> & {
   fotos_reporte: ResolvedReportImageRow[]
+  votos: ReporteVoteSummary
 }
 
 export type ReporteDetalle = ReporteDetalleView
@@ -56,7 +58,11 @@ export type ReporteDetalle = ReporteDetalleView
  * @param reporteId - ID del reporte a recuperar
  * @returns Un objeto con `data` y `error`. `data` contiene el reporte (campos: `id`, `titulo`, `descripcion`, `lat`, `lon`, `created_at`, `usuario_id`, `estado_id`, y relaciones `categorias.nombre`, `prioridades.nombre`, `estados.{id,nombre}`, `fotos_reporte.url`, `profiles.username`) o `null` si no se encontró; `error` contiene el error de la consulta o `null` si la operación tuvo éxito.
  */
-export async function getReporteDetalle(supabase: SupabaseClient, reporteId: string) {
+export async function getReporteDetalle(
+  supabase: SupabaseClient,
+  reporteId: string,
+  usuarioId?: string | null,
+) {
   let { data, error } = await supabase
     .from("reportes")
     .select(buildReporteDetalleSelect(true))
@@ -89,6 +95,12 @@ export async function getReporteDetalle(supabase: SupabaseClient, reporteId: str
     console.error("Error al obtener autor público del reporte:", publicProfileResult.error)
   }
 
+  const voteSummaryResult = await getReporteVoteSummary(supabase, reporteId, usuarioId)
+
+  if (voteSummaryResult.error) {
+    console.error("Error al obtener resumen de votos del reporte:", voteSummaryResult.error)
+  }
+
   return {
     data: reporte
       ? {
@@ -97,6 +109,7 @@ export async function getReporteDetalle(supabase: SupabaseClient, reporteId: str
             ? { username: publicProfileResult.data.username }
             : null,
           fotos_reporte: resolveReportImageRows(reporte.fotos_reporte),
+          votos: voteSummaryResult.data,
         } satisfies ReporteDetalleView
       : null,
     error: null,

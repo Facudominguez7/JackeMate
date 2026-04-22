@@ -55,10 +55,6 @@ import { LoadingLogo } from "@/components/loading-logo";
 import { toast } from "sonner";
 import {
   getReporteDetalle,
-  getVotosNoExiste,
-  verificarVotoUsuario,
-  getVotosReparado,
-  verificarVotoReparadoUsuario,
   getComentariosReporte,
   getHistorialEstados,
   type Comentario,
@@ -179,35 +175,14 @@ export default function ReporteDetallePage({
         }
 
         // Obtener reporte
-        const { data, error } = await getReporteDetalle(supabase, resolvedParams.id);
+        const { data, error } = await getReporteDetalle(supabase, resolvedParams.id, user?.id);
 
         if (!error && data) {
           setReporte(data);
-
-          // Contar votos "no existe"
-          const { count } = await getVotosNoExiste(supabase, resolvedParams.id);
-          setVotosCount(count);
-
-          // Contar votos "reparado"
-          const { count: countReparado } = await getVotosReparado(supabase, resolvedParams.id);
-          setVotosReparadoCount(countReparado);
-
-          // Verificar si el usuario actual ya votó
-          if (user) {
-            const { hasVoted } = await verificarVotoUsuario(
-              supabase,
-              resolvedParams.id,
-              user.id
-            );
-            setHasVoted(hasVoted);
-
-            const { hasVoted: hasVotedRep } = await verificarVotoReparadoUsuario(
-              supabase,
-              resolvedParams.id,
-              user.id
-            );
-            setHasVotedReparado(hasVotedRep);
-          }
+          setVotosCount(data.votos.noExiste.count);
+          setVotosReparadoCount(data.votos.reparado.count);
+          setHasVoted(data.votos.noExiste.hasVoted);
+          setHasVotedReparado(data.votos.reparado.hasVoted);
         }
 
         // Obtener comentarios
