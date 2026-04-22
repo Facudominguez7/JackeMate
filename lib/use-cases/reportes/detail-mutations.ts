@@ -6,6 +6,11 @@ import { actualizarPuntos, PUNTOS, restarPuntos, sumarPuntos } from "@/database/
 import { REPORT_STATE_IDS } from "@/lib/authz/catalog"
 import { isAdminRole, getUserRoleContext } from "@/lib/authz/roles"
 import {
+  getReportImageStorageRefs,
+  isMissingReportImageColumnsError,
+  type ReportImageRow,
+} from "@/lib/media/report-images"
+import {
   sendCommentNotificationEmail,
   sendStatusNotificationEmail,
 } from "@/lib/notifications/report-notifications"
@@ -65,6 +70,8 @@ type SoftDeleteResult = {
   deleted: boolean
 }
 
+type ReportImageStorageRow = ReportImageRow
+
 type CommentPointsContext = {
   comentarioId: number
   comentarioAutorId: string
@@ -119,6 +126,68 @@ function isDuplicateRowError(error: { code?: string } | null | undefined) {
 
 function isReportClosed(report: Pick<ReportContext, "estado_id">) {
   return report.estado_id === REPORT_STATE_IDS.REPARADO || report.estado_id === REPORT_STATE_IDS.RECHAZADO
+}
+
+async function getReportImageRows(
+  supabase: SupabaseClient,
+  reporteId: number,
+): Promise<ReportImageStorageRow[]> {
+  let { data, error } = await supabase
+    .from("fotos_reporte")
+    .select("url, bucket, path")
+    .eq("reporte_id", reporteId)
+    .returns<ReportImageStorageRow[]>()
+
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error } = await supabase
+      .from("fotos_reporte")
+      .select("url")
+      .eq("reporte_id", reporteId)
+      .returns<ReportImageStorageRow[]>())
+  }
+
+  if (error) {
+    console.error("No pudimos leer las imágenes asociadas al reporte para limpiar Storage:", {
+      reporteId,
+      message: error.message,
+      code: error.code,
+    })
+    return []
+  }
+
+  return data ?? []
+}
+
+async function cleanupReportImages(
+  supabase: SupabaseClient,
+  reporteId: number,
+) {
+  const imageRows = await getReportImageRows(supabase, reporteId)
+  const imageRefs = getReportImageStorageRefs(imageRows)
+
+  if (imageRefs.length === 0) {
+    return
+  }
+
+  const refsByBucket = imageRefs.reduce<Record<string, string[]>>((acc, ref) => {
+    const currentPaths = acc[ref.bucket] ?? []
+    currentPaths.push(ref.path)
+    acc[ref.bucket] = currentPaths
+    return acc
+  }, {})
+
+  for (const [bucket, paths] of Object.entries(refsByBucket)) {
+    const { error } = await supabase.storage.from(bucket).remove(paths)
+
+    if (error) {
+      console.error("No pudimos borrar una o más imágenes del Storage al eliminar el reporte:", {
+        reporteId,
+        bucket,
+        pathCount: paths.length,
+        message: error.message,
+      })
+    }
+  }
 }
 
 async function getReportContext(
@@ -361,6 +430,8 @@ async function softDeleteReport(
         : "El reporte ya fue eliminado o no está disponible.",
     }
   }
+
+  await cleanupReportImages(supabase, reporteId)
 
   return { success: true, data: { deleted: true } }
 }

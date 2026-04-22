@@ -1,7 +1,10 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
+import { getPublicProfilesByIds, indexPublicProfilesById } from "@/database/queries/profiles";
+
 export type ReporteReciente = {
   id: number;
+  usuario_id: string | null;
   titulo: string;
   descripcion: string;
   created_at: string;
@@ -33,6 +36,7 @@ export async function getReportesRecientes(
       .select(
         `
         id,
+        usuario_id,
         titulo,
         descripcion,
         created_at,
@@ -41,8 +45,7 @@ export async function getReportesRecientes(
         categorias (nombre),
         prioridades (nombre),
         estados (nombre),
-        fotos_reporte (url),
-        profiles (username)
+        fotos_reporte (url)
       `
       )
       .is("deleted_at", null)
@@ -54,7 +57,18 @@ export async function getReportesRecientes(
       return [];
     }
 
-    return reportes || [];
+    const { data: profiles } = await getPublicProfilesByIds(
+      supabase,
+      (reportes ?? []).map((reporte) => reporte.usuario_id ?? ""),
+    );
+    const profilesById = indexPublicProfilesById(profiles);
+
+    return (reportes ?? []).map((reporte) => ({
+      ...reporte,
+      profiles: reporte.usuario_id
+        ? { username: profilesById.get(reporte.usuario_id)?.username ?? null }
+        : null,
+    }));
   } catch (error) {
     console.error("Error al obtener reportes recientes:", error);
     return [];

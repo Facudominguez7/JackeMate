@@ -1,5 +1,7 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 
+import { getTopPublicProfiles } from "@/database/queries/profiles";
+
 const ATOMIC_POINTS_RPC = "adjust_profile_points_atomic";
 
 /**
@@ -157,11 +159,7 @@ export async function getTopUsuarios(
   supabase: SupabaseClient,
   limite: number = 3
 ) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, username, puntos")
-    .order("puntos", { ascending: false })
-    .limit(limite);
+  const { data, error } = await getTopPublicProfiles(supabase, limite);
 
   if (error) {
     console.error("Error al obtener top usuarios:", error);

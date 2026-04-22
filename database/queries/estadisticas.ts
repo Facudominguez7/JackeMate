@@ -1,5 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
+import { getPublicProfilesCount } from "@/database/queries/profiles";
+
 /**
  * Recupera contadores generales de la plataforma: usuarios activos, reportes totales y reportes resueltos.
  *
@@ -10,9 +12,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 export async function getEstadisticas(supabase: SupabaseClient) {
   try {
     // Contar usuarios activos (profiles)
-    const { count: usersCount } = await supabase
-      .from("profiles")
-      .select("*", { count: "exact", head: true });
+    const { count: usersCount } = await getPublicProfilesCount(supabase);
 
     // Contar reportes totales (no eliminados)
     const { count: reportsCount } = await supabase

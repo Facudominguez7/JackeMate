@@ -5,6 +5,7 @@ import {
   type ResolvedReportImageRow,
   resolveReportImageRows,
 } from "@/lib/media/report-images";
+import { getPublicProfile } from "@/database/queries/profiles";
 
 const buildReporteDetalleSelect = (includeCanonicalImageFields: boolean) => `
       id,
@@ -18,8 +19,7 @@ const buildReporteDetalleSelect = (includeCanonicalImageFields: boolean) => `
       categorias (nombre),
       prioridades (nombre),
       estados (id, nombre),
-      fotos_reporte (${includeCanonicalImageFields ? "url, bucket, path" : "url"}),
-      profiles (username)
+      fotos_reporte (${includeCanonicalImageFields ? "url, bucket, path" : "url"})
     `
 
 export type ReportNameRelation = { nombre: string | null } | { nombre: string | null }[] | null
@@ -41,7 +41,7 @@ type ReporteDetalleRow = {
   prioridades: ReportNameRelation
   estados: ReportStateRelation
   fotos_reporte: ReportImageRow[] | null
-  profiles: ReportUsernameRelation
+  profiles?: ReportUsernameRelation
 }
 
 type ReporteDetalleView = Omit<ReporteDetalleRow, "fotos_reporte"> & {
@@ -81,11 +81,21 @@ export async function getReporteDetalle(supabase: SupabaseClient, reporteId: str
   }
 
   const reporte = (data ?? null) as ReporteDetalleRow | null
+  const publicProfileResult = reporte?.usuario_id
+    ? await getPublicProfile(supabase, reporte.usuario_id)
+    : { data: null, error: null }
+
+  if (publicProfileResult.error) {
+    console.error("Error al obtener autor público del reporte:", publicProfileResult.error)
+  }
 
   return {
     data: reporte
       ? {
           ...reporte,
+          profiles: publicProfileResult.data
+            ? { username: publicProfileResult.data.username }
+            : null,
           fotos_reporte: resolveReportImageRows(reporte.fotos_reporte),
         } satisfies ReporteDetalleView
       : null,

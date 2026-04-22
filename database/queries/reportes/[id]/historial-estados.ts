@@ -1,5 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
+import { getPublicProfilesByIds, indexPublicProfilesById } from "@/database/queries/profiles";
+
 /**
  * Registra en la tabla `historial_estados` un nuevo registro que representa el cambio de estado de un reporte.
  *
@@ -49,8 +51,7 @@ export async function getHistorialEstados(
     .select(`
       *,
       estado_anterior:estados!historial_estados_estado_anterior_id_fkey(id, nombre),
-      estado_nuevo:estados!historial_estados_estado_nuevo_id_fkey(id, nombre),
-      usuario:profiles(username)
+      estado_nuevo:estados!historial_estados_estado_nuevo_id_fkey(id, nombre)
     `)
     .eq("reporte_id", reporteId)
     .order("created_at", { ascending: false });
@@ -60,5 +61,19 @@ export async function getHistorialEstados(
     return { data: [], error };
   }
 
-  return { data: data || [], error: null };
+  const { data: profiles } = await getPublicProfilesByIds(
+    supabase,
+    (data ?? []).map((entry) => entry.usuario_id ?? ""),
+  );
+  const profilesById = indexPublicProfilesById(profiles);
+
+  return {
+    data: (data || []).map((entry) => ({
+      ...entry,
+      usuario: entry.usuario_id
+        ? { username: profilesById.get(entry.usuario_id)?.username ?? null }
+        : null,
+    })),
+    error: null,
+  };
 }

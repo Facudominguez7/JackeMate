@@ -1,5 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
+import { getPrivateProfileContact } from "@/database/queries/profiles";
+
 /**
  * Obtiene el email y username del propietario de un reporte específico.
  * 
@@ -15,16 +17,9 @@ export async function getReporteOwnerInfo(
   reporteId: number
 ) {
   try {
-    // Obtener el reporte junto con los datos del perfil del usuario
     const { data: reporteData, error: reporteError } = await supabase
       .from("reportes")
-      .select(`
-        usuario_id,
-        profiles (
-          username,
-          email
-        )
-      `)
+      .select("usuario_id")
       .eq("id", reporteId)
       .is("deleted_at", null)
       .single();
@@ -34,20 +29,21 @@ export async function getReporteOwnerInfo(
       return { data: null, error: reporteError };
     }
 
-    const profiles: any = reporteData.profiles;
-    const username = Array.isArray(profiles) 
-      ? profiles[0]?.username || "Usuario"
-      : profiles?.username || "Usuario";
-    
-    const email = Array.isArray(profiles) 
-      ? profiles[0]?.email || null
-      : profiles?.email || null;
+    const { data: ownerProfile, error: ownerError } = await getPrivateProfileContact(
+      supabase,
+      reporteData.usuario_id,
+    );
+
+    if (ownerError) {
+      console.error("Error al obtener contacto del propietario:", ownerError);
+      return { data: null, error: ownerError };
+    }
 
     return {
       data: {
         userId: reporteData.usuario_id,
-        username,
-        email,
+        username: ownerProfile?.username || "Usuario",
+        email: ownerProfile?.email || null,
       },
       error: null,
     };
@@ -69,11 +65,7 @@ export async function getUserEmail(
   userId: string
 ) {
   try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("id", userId)
-      .single();
+    const { data, error } = await getPrivateProfileContact(supabase, userId);
 
     if (error) {
       console.error("Error al obtener email:", error);

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { getPrivateProfileContact } from "@/database/queries/profiles";
 import { getUserRoleContext, isAdminRole } from "@/lib/authz/roles";
 import { sendStatusNotificationEmail } from "@/lib/notifications/report-notifications";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const statusNotificationSchema = z
@@ -79,11 +81,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, skipped: true }, { status: 200 });
     }
 
-    const { data: ownerProfile, error: ownerError } = await supabase
-      .from("profiles")
-      .select("email, username")
-      .eq("id", reporte.usuario_id)
-      .single();
+    const adminClient = createAdminClient();
+    const { data: ownerProfile, error: ownerError } = await getPrivateProfileContact(adminClient, reporte.usuario_id);
 
     if (ownerError || !ownerProfile) {
       console.error("Error al obtener propietario para notificación de estado:", ownerError);

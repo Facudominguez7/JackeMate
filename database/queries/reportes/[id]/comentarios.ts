@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { sumarPuntos, PUNTOS } from "@/database/queries/puntos";
+import { getPublicProfilesByIds, indexPublicProfilesById } from "@/database/queries/profiles";
 
 export type Comentario = {
   id: number;
@@ -15,6 +16,18 @@ export type Comentario = {
         username: string;
       }[];
 };
+
+function attachPublicProfilesToComments<T extends { usuario_id: string }>(
+  comments: T[],
+  profilesById: Map<string, { username: string | null }>,
+) {
+  return comments.map((comment) => ({
+    ...comment,
+    profiles: {
+      username: profilesById.get(comment.usuario_id)?.username ?? "Usuario",
+    },
+  }));
+}
 
 /**
  * Recupera los comentarios no eliminados de un reporte, ordenados por fecha de creación ascendente.
@@ -36,8 +49,7 @@ export async function getComentariosReporte(
       reporte_id,
       usuario_id,
       contenido,
-      created_at,
-      profiles (username)
+      created_at
     `
     )
     .eq("reporte_id", reporteId)
@@ -49,7 +61,16 @@ export async function getComentariosReporte(
     return { data: [], error };
   }
 
-  return { data: data || [], error: null };
+  const { data: profiles } = await getPublicProfilesByIds(
+    supabase,
+    (data ?? []).map((comment) => comment.usuario_id),
+  );
+  const profilesById = indexPublicProfilesById(profiles);
+
+  return {
+    data: attachPublicProfilesToComments(data || [], profilesById),
+    error: null,
+  };
 }
 
 /**
@@ -79,8 +100,7 @@ export async function crearComentario(
       reporte_id,
       usuario_id,
       contenido,
-      created_at,
-      profiles (username)
+      created_at
     `
     )
     .single();
@@ -98,7 +118,18 @@ export async function crearComentario(
     "Comentar en reporte"
   );
 
-  return { data, error: null };
+  const { data: profiles } = await getPublicProfilesByIds(supabase, [usuarioId]);
+  const profilesById = indexPublicProfilesById(profiles);
+
+  return {
+    data: {
+      ...data,
+      profiles: {
+        username: profilesById.get(usuarioId)?.username ?? "Usuario",
+      },
+    },
+    error: null,
+  };
 }
 
 /**

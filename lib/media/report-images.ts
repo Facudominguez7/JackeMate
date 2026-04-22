@@ -4,11 +4,15 @@ export type ReportImageBucket = typeof REPORT_BUCKET
 
 export const REPORT_IMAGE_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const
 export const REPORT_IMAGE_ACCEPT_ATTR = REPORT_IMAGE_ACCEPTED_TYPES.join(",")
-export const REPORT_IMAGE_MAX_DIMENSION = 1600
-export const REPORT_IMAGE_OUTPUT_TYPE = "image/jpeg" as const
-export const REPORT_IMAGE_OUTPUT_EXTENSION = "jpg" as const
-export const REPORT_IMAGE_OUTPUT_QUALITY = 0.78
-export const REPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+export const REPORT_IMAGE_MAX_DIMENSION = 1536
+export const REPORT_IMAGE_OUTPUT_TYPE = "image/webp" as const
+export const REPORT_IMAGE_OUTPUT_EXTENSION = "webp" as const
+export const REPORT_IMAGE_OUTPUT_QUALITY = 0.82
+export const REPORT_IMAGE_FALLBACK_OUTPUT_TYPE = "image/jpeg" as const
+export const REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION = "jpg" as const
+export const REPORT_IMAGE_FALLBACK_OUTPUT_QUALITY = 0.8
+export const REPORT_IMAGE_MIN_QUALITY = 0.68
+export const REPORT_IMAGE_MAX_BYTES = Math.floor(2.5 * 1024 * 1024)
 export const REPORT_IMAGE_MAX_SOURCE_BYTES = 15 * 1024 * 1024
 
 export type ReportImageRef = {
@@ -72,15 +76,46 @@ export function parseLegacyReportImageUrl(url: string | null | undefined): Repor
   }
 }
 
+export function parseReportImageStorageReference(reference: string | null | undefined): ReportImageRef | null {
+  const normalizedReference = trimSlashes(reference ?? "")
+
+  if (!normalizedReference) {
+    return null
+  }
+
+  const bucketPrefix = `${REPORT_BUCKET}/`
+
+  if (normalizedReference === REPORT_BUCKET) {
+    return null
+  }
+
+  if (normalizedReference.startsWith(bucketPrefix)) {
+    return {
+      bucket: REPORT_BUCKET,
+      path: normalizedReference.slice(bucketPrefix.length),
+    }
+  }
+
+  return {
+    bucket: REPORT_BUCKET,
+    path: normalizedReference,
+  }
+}
+
 export function normalizeReportImageRef(image: ReportImageRow | null | undefined): ReportImageRef | null {
   if (!image) {
     return null
   }
 
   if (image.bucket === REPORT_BUCKET && image.path) {
+    const storageRef = parseReportImageStorageReference(image.path)
+
+    if (!storageRef) {
+      return null
+    }
+
     return {
-      bucket: REPORT_BUCKET,
-      path: image.path,
+      ...storageRef,
       publicUrl: image.url ?? null,
     }
   }
@@ -107,6 +142,22 @@ export function resolveReportImageRows<T extends ReportImageRow>(images: T[] | n
 
 export function getPrimaryReportImageUrl(images: ReportImageRow[] | null | undefined) {
   return resolveReportImageRows(images)[0]?.publicUrl ?? null
+}
+
+export function getReportImageStorageRefs(images: ReportImageRow[] | null | undefined) {
+  const uniqueRefs = new Map<string, ReportImageRef>()
+
+  for (const image of images ?? []) {
+    const ref = normalizeReportImageRef(image)
+
+    if (!ref?.path) {
+      continue
+    }
+
+    uniqueRefs.set(`${ref.bucket}/${ref.path}`, ref)
+  }
+
+  return Array.from(uniqueRefs.values())
 }
 
 export function isMissingReportImageColumnsError(error: { message?: string; details?: string } | null | undefined) {

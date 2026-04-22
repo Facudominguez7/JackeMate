@@ -9,6 +9,7 @@
  */
 
 import { createClient } from "@/utils/supabase/server"
+import { getPublicProfilesByIds, indexPublicProfilesById } from "@/database/queries/profiles"
 import {
   isMissingReportImageColumnsError,
   resolveReportImageRows,
@@ -18,6 +19,7 @@ import type { ReportCardData } from "@/components/lista-reportes-client"
 
 export type ReporteDB = {
   id: number
+  usuario_id: string | null
   titulo: string
   descripcion: string | null
   created_at: string
@@ -201,6 +203,7 @@ function mapReportToDashboardItem(report: ReporteDB): DashboardUserReport {
 }
 
 const buildReportesSelect = (includeCanonicalImageFields: boolean) => `id,
+      usuario_id,
       titulo,
       descripcion,
       created_at,
@@ -209,10 +212,10 @@ const buildReportesSelect = (includeCanonicalImageFields: boolean) => `id,
       categoria:categorias!reportes_categoria_id_fkey(nombre),
       prioridad:prioridades!reportes_prioridad_id_fkey(nombre),
       estado:estados!reportes_estado_id_fkey(nombre),
-      autor:profiles!reportes_usuario_id_fkey(username),
       fotos:fotos_reporte(${includeCanonicalImageFields ? "url,bucket,path" : "url"})`
 
 async function fetchReportes(
+  supabase: Awaited<ReturnType<typeof createClient>>,
   filtros: Required<Pick<FiltrosReportes, "soloConCoordenadas" | "limite" | "offset">> & FiltrosReportes,
   includeCanonicalImageFields: boolean
 ) {
@@ -226,7 +229,6 @@ async function fetchReportes(
     offset,
   } = filtros
 
-  const supabase = await createClient()
   let query = supabase
     .from("reportes")
     .select(buildReportesSelect(includeCanonicalImageFields), { count: 'exact' })
@@ -274,6 +276,7 @@ async function fetchReportes(
  * @returns Objeto con `data` — lista de reportes (`ReporteDB[]`) o `null`, y `error` — el error devuelto por Supabase o `null`.
  */
 export async function getReportes(filtros: FiltrosReportes = {}) {
+  const supabase = await createClient()
   const {
     search,
     categoria,
@@ -294,17 +297,26 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     offset,
   }
 
-  let { data, error, count } = await fetchReportes(normalizedFilters, true)
+  let { data, error, count } = await fetchReportes(supabase, normalizedFilters, true)
 
   if (error && isMissingReportImageColumnsError(error)) {
-    ;({ data, error, count } = await fetchReportes(normalizedFilters, false))
+    ;({ data, error, count } = await fetchReportes(supabase, normalizedFilters, false))
   }
 
   // Calcular si hay más resultados
   const hasMore = count !== null ? (offset + limite) < count : false
 
+  const { data: publicProfiles } = await getPublicProfilesByIds(
+    supabase,
+    (data ?? []).map((report) => report.usuario_id ?? ""),
+  )
+  const profilesById = indexPublicProfilesById(publicProfiles)
+
   const resolvedData = (data ?? []).map((report: ReporteDBRaw) => ({
     ...report,
+    autor: report.usuario_id
+      ? { username: profilesById.get(report.usuario_id)?.username ?? null }
+      : null,
     fotos: resolveReportImageRows(report.fotos),
   }))
 

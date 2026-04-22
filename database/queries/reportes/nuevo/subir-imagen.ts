@@ -18,8 +18,8 @@ export async function subirImagenReporte(
 ) {
   try {
     const fileExt = image.name.split('.').pop()
-    const fileName = `${reporteId}_${Date.now()}.${fileExt}`
-    const filePath = `${fileName}`
+    const fileName = `${Date.now()}.${fileExt}`
+    const filePath = `${reporteId}/${fileName}`
 
     // Subir imagen al bucket 'reportes'
     const { error: uploadError } = await supabase.storage

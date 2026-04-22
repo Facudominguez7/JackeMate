@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { getPrivateProfileContact } from "@/database/queries/profiles";
 import { sendCommentNotificationEmail } from "@/lib/notifications/report-notifications";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const commentNotificationSchema = z
@@ -61,17 +63,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, skipped: true }, { status: 200 });
     }
 
+    const adminClient = createAdminClient();
     const [{ data: ownerProfile, error: ownerError }, { data: commenterProfile, error: commenterError }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("email, username")
-        .eq("id", reporte.usuario_id)
-        .single(),
-      supabase
-        .from("profiles")
-        .select("username")
-        .eq("id", user.id)
-        .single(),
+      getPrivateProfileContact(adminClient, reporte.usuario_id),
+      getPrivateProfileContact(adminClient, user.id),
     ]);
 
     if (ownerError || !ownerProfile) {
