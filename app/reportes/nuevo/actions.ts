@@ -1,6 +1,6 @@
 "use server"
 
-import { z } from "zod"
+import { ZodError, z } from "zod"
 
 import { crearReporteWorkflow, mutationErrorMessage } from "@/lib/use-cases/reportes"
 import { createAdminClient } from "@/utils/supabase/admin"
@@ -58,6 +58,25 @@ export async function crearReporteAction(formData: FormData) {
       image: getOptionalImage(formData),
     })
   } catch (error) {
+    if (error instanceof ZodError) {
+      const messages = error.issues.map((issue) => {
+        if (issue.path[0] === "titulo") {
+          return "El título debe tener al menos 3 caracteres."
+        }
+
+        if (issue.path[0] === "descripcion") {
+          return "La descripción debe tener al menos 10 caracteres."
+        }
+
+        return issue.message
+      })
+
+      return {
+        success: false as const,
+        error: messages.join(" "),
+      }
+    }
+
     return {
       success: false as const,
       error: mutationErrorMessage(error, "No pudimos crear el reporte."),
