@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { sumarPuntos, actualizarPuntos, PUNTOS } from "@/database/queries/puntos";
 import { getUserEmail } from "./get-owner-email";
+import { ADMIN_REPORT_STATE_IDS, REPORT_STATE_IDS } from "@/lib/authz/catalog";
 
 // ============================================
 // FUNCIONES DE VOTOS "NO EXISTE"
@@ -245,11 +246,8 @@ export async function actualizarEstadoReporte(
   }
 
   // IDs de estados según la base de datos: 1 = Pendiente, 2 = Reparado, 3 = Rechazado
-  const ESTADO_REPARADO = 2;
-  const ESTADO_RECHAZADO = 3;
-
   // Aplicar puntos según el nuevo estado (usando IDs directos)
-  if (estadoId === ESTADO_RECHAZADO && reporte.usuario_id) {
+  if (estadoId === REPORT_STATE_IDS.RECHAZADO && reporte.usuario_id) {
     // Penalizar al creador si su reporte fue rechazado
     await actualizarPuntos(
       supabase,
@@ -257,7 +255,7 @@ export async function actualizarEstadoReporte(
       PUNTOS.REPORTE_RECHAZADO,
       "Reporte rechazado por votos"
     );
-  } else if (estadoId === ESTADO_REPARADO && reporte.usuario_id) {
+  } else if (estadoId === REPORT_STATE_IDS.REPARADO && reporte.usuario_id) {
     // Bonus al creador si su reporte fue reparado
     await sumarPuntos(
       supabase,
@@ -282,20 +280,12 @@ export async function actualizarEstadoReporte(
   }
 
   // Enviar notificación por correo si el estado cambió a Reparado (2) o Rechazado (3)
-  if ((estadoId === ESTADO_REPARADO || estadoId === ESTADO_RECHAZADO) && reporte.usuario_id) {
+  if (ADMIN_REPORT_STATE_IDS.includes(estadoId as (typeof ADMIN_REPORT_STATE_IDS)[number]) && reporte.usuario_id) {
     try {
-      // Determinar el nombre del estado para el correo
-      const estadoNombre = estadoId === ESTADO_REPARADO ? "Reparado" : "Rechazado";
-
       // Obtener el email del dueño del reporte usando la query directa
       const { data: email } = await getUserEmail(supabase, reporte.usuario_id);
 
       if (email) {
-        const profiles: any = reporte.profiles;
-        const username = Array.isArray(profiles) 
-          ? profiles[0]?.username || "Usuario"
-          : profiles?.username || "Usuario";
-
         // Enviar la notificación de cambio de estado
         await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/send-status-notification`, {
           method: "POST",
@@ -303,11 +293,8 @@ export async function actualizarEstadoReporte(
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            ownerEmail: email,
-            ownerUsername: username,
             reporteId: reporteId,
-            reporteTitulo: reporte.titulo,
-            nuevoEstado: estadoNombre,
+            estadoId: estadoId,
             comentario: comentario || null,
           }),
         });

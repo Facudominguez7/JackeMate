@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
+import { getUserRoleContext } from "@/lib/authz/roles"
+import { getUserDisplayName } from "@/lib/identity/display"
 import { createClient } from "@/utils/supabase/server"
 import { HeaderClient } from "./header-client"
 
@@ -15,23 +17,13 @@ export default async function Header() {
     const supabase = await createClient()
     const { data } = await supabase.auth.getUser()
     const user = data?.user
-    const displayName =
-        (user?.user_metadata as Record<string, any> | undefined)?.name ||
-        (user?.user_metadata as Record<string, any> | undefined)?.full_name ||
-        (user?.user_metadata as Record<string, any> | undefined)?.first_name ||
-        user?.email?.split("@")[0] ||
-        "usuario"
+    const displayName = getUserDisplayName(user)
 
-    // Obtener el rol del usuario si está autenticado
     let userRolId: number | null = null
     if (user) {
-        const { data: profileData } = await supabase
-            .from("profiles")
-            .select("rol_id")
-            .eq("id", user.id)
-            .single()
-        
-        userRolId = profileData?.rol_id ?? null
+        const { data: roleContext } = await getUserRoleContext(supabase, user.id)
+
+        userRolId = roleContext?.roleId ?? null
     }
 
     return (

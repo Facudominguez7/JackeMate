@@ -6,27 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { getReportes, type ReporteDB } from "@/database/queries/reportes/get-reportes"
-
-/**
- * Transforma un reporte de BD al formato de UI
- */
-function transformReport(report: ReporteDB) {
-    return {
-        id: report.id,
-        title: report.titulo,
-        description: report.descripcion ?? "",
-        category: report.categoria?.nombre ?? "Sin categoría",
-        priority: report.prioridad?.nombre ?? "Sin prioridad",
-        status: report.estado?.nombre ?? "Sin estado",
-        location: report.lat !== null && report.lon !== null
-            ? `Lat ${report.lat.toFixed(4)}, Lon ${report.lon.toFixed(4)}`
-            : "Ubicación no disponible",
-        author: report.autor?.username ?? "Anónimo",
-        createdAt: report.created_at,
-        image: report.fotos?.[0]?.url ?? null,
-    }
-}
+import { getReportCardData } from "@/database/queries/reportes/get-reportes"
 
 export async function GET(request: NextRequest) {
     try {
@@ -41,7 +21,7 @@ export async function GET(request: NextRequest) {
         const prioridad = searchParams.get("prioridad") ?? undefined
 
         // Obtener reportes con los filtros aplicados
-        const { data, error, hasMore, count } = await getReportes({
+        const { data, error, hasMore, count } = await getReportCardData({
             search,
             categoria,
             estado,
@@ -57,11 +37,8 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        // Transformar reportes al formato de UI
-        const reports = (data ?? []).map(transformReport)
-
         return NextResponse.json({
-            data: reports,
+            data,
             hasMore,
             count,
             offset,

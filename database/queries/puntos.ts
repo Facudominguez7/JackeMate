@@ -1,4 +1,6 @@
-import { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+
+const ATOMIC_POINTS_RPC = "adjust_profile_points_atomic";
 
 /**
  * Constantes de puntos para el sistema de gamificación
@@ -12,6 +14,80 @@ export const PUNTOS = {
   REPORTE_RECHAZADO: -3, // Penalización si tu reporte es rechazado
   ELIMINAR_REPORTE_PROPIO: -10, // Resta los puntos ganados
 } as const;
+
+type ActualizarPuntosResult = {
+  success: boolean;
+  error: PostgrestError | unknown | null;
+  total?: number;
+};
+
+function isMissingAtomicPointsRpcError(error: { code?: string; message?: string } | null | undefined) {
+  return error?.code === "PGRST202" || error?.code === "42883" || error?.message?.includes(ATOMIC_POINTS_RPC) || false;
+}
+
+async function actualizarPuntosConRpc(
+  supabase: SupabaseClient,
+  usuarioId: string,
+  puntos: number,
+  razon?: string
+): Promise<ActualizarPuntosResult> {
+  const { data, error } = await supabase.rpc(ATOMIC_POINTS_RPC, {
+    p_user_id: usuarioId,
+    p_delta: puntos,
+    p_reason: razon ?? null,
+  });
+
+  if (error) {
+    return { success: false, error };
+  }
+
+  return {
+    success: typeof data === "number",
+    error: typeof data === "number" ? null : new Error("La RPC atómica no devolvió un total válido."),
+    total: typeof data === "number" ? data : undefined,
+  };
+}
+
+async function actualizarPuntosConFallback(
+  supabase: SupabaseClient,
+  usuarioId: string,
+  puntos: number,
+  razon?: string
+): Promise<ActualizarPuntosResult> {
+  try {
+    const { data: profile, error: fetchError } = await supabase
+      .from("profiles")
+      .select("puntos")
+      .eq("id", usuarioId)
+      .single();
+
+    if (fetchError || !profile) {
+      console.error("Error al obtener perfil:", fetchError);
+      return { success: false, error: fetchError };
+    }
+
+    const nuevosPuntos = Math.max(0, (profile.puntos || 0) + puntos);
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ puntos: nuevosPuntos })
+      .eq("id", usuarioId);
+
+    if (updateError) {
+      console.error("Error al actualizar puntos:", updateError);
+      return { success: false, error: updateError };
+    }
+
+    if (razon) {
+      console.log(`[PUNTOS] Usuario ${usuarioId}: ${puntos > 0 ? '+' : ''}${puntos} puntos (Total: ${nuevosPuntos}) - ${razon}`);
+    }
+
+    return { success: true, error: null, total: nuevosPuntos };
+  } catch (error) {
+    console.error("Error inesperado al actualizar puntos:", error);
+    return { success: false, error };
+  }
+}
 
 /**
  * Ajusta el saldo de puntos de un usuario en la tabla `profiles`, garantizando que el total no sea menor que cero.
@@ -27,43 +103,24 @@ export async function actualizarPuntos(
   puntos: number,
   razon?: string
 ) {
-  try {
-    // Primero obtenemos los puntos actuales
-    const { data: profile, error: fetchError } = await supabase
-      .from("profiles")
-      .select("puntos")
-      .eq("id", usuarioId)
-      .single();
+  const atomicResult = await actualizarPuntosConRpc(supabase, usuarioId, puntos, razon);
 
-    if (fetchError || !profile) {
-      console.error("Error al obtener perfil:", fetchError);
-      return { success: false, error: fetchError };
-    }
-
-    // Calculamos los nuevos puntos asegurándonos que no sean negativos
-    const nuevosPuntos = Math.max(0, (profile.puntos || 0) + puntos);
-
-    // Actualizamos con el nuevo valor
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ puntos: nuevosPuntos })
-      .eq("id", usuarioId);
-
-    if (updateError) {
-      console.error("Error al actualizar puntos:", updateError);
-      return { success: false, error: updateError };
-    }
-
-    // Log opcional para debugging
-    if (razon) {
-      console.log(`[PUNTOS] Usuario ${usuarioId}: ${puntos > 0 ? '+' : ''}${puntos} puntos (Total: ${nuevosPuntos}) - ${razon}`);
+  if (atomicResult.success) {
+    if (razon && typeof atomicResult.total === "number") {
+      console.log(`[PUNTOS] Usuario ${usuarioId}: ${puntos > 0 ? '+' : ''}${puntos} puntos (Total: ${atomicResult.total}) - ${razon}`);
     }
 
     return { success: true, error: null };
-  } catch (error) {
-    console.error("Error inesperado al actualizar puntos:", error);
-    return { success: false, error };
   }
+
+  if (!isMissingAtomicPointsRpcError(atomicResult.error as { code?: string; message?: string } | null | undefined)) {
+    console.error("Error al actualizar puntos con RPC atómica:", atomicResult.error);
+    return { success: false, error: atomicResult.error };
+  }
+
+  console.warn("RPC atómica de puntos no disponible; se usa fallback read-modify-write.");
+  const fallbackResult = await actualizarPuntosConFallback(supabase, usuarioId, puntos, razon);
+  return { success: fallbackResult.success, error: fallbackResult.error };
 }
 
 /**

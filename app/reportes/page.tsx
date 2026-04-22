@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { ReportesClientWrapper } from "./reportes-client"
-import { ListaReportesClient, type ReportCardData } from "@/components/lista-reportes-client"
-import { getReportes, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
+import { ListaReportesClient } from "@/components/lista-reportes-client"
+import { getReportCardData, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 
 /**
  * Fuerza el renderizado dinámico en cada petición
@@ -39,14 +39,6 @@ type ReportesPageProps = {
 }
 
 /**
- * Formatea las coordenadas geográficas para mostrar en la UI
- */
-const formatLocation = (lat: number | null, lon: number | null) => {
-  if (lat === null || lon === null) return "Ubicación no disponible"
-  return `Lat ${lat.toFixed(4)}, Lon ${lon.toFixed(4)}`
-}
-
-/**
  * Muestra la página de reportes públicos incluyendo controles de filtrado, mensajes de estado y la lista de tarjetas de reporte.
  *
  * @param searchParams - Parámetros opcionales de filtrado: `search`, `categoria`, `estado` y `prioridad`.
@@ -58,7 +50,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
   const { search, categoria, estado, prioridad } = params
 
   // Obtener reportes con filtros aplicados (SSR inicial)
-  const { data, error, hasMore } = await getReportes({
+  const { data: reports, error, hasMore } = await getReportCardData({
     search,
     categoria,
     estado,
@@ -71,23 +63,6 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
   const { data: categorias } = await getCategorias()
   const { data: estados } = await getEstados()
   const { data: prioridades } = await getPrioridades()
-
-  /**
-   * Transformación de datos de BD a formato de UI
-   * Normaliza los datos y proporciona valores por defecto usando nullish coalescing (??)
-   */
-  const reports: ReportCardData[] = (data ?? []).map((report) => ({
-    id: report.id,
-    title: report.titulo,
-    description: report.descripcion ?? "",
-    category: report.categoria?.nombre ?? "Sin categoría",
-    priority: report.prioridad?.nombre ?? "Sin prioridad",
-    status: report.estado?.nombre ?? "Sin estado",
-    location: formatLocation(report.lat, report.lon),
-    author: report.autor?.username ?? "Anónimo",
-    createdAt: report.created_at,
-    image: report.fotos?.[0]?.url ?? null,
-  }))
 
   return (
     <div className="min-h-screen bg-background">

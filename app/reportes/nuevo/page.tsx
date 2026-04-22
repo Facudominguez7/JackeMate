@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import type { User } from "@supabase/supabase-js"
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
@@ -20,20 +21,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Upload, Camera, ArrowLeft, Send } from "lucide-react"
+import { MapPin, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
-import { sumarPuntos, PUNTOS } from "@/database/queries/puntos"
+import { PUNTOS } from "@/database/queries/puntos"
 import { LoadingLogo } from "@/components/loading-logo"
 import { toast } from "sonner"
 import { 
   getCategorias, 
   getPrioridades, 
-  crearReporte, 
-  subirImagenReporte,
   verificarPuedeCrearReporte
 } from "@/database/queries/reportes/nuevo"
 import { useIsMobile } from "@/hooks/use-mobile"
 import dynamic from "next/dynamic"
+import { crearReporteAction } from "./actions"
 
 // Cargar el mapa dinámicamente solo en el cliente
 const LocationPickerMap = dynamic(
@@ -73,7 +73,7 @@ export default function NuevoReportePage() {
   const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([])
   const [prioridades, setPrioridades] = useState<{ id: number; nombre: string }[]>([])
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [puedeCrear, setPuedeCrear] = useState(false)
   const [geoStatus, setGeoStatus] = useState<"pending" | "ok" | "error">("pending")
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
@@ -202,47 +202,44 @@ export default function NuevoReportePage() {
     try {
       setIsSubmitting(true)
 
-      // Crear el reporte usando la query
-      const reporteData = await crearReporte(supabase, {
-        usuarioId: user.id,
-        titulo: formData.title,
-        descripcion: formData.description,
-        categoriaId: parseInt(formData.category),
-        prioridadId: parseInt(formData.priority),
-        lat: formData.lat,
-        lon: formData.lon
-      })
+      const payload = new FormData()
+      payload.set("titulo", formData.title)
+      payload.set("descripcion", formData.description)
+      payload.set("categoriaId", formData.category)
+      payload.set("prioridadId", formData.priority)
+      payload.set("lat", String(formData.lat))
+      payload.set("lon", String(formData.lon))
 
-      // Si hay una imagen, subirla usando la query
-      if (formData.images.length > 0) {
-        const image = formData.images[0]
-        const result = await subirImagenReporte(supabase, reporteData.id, image)
-        
-        if (!result) {
-          // El reporte ya fue creado, solo notificar del error de la imagen
-          toast.warning("Reporte creado, pero hubo un error al subir la imagen.", {
-            description: "El reporte se creó correctamente pero sin imagen"
-          })
-        }
+      if (formData.images[0]) {
+        payload.set("image", formData.images[0])
       }
 
-      // Sumar puntos por crear reporte
-      await sumarPuntos(
-        supabase, 
-        user.id, 
-        PUNTOS.CREAR_REPORTE,
-        "Crear nuevo reporte"
-      );
+      const result = await crearReporteAction(payload)
 
-      toast.success(`¡Reporte creado exitosamente! +${PUNTOS.CREAR_REPORTE} puntos`, {
+      if (!result.success) {
+        toast.error("Error al crear el reporte", {
+          description: result.error,
+        })
+        return
+      }
+
+      if (formData.images.length > 0 && !result.data.imageUploaded) {
+        toast.warning("Reporte creado, pero hubo un error al subir la imagen.", {
+          description: "El reporte se creó correctamente pero sin imagen"
+        })
+      }
+
+      const puntosGanados = result.data.pointsAwarded || PUNTOS.CREAR_REPORTE
+
+      toast.success(`¡Reporte creado exitosamente! +${puntosGanados} puntos`, {
         description: "Redirigiendo a la lista de reportes..."
       })
-      
+
       // Redirigir a la página de reportes
       setTimeout(() => {
         window.location.href = "/reportes"
       }, 1500)
-      
+
     } catch (error) {
       console.error("Error inesperado:", error)
       toast.error("Error al crear el reporte", {

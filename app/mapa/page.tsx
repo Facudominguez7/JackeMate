@@ -8,7 +8,7 @@
  */
 
 import { MapaClient } from "./mapa-client"
-import { getReportes, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
+import { getReportMapData, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 import { createClient } from "@/utils/supabase/server"
 
 export const dynamic = "force-dynamic"
@@ -41,12 +41,11 @@ export default async function MapaPage({ searchParams }: MapaPageProps) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Obtener reportes con filtros aplicados (solo con coordenadas)
-  const { data: reportes, error } = await getReportes({
+  const { data: reportes, error } = await getReportMapData({
     search,
     categoria,
     estado,
     prioridad,
-    soloConCoordenadas: true,
     limite: 100 // Más reportes para el mapa
   })
 
@@ -57,7 +56,7 @@ export default async function MapaPage({ searchParams }: MapaPageProps) {
 
   return (
     <MapaClient
-      reportesDB={reportes ?? []}
+      reportes={reportes ?? []}
       categorias={categorias ?? []}
       estados={estados ?? []}
       prioridades={prioridades ?? []}

@@ -1,5 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
+import { canCreateReports } from "@/lib/authz/roles";
+
 /**
  * Determina si un usuario puede crear reportes.
  *
@@ -17,7 +19,7 @@ export async function verificarPuedeCrearReporte(
 ) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("rol_id, roles (nombre)")
+    .select("rol_id")
     .eq("id", usuarioId)
     .single();
 
@@ -28,7 +30,7 @@ export async function verificarPuedeCrearReporte(
 
   // El usuario puede crear reportes si es Admin (1) o Ciudadano (2)
   // Los Interesados (3) NO pueden crear reportes
-  const puedeCrear = data?.rol_id === 1 || data?.rol_id === 2;
+  const puedeCrear = canCreateReports(data?.rol_id);
 
   return { puedeCrear, rolId: data?.rol_id, error: null };
 }

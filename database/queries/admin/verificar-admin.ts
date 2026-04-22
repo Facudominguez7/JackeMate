@@ -1,5 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
+import { isAdminRole } from "@/lib/authz/roles";
+
 /**
  * Determina si un usuario tiene permisos de administrador.
  *
@@ -14,7 +16,7 @@ export async function verificarEsAdmin(
 ) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("rol_id, roles (nombre)")
+    .select("rol_id")
     .eq("id", usuarioId)
     .single();
 
@@ -24,7 +26,7 @@ export async function verificarEsAdmin(
   }
 
   // El usuario es admin si su rol_id es 1 (rol "Admin")
-  const isAdmin = data?.rol_id === 1;
+  const isAdmin = isAdminRole(data?.rol_id);
 
   return { isAdmin, error: null };
 }

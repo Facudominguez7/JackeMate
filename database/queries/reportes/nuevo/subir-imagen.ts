@@ -1,5 +1,11 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 
+import { REPORT_BUCKET } from "@/lib/authz/catalog"
+import {
+  buildReportImagePublicUrl,
+  isMissingReportImageColumnsError,
+} from "@/lib/media/report-images"
+
 /**
  * Sube una imagen al bucket "reportes" de Supabase, guarda su URL en la tabla `fotos_reporte` y devuelve la URL pública.
  *
@@ -17,7 +23,7 @@ export async function subirImagenReporte(
 
     // Subir imagen al bucket 'reportes'
     const { error: uploadError } = await supabase.storage
-      .from('reportes')
+      .from(REPORT_BUCKET)
       .upload(filePath, image, {
         cacheControl: '3600',
         upsert: false
@@ -29,17 +35,34 @@ export async function subirImagenReporte(
     }
 
     // Obtener URL pública de la imagen
-    const { data: { publicUrl } } = supabase.storage
-      .from('reportes')
+    const { data: { publicUrl: storagePublicUrl } } = supabase.storage
+      .from(REPORT_BUCKET)
       .getPublicUrl(filePath)
 
+    const publicUrl = buildReportImagePublicUrl({
+      bucket: REPORT_BUCKET,
+      path: filePath,
+      publicUrl: storagePublicUrl,
+    })
+
     // Guardar la foto en la tabla fotos_reporte
-    const { error: fotoError } = await supabase
+    let { error: fotoError } = await supabase
       .from('fotos_reporte')
       .insert({
         reporte_id: reporteId,
-        url: publicUrl
+        url: publicUrl,
+        bucket: REPORT_BUCKET,
+        path: filePath,
       })
+
+    if (fotoError && isMissingReportImageColumnsError(fotoError)) {
+      ;({ error: fotoError } = await supabase
+        .from('fotos_reporte')
+        .insert({
+          reporte_id: reporteId,
+          url: publicUrl,
+        }))
+    }
 
     if (fotoError) {
       console.error("Error al guardar la URL de la foto:", fotoError)

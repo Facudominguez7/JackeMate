@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,32 +57,32 @@ import {
   getReporteDetalle,
   getVotosNoExiste,
   verificarVotoUsuario,
-  votarNoExiste,
-  getEstadoRechazadoId,
   getVotosReparado,
   verificarVotoReparadoUsuario,
-  votarReparado,
-  getEstadoReparadoId,
-  actualizarEstadoReporte,
-  eliminarReporte,
   getComentariosReporte,
-  crearComentario,
-  eliminarComentario,
   getHistorialEstados,
-  getUserEmail,
   type Comentario,
+  type ReporteDetalle,
 } from "@/database/queries/reportes/[id]/index";
 import {
   verificarEsAdmin,
   getEstados,
-  cambiarEstadoReporteAdmin,
-  eliminarReporteAdmin,
-  eliminarComentarioAdmin,
   type Estado
 } from "@/database/queries/admin/index";
 import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, getCategoryIcon } from "@/components/report-card";
 import { PUNTOS } from "@/database/queries/puntos";
-import { getUserUsername } from "@/database/queries/profiles";
+import { REPORT_STATE_IDS } from "@/lib/authz/catalog";
+import { getNameFromRelation, getUserInitials, getUsernameFromRelation } from "@/lib/identity/display";
+import {
+  cambiarEstadoAdminAction,
+  crearComentarioAction,
+  eliminarComentarioAdminAction,
+  eliminarComentarioPropioAction,
+  eliminarReporteAdminAction,
+  eliminarReportePropioAction,
+  votarNoExisteAction,
+  votarReparadoAction,
+} from "./actions";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -96,39 +97,9 @@ const MiniMap = dynamic(() => import("@/components/mini-map").then((m) => m.Mini
   ),
 });
 
-type Reporte = {
-  id: number;
-  titulo: string;
-  descripcion: string;
-  lat: number;
-  lon: number;
+type HistorialEstadoItem = {
   created_at: string;
-  usuario_id: string;
-  estado_id: number;
-  categorias: any;
-  prioridades: any;
-  estados: any;
-  fotos_reporte: any[];
-  profiles: any;
-};
-
-const getNombre = (obj: any): string => {
-  if (!obj) return "N/A";
-  if (Array.isArray(obj) && obj.length > 0) return obj[0].nombre || "N/A";
-  if (obj.nombre) return obj.nombre;
-  return "N/A";
-};
-
-const getUsername = (obj: any): string => {
-  if (!obj) return "Usuario";
-  if (Array.isArray(obj) && obj.length > 0) return obj[0].username || "Usuario";
-  if (obj.username) return obj.username;
-  return "Usuario";
-};
-
-const getUserInitials = (username: string) => {
-  if (!username || username === "Usuario") return "US";
-  return username.substring(0, 2).toUpperCase();
+  estado_nuevo_id: number | null;
 };
 
 /**
@@ -143,9 +114,9 @@ export default function ReporteDetallePage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = use(params);
-  const [reporte, setReporte] = useState<Reporte | null>(null);
+  const [reporte, setReporte] = useState<ReporteDetalle | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [votosCount, setVotosCount] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
@@ -180,13 +151,10 @@ export default function ReporteDetallePage({
   const supabase = createClient();
 
   // IDs de estados según la base de datos: 1 = Pendiente, 2 = Reparado, 3 = Rechazado
-  const ESTADO_REPARADO = 2;
-  const ESTADO_RECHAZADO = 3;
-
   // Verificar si el reporte está cerrado (Reparado o Rechazado) usando IDs
   const isReporteCerrado = reporte && (
-    reporte.estado_id === ESTADO_REPARADO ||
-    reporte.estado_id === ESTADO_RECHAZADO
+    reporte.estado_id === REPORT_STATE_IDS.REPARADO ||
+    reporte.estado_id === REPORT_STATE_IDS.RECHAZADO
   );
 
   useEffect(() => {
@@ -250,15 +218,15 @@ export default function ReporteDetallePage({
         setComentarios(comentariosData);
 
         // Obtener historial de estados para encontrar cuándo cambió a Reparado (2) o Rechazado (3)
-        if (data && (data.estado_id === ESTADO_REPARADO || data.estado_id === ESTADO_RECHAZADO)) {
+        if (data && (data.estado_id === REPORT_STATE_IDS.REPARADO || data.estado_id === REPORT_STATE_IDS.RECHAZADO)) {
           const { data: historial } = await getHistorialEstados(
             supabase,
             resolvedParams.id
           );
 
           // Buscar el registro donde cambió a Reparado (2) o Rechazado (3) usando IDs
-          const cambio = historial?.find((h: any) => {
-            return h.estado_nuevo_id === ESTADO_REPARADO || h.estado_nuevo_id === ESTADO_RECHAZADO;
+          const cambio = historial?.find((h: HistorialEstadoItem) => {
+            return h.estado_nuevo_id === REPORT_STATE_IDS.REPARADO || h.estado_nuevo_id === REPORT_STATE_IDS.RECHAZADO;
           });
 
           if (cambio) {
@@ -285,20 +253,14 @@ export default function ReporteDetallePage({
 
     setIsVoting(true);
     try {
-      // Insertar voto
-      const { success, error } = await votarNoExiste(
-        supabase,
-        reporte.id,
-        currentUser.id
-      );
+      const result = await votarNoExisteAction(reporte.id);
 
-      if (!success || error) {
-        toast.error("Error al registrar el voto");
+      if (!result.success) {
+        toast.error(result.error || "Error al registrar el voto");
         return;
       }
 
-      // Actualizar contador local
-      const newVotosCount = votosCount + 1;
+      const newVotosCount = result.data.count;
       setVotosCount(newVotosCount);
       setHasVoted(true);
 
@@ -307,28 +269,11 @@ export default function ReporteDetallePage({
         description: "Tu voto ha sido contabilizado correctamente"
       });
 
-      // Si llega a 1 voto, cambiar estado a Rechazado (DEMO: reducido de 5 a 1)
-      if (newVotosCount >= 1) {
-        const { estadoId } = await getEstadoRechazadoId(supabase);
-
-        if (estadoId) {
-          // Obtener el estado actual del reporte (usar estado_id directamente)
-          const estadoAnteriorId = reporte.estado_id;
-
-          await actualizarEstadoReporte(
-            supabase,
-            reporte.id,
-            estadoId,
-            estadoAnteriorId,
-            currentUser.id,
-            "Rechazado automáticamente por 1 voto de 'No Existe'"
-          );
-          // Recargar página para mostrar el nuevo estado
-          toast.success("¡Reporte rechazado automáticamente!", {
-            description: "Se alcanzó 1 voto. Redirigiendo..."
-          });
-          setTimeout(() => window.location.reload(), 1500);
-        }
+      if (result.data.stateChangedTo) {
+        toast.success("¡Reporte rechazado automáticamente!", {
+          description: "Se alcanzó 1 voto. Redirigiendo..."
+        });
+        setTimeout(() => window.location.reload(), 1500);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -351,20 +296,14 @@ export default function ReporteDetallePage({
 
     setIsVotingReparado(true);
     try {
-      // Insertar voto
-      const { success, error } = await votarReparado(
-        supabase,
-        reporte.id,
-        currentUser.id
-      );
+      const result = await votarReparadoAction(reporte.id);
 
-      if (!success || error) {
-        toast.error("Error al registrar el voto");
+      if (!result.success) {
+        toast.error(result.error || "Error al registrar el voto");
         return;
       }
 
-      // Actualizar contador local
-      const newVotosReparadoCount = votosReparadoCount + 1;
+      const newVotosReparadoCount = result.data.count;
       setVotosReparadoCount(newVotosReparadoCount);
       setHasVotedReparado(true);
 
@@ -373,28 +312,11 @@ export default function ReporteDetallePage({
         description: "Gracias por mantener la información actualizada"
       });
 
-      // Si llega a 1 voto, cambiar estado a Reparado (DEMO: reducido de 5 a 1)
-      if (newVotosReparadoCount >= 1) {
-        const { estadoId } = await getEstadoReparadoId(supabase);
-
-        if (estadoId) {
-          // Obtener el estado actual del reporte (usar estado_id directamente)
-          const estadoAnteriorId = reporte.estado_id;
-
-          await actualizarEstadoReporte(
-            supabase,
-            reporte.id,
-            estadoId,
-            estadoAnteriorId,
-            currentUser.id,
-            "Marcado como reparado por 1 voto de usuarios"
-          );
-          // Recargar página para mostrar el nuevo estado
-          toast.success("¡Reporte marcado como reparado!", {
-            description: "Se alcanzó 1 voto. Redirigiendo..."
-          });
-          setTimeout(() => window.location.reload(), 1500);
-        }
+      if (result.data.stateChangedTo) {
+        toast.success("¡Reporte marcado como reparado!", {
+          description: "Se alcanzó 1 voto. Redirigiendo..."
+        });
+        setTimeout(() => window.location.reload(), 1500);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -417,15 +339,11 @@ export default function ReporteDetallePage({
 
     setIsDeleting(true);
     try {
-      const { success } = await eliminarReporte(
-        supabase,
-        reporte.id,
-        currentUser.id
-      );
+      const result = await eliminarReportePropioAction(reporte.id);
 
-      if (!success) {
+      if (!result.success) {
         toast.error("Error al eliminar el reporte", {
-          description: "Por favor, intenta nuevamente."
+          description: result.error || "Por favor, intenta nuevamente."
         });
         return;
       }
@@ -461,21 +379,16 @@ export default function ReporteDetallePage({
 
     setIsSubmittingComment(true);
     try {
-      const { data, error } = await crearComentario(
-        supabase,
-        reporte.id,
-        currentUser.id,
-        nuevoComentario.trim()
-      );
+      const result = await crearComentarioAction(reporte.id, nuevoComentario.trim());
 
-      if (error || !data) {
+      if (!result.success) {
         toast.error("Error al publicar el comentario", {
-          description: "Por favor, intenta nuevamente"
+          description: result.error || "Por favor, intenta nuevamente"
         });
         return;
       }
 
-      setComentarios([...comentarios, data]);
+      setComentarios([...comentarios, result.data]);
       setNuevoComentario("");
 
       // Mostrar mensaje de puntos ganados
@@ -483,43 +396,6 @@ export default function ReporteDetallePage({
         description: "Tu comentario ha sido agregado correctamente"
       });
 
-      // Enviar notificación por correo al dueño del reporte (solo si no es el mismo usuario)
-      if (currentUser.id !== reporte.usuario_id) {
-        try {
-          // Obtener el email del dueño del reporte usando la query directa
-          const { data: ownerEmail } = await getUserEmail(
-            supabase,
-            reporte.usuario_id
-          );
-
-          if (ownerEmail) {
-            // Obtener el username del comentarista usando la función de queries
-            const { data: commenterUsername } = await getUserUsername(
-              supabase,
-              currentUser.id
-            );
-
-            // Enviar la notificación
-            await fetch("/api/send-notification", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                ownerEmail: ownerEmail,
-                ownerUsername: getUsername(reporte.profiles),
-                commenterUsername: commenterUsername || "Un usuario",
-                reporteId: reporte.id,
-                reporteTitulo: reporte.titulo,
-                comentarioContenido: nuevoComentario.trim(),
-              }),
-            });
-          }
-        } catch (notifError) {
-          // No fallar si la notificación no se envía, solo loguearlo
-          console.error("Error al enviar notificación por correo:", notifError);
-        }
-      }
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al procesar el comentario", {
@@ -541,15 +417,11 @@ export default function ReporteDetallePage({
     if (!currentUser || comentarioToDelete === null) return;
 
     try {
-      const { success } = await eliminarComentario(
-        supabase,
-        comentarioToDelete,
-        currentUser.id
-      );
+      const result = await eliminarComentarioPropioAction(comentarioToDelete);
 
-      if (!success) {
+      if (!result.success) {
         toast.error("Error al eliminar el comentario", {
-          description: "Por favor, intenta nuevamente"
+          description: result.error || "Por favor, intenta nuevamente"
         });
         return;
       }
@@ -581,17 +453,15 @@ export default function ReporteDetallePage({
 
     setIsChangingEstado(true);
     try {
-      const { success, error } = await cambiarEstadoReporteAdmin(
-        supabase,
+      const result = await cambiarEstadoAdminAction(
         reporte.id,
         parseInt(estadoSeleccionado),
-        currentUser.id,
         comentarioEstado.trim() || undefined
       );
 
-      if (!success || error) {
+      if (!result.success) {
         toast.error("Error al cambiar el estado del reporte", {
-          description: "Por favor, intenta nuevamente"
+          description: result.error || "Por favor, intenta nuevamente"
         });
         return;
       }
@@ -621,15 +491,11 @@ export default function ReporteDetallePage({
     if (!currentUser || !reporte) return;
 
     try {
-      const { success } = await eliminarReporteAdmin(
-        supabase,
-        reporte.id,
-        currentUser.id
-      );
+      const result = await eliminarReporteAdminAction(reporte.id);
 
-      if (!success) {
+      if (!result.success) {
         toast.error("Error al eliminar el reporte", {
-          description: "Por favor, intenta nuevamente"
+          description: result.error || "Por favor, intenta nuevamente"
         });
         return;
       }
@@ -659,15 +525,11 @@ export default function ReporteDetallePage({
     if (!currentUser || adminComentarioToDelete === null) return;
 
     try {
-      const { success } = await eliminarComentarioAdmin(
-        supabase,
-        adminComentarioToDelete,
-        currentUser.id
-      );
+      const result = await eliminarComentarioAdminAction(adminComentarioToDelete);
 
-      if (!success) {
+      if (!result.success) {
         toast.error("Error al eliminar el comentario", {
-          description: "Por favor, intenta nuevamente"
+          description: result.error || "Por favor, intenta nuevamente"
         });
         return;
       }
@@ -686,14 +548,6 @@ export default function ReporteDetallePage({
       setAdminComentarioToDelete(null);
       setShowAdminDeleteCommentDialog(false);
     }
-  };
-
-  const getComentarioUsername = (profiles: any): string => {
-    if (!profiles) return "Usuario";
-    if (Array.isArray(profiles) && profiles.length > 0)
-      return profiles[0].username || "Usuario";
-    if (profiles.username) return profiles.username;
-    return "Usuario";
   };
 
   if (loading) {
@@ -756,33 +610,33 @@ export default function ReporteDetallePage({
                   <div className="space-y-2 lg:space-y-3 flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
                       <Badge
-                        variant={getPriorityVariant(getNombre(reporte.prioridades))}
+                        variant={getPriorityVariant(getNameFromRelation(reporte.prioridades))}
                         className="text-xs lg:text-sm flex items-center gap-1"
                       >
-                        {getPriorityIcon(getNombre(reporte.prioridades), "w-3 h-3 lg:w-3.5 lg:h-3.5")}
-                        {getNombre(reporte.prioridades)}
+                        {getPriorityIcon(getNameFromRelation(reporte.prioridades), "w-3 h-3 lg:w-3.5 lg:h-3.5")}
+                        {getNameFromRelation(reporte.prioridades)}
                       </Badge>
                       <Badge
-                        variant={getStatusVariant(getNombre(reporte.estados))}
+                        variant={getStatusVariant(getNameFromRelation(reporte.estados))}
                         className="text-xs lg:text-sm flex items-center gap-1"
                       >
-                        {getStatusIcon(getNombre(reporte.estados), "w-3 h-3 lg:w-3.5 lg:h-3.5")}
-                        {getNombre(reporte.estados)}
+                        {getStatusIcon(getNameFromRelation(reporte.estados), "w-3 h-3 lg:w-3.5 lg:h-3.5")}
+                        {getNameFromRelation(reporte.estados)}
                       </Badge>
                       <Badge variant="blue" className="text-xs lg:text-sm flex items-center gap-1">
-                        {getCategoryIcon(getNombre(reporte.categorias), "w-3 h-3 lg:w-3.5 lg:h-3.5")}
-                        {getNombre(reporte.categorias)}
+                        {getCategoryIcon(getNameFromRelation(reporte.categorias), "w-3 h-3 lg:w-3.5 lg:h-3.5")}
+                        {getNameFromRelation(reporte.categorias)}
                       </Badge>
                     </div>
                     {/* Mostrar fecha de cambio si está Reparado o Rechazado */}
                     {fechaCambioEstado && isReporteCerrado && (
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs md:text-sm font-medium ${getNombre(reporte.estados).toLowerCase() === 'reparado'
+                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs md:text-sm font-medium ${getNameFromRelation(reporte.estados).toLowerCase() === 'reparado'
                           ? 'bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900'
                           : 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900'
                         }`}>
                         <Clock className="w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0" />
                         <span>
-                          {getNombre(reporte.estados)} el{" "}
+                          {getNameFromRelation(reporte.estados)} el{" "}
                           {dayjs
                             .utc(fechaCambioEstado)
                             .tz("America/Argentina/Buenos_Aires")
@@ -794,8 +648,9 @@ export default function ReporteDetallePage({
                     <CardDescription className="flex items-center gap-1.5 md:gap-2 text-xs lg:text-sm">
                       <MapPin className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
                       <span className="truncate">
-                        Lat: {reporte.lat.toFixed(4)}, Lon:{" "}
-                        {reporte.lon.toFixed(4)}
+                        {reporte.lat !== null && reporte.lon !== null
+                          ? `Lat: ${reporte.lat.toFixed(4)}, Lon: ${reporte.lon.toFixed(4)}`
+                          : "Ubicación no disponible"}
                       </span>
                     </CardDescription>
                   </div>
@@ -837,7 +692,7 @@ export default function ReporteDetallePage({
                         className="w-full max-w-2xl aspect-video bg-muted rounded-md md:rounded-lg lg:rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex items-center justify-center"
                       >
                         <img
-                          src={foto.url || "/placeholder.svg"}
+                          src={foto.publicUrl || foto.url || "/placeholder.svg"}
                           alt={`Imagen ${index + 1} del reporte`}
                           className="w-full h-full object-contain"
                         />
@@ -851,10 +706,10 @@ export default function ReporteDetallePage({
                   <div className="flex items-center gap-1.5 md:gap-2 lg:gap-3">
                     <Avatar className="w-5 h-5 md:w-6 md:h-6 lg:w-8 lg:h-8">
                       <AvatarFallback className="text-[10px] md:text-xs lg:text-sm">
-                        {getUserInitials(getUsername(reporte.profiles))}
+                        {getUserInitials(getUsernameFromRelation(reporte.profiles))}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="truncate">Reportado por {getUsername(reporte.profiles)}</span>
+                    <span className="truncate">Reportado por {getUsernameFromRelation(reporte.profiles)}</span>
                   </div>
                   <div className="flex items-center gap-1 lg:gap-1.5">
                     <Calendar className="w-3 h-3 lg:w-4 lg:h-4 flex-shrink-0" />
@@ -931,13 +786,13 @@ export default function ReporteDetallePage({
                             <Avatar className="w-7 h-7 md:w-8 md:h-8 lg:w-10 lg:h-10 flex-shrink-0">
                               <AvatarFallback className="text-[10px] md:text-xs lg:text-sm">
                                 {getUserInitials(
-                                  getComentarioUsername(comentario.profiles)
+                                  getUsernameFromRelation(comentario.profiles)
                                 )}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-xs md:text-sm lg:text-base truncate">
-                                {getComentarioUsername(comentario.profiles)}
+                                {getUsernameFromRelation(comentario.profiles)}
                               </p>
                               <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground flex items-center gap-1">
                                 <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3 lg:w-3.5 lg:h-3.5 flex-shrink-0" />
@@ -1184,7 +1039,13 @@ export default function ReporteDetallePage({
               <CardContent className="pt-0 lg:px-6 lg:pb-6">
                 <Link href="/mapa" className="block group">
                   <div className="relative aspect-square rounded-md md:rounded-lg lg:rounded-xl overflow-hidden border-2 shadow-sm group-hover:shadow-md transition-all">
-                    <MiniMap lat={reporte.lat} lon={reporte.lon} />
+                    {reporte.lat !== null && reporte.lon !== null ? (
+                      <MiniMap lat={reporte.lat} lon={reporte.lon} />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-muted text-sm text-muted-foreground">
+                        Ubicación no disponible
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="absolute bottom-2 md:bottom-3 lg:bottom-4 left-2 md:left-3 lg:left-4 right-2 md:right-3 lg:right-4 bg-background/95 backdrop-blur-sm border rounded-md lg:rounded-lg shadow-lg p-2 lg:p-3">
                       <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs lg:text-sm text-foreground">
@@ -1192,7 +1053,9 @@ export default function ReporteDetallePage({
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">Ver en mapa completo</p>
                           <p className="text-muted-foreground truncate text-[9px] lg:text-xs">
-                            Lat {reporte.lat.toFixed(4)}, Lon {reporte.lon.toFixed(4)}
+                            {reporte.lat !== null && reporte.lon !== null
+                              ? `Lat ${reporte.lat.toFixed(4)}, Lon ${reporte.lon.toFixed(4)}`
+                              : "Ubicación no disponible"}
                           </p>
                         </div>
                       </div>
@@ -1253,7 +1116,7 @@ export default function ReporteDetallePage({
       <AlertDialog open={showVoteNoExisteDialog} onOpenChange={setShowVoteNoExisteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Confirmar voto "No Existe"?</AlertDialogTitle>
+            <AlertDialogTitle>¿Confirmar voto &quot;No Existe&quot;?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>Estás por votar que este reporte NO existe o fue reportado por error:</p>
@@ -1428,8 +1291,8 @@ export default function ReporteDetallePage({
                   <p className="font-semibold text-foreground">{reporte?.titulo}</p>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-muted-foreground">Estado actual:</span>
-                    <Badge variant={getStatusVariant(getNombre(reporte?.estados))}>
-                      {getNombre(reporte?.estados)}
+                    <Badge variant={getStatusVariant(getNameFromRelation(reporte?.estados))}>
+                      {getNameFromRelation(reporte?.estados)}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
@@ -1492,8 +1355,8 @@ export default function ReporteDetallePage({
                   <p className="text-sm text-muted-foreground line-clamp-2">{reporte?.descripcion}</p>
                   <div className="flex items-center gap-2 text-sm pt-2 border-t">
                     <span className="text-muted-foreground">Estado actual:</span>
-                    <Badge variant={getStatusVariant(getNombre(reporte?.estados))}>
-                      {getNombre(reporte?.estados)}
+                    <Badge variant={getStatusVariant(getNameFromRelation(reporte?.estados))}>
+                      {getNameFromRelation(reporte?.estados)}
                     </Badge>
                   </div>
                 </div>
@@ -1539,7 +1402,7 @@ export default function ReporteDetallePage({
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 pt-2 border-t">
                     <span>Autor:</span>
                     <span className="font-medium">
-                      {getComentarioUsername(comentarios.find(c => c.id === adminComentarioToDelete)?.profiles)}
+                      {getUsernameFromRelation(comentarios.find(c => c.id === adminComentarioToDelete)?.profiles)}
                     </span>
                   </div>
                 </div>

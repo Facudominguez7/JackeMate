@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { signout } from "@/app/auth/actions";
 import type { User } from "@supabase/supabase-js";
+import { canCreateReports } from "@/lib/authz/roles";
+import { getUserInitials } from "@/lib/identity/display";
 
 interface HeaderClientProps {
   user: User | null | undefined;
@@ -50,12 +52,7 @@ interface HeaderClientProps {
  * @returns El elemento JSX de la cabecera con la navegación y los controles de cuenta según el estado de autenticación
  */
 export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps) {
-  const getUserInitials = (email: string) => {
-    return email.substring(0, 2).toUpperCase();
-  };
-
-  // Solo Admin (1) y Ciudadano (2) pueden crear reportes
-  const puedeCrearReportes = userRolId === 1 || userRolId === 2;
+  const puedeCrearReportes = canCreateReports(userRolId);
 
   return (
     <>

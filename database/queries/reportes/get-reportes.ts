@@ -9,6 +9,12 @@
  */
 
 import { createClient } from "@/utils/supabase/server"
+import {
+  isMissingReportImageColumnsError,
+  resolveReportImageRows,
+  type ReportImageRow,
+} from "@/lib/media/report-images"
+import type { ReportCardData } from "@/components/lista-reportes-client"
 
 export type ReporteDB = {
   id: number
@@ -21,7 +27,11 @@ export type ReporteDB = {
   prioridad: { nombre: string } | null
   estado: { nombre: string } | null
   autor: { username: string | null } | null
-  fotos: { url: string | null }[] | null
+  fotos: (ReportImageRow & { publicUrl?: string | null })[] | null
+}
+
+type ReporteDBRaw = Omit<ReporteDB, "fotos"> & {
+  fotos: ReportImageRow[] | null
 }
 
 export type FiltrosReportes = {
@@ -32,6 +42,223 @@ export type FiltrosReportes = {
   soloConCoordenadas?: boolean
   limite?: number
   offset?: number
+}
+
+export type ReportMapItem = {
+  id: number
+  title: string
+  description: string
+  category: string
+  priority: string
+  status: string
+  location: string
+  coordinates: [number, number]
+  author: string
+  createdAt: string
+  image?: string
+}
+
+export type DashboardUserReport = {
+  id: number
+  titulo: string
+  descripcion: string
+  categoria: string
+  prioridad: string
+  estado: string
+  imageUrl: string | null
+  createdAt: string
+  autor: string
+}
+
+const CATEGORY_FILTER_IDS = {
+  bache: 1,
+  semaforo: 2,
+  arbolcaido: 3,
+  alumbrado: 4,
+  residuos: 5,
+  seguridad: 6,
+  otros: 7,
+} as const
+
+const PRIORITY_FILTER_IDS = {
+  alta: 1,
+  media: 2,
+  baja: 3,
+} as const
+
+const STATE_FILTER_IDS = {
+  pendiente: 1,
+  reparado: 2,
+  rechazado: 3,
+} as const
+
+function normalizeFilterValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "")
+}
+
+function resolveLookupFilterId(
+  filters: Record<string, number>,
+  value: string | undefined,
+) {
+  if (!value || value === "all") {
+    return null
+  }
+
+  return filters[normalizeFilterValue(value)] ?? null
+}
+
+function getSingleRelationName<T extends { nombre: string }>(
+  relation: T | T[] | null,
+  fallback: string,
+) {
+  if (Array.isArray(relation)) {
+    return relation[0]?.nombre ?? fallback
+  }
+
+  return relation?.nombre ?? fallback
+}
+
+function getSingleUsername(
+  relation:
+    | {
+        username: string | null
+      }
+    | {
+        username: string | null
+      }[]
+    | null,
+  fallback = "Anónimo",
+) {
+  if (Array.isArray(relation)) {
+    return relation[0]?.username ?? fallback
+  }
+
+  return relation?.username ?? fallback
+}
+
+function formatLocation(lat: number | null, lon: number | null) {
+  if (lat === null || lon === null) {
+    return "Ubicación no disponible"
+  }
+
+  return `Lat ${lat.toFixed(4)}, Lon ${lon.toFixed(4)}`
+}
+
+function mapReportToCardData(report: ReporteDB): ReportCardData {
+  return {
+    id: report.id,
+    title: report.titulo,
+    description: report.descripcion ?? "",
+    category: getSingleRelationName(report.categoria, "Sin categoría"),
+    priority: getSingleRelationName(report.prioridad, "Sin prioridad"),
+    status: getSingleRelationName(report.estado, "Sin estado"),
+    location: formatLocation(report.lat, report.lon),
+    author: getSingleUsername(report.autor),
+    createdAt: report.created_at,
+    image: report.fotos?.[0]?.publicUrl ?? report.fotos?.[0]?.url ?? null,
+  }
+}
+
+function mapReportToMapItem(report: ReporteDB): ReportMapItem | null {
+  if (report.lat === null || report.lon === null) {
+    return null
+  }
+
+  const cardData = mapReportToCardData(report)
+
+  return {
+    id: cardData.id,
+    title: cardData.title,
+    description: cardData.description || "Sin descripción",
+    category: cardData.category,
+    priority: cardData.priority,
+    status: cardData.status,
+    location: cardData.location,
+    coordinates: [report.lat, report.lon],
+    author: cardData.author,
+    createdAt: cardData.createdAt,
+    image: cardData.image ?? undefined,
+  }
+}
+
+function mapReportToDashboardItem(report: ReporteDB): DashboardUserReport {
+  return {
+    id: report.id,
+    titulo: report.titulo,
+    descripcion: report.descripcion ?? "",
+    categoria: getSingleRelationName(report.categoria, "Sin categoría"),
+    prioridad: getSingleRelationName(report.prioridad, "Sin prioridad"),
+    estado: getSingleRelationName(report.estado, "Sin estado"),
+    imageUrl: report.fotos?.[0]?.publicUrl ?? report.fotos?.[0]?.url ?? null,
+    createdAt: report.created_at,
+    autor: getSingleUsername(report.autor),
+  }
+}
+
+const buildReportesSelect = (includeCanonicalImageFields: boolean) => `id,
+      titulo,
+      descripcion,
+      created_at,
+      lat,
+      lon,
+      categoria:categorias!reportes_categoria_id_fkey(nombre),
+      prioridad:prioridades!reportes_prioridad_id_fkey(nombre),
+      estado:estados!reportes_estado_id_fkey(nombre),
+      autor:profiles!reportes_usuario_id_fkey(username),
+      fotos:fotos_reporte(${includeCanonicalImageFields ? "url,bucket,path" : "url"})`
+
+async function fetchReportes(
+  filtros: Required<Pick<FiltrosReportes, "soloConCoordenadas" | "limite" | "offset">> & FiltrosReportes,
+  includeCanonicalImageFields: boolean
+) {
+  const {
+    search,
+    categoria,
+    estado,
+    prioridad,
+    soloConCoordenadas,
+    limite,
+    offset,
+  } = filtros
+
+  const supabase = await createClient()
+  let query = supabase
+    .from("reportes")
+    .select(buildReportesSelect(includeCanonicalImageFields), { count: 'exact' })
+    .is("deleted_at", null)
+
+  if (search && search.trim() !== "") {
+    query = query.or(`titulo.ilike.%${search}%,descripcion.ilike.%${search}%`)
+  }
+
+  const categoriaId = resolveLookupFilterId(CATEGORY_FILTER_IDS, categoria)
+  if (categoriaId !== null) {
+    query = query.eq("categoria_id", categoriaId)
+  }
+
+  const estadoId = resolveLookupFilterId(STATE_FILTER_IDS, estado)
+  if (estadoId !== null) {
+    query = query.eq("estado_id", estadoId)
+  }
+
+  const prioridadId = resolveLookupFilterId(PRIORITY_FILTER_IDS, prioridad)
+  if (prioridadId !== null) {
+    query = query.eq("prioridad_id", prioridadId)
+  }
+
+  if (soloConCoordenadas) {
+    query = query.not("lat", "is", null).not("lon", "is", null)
+  }
+
+  return query
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limite - 1)
+    .returns<ReporteDBRaw[]>()
 }
 
 /**
@@ -57,90 +284,92 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     offset = 0
   } = filtros
 
-  const supabase = await createClient()
-
-  // Iniciar la consulta base con todas las relaciones
-  // Usamos { count: 'exact' } para obtener el total de registros
-  let query = supabase
-    .from("reportes")
-    .select(
-      `id,
-      titulo,
-      descripcion,
-      created_at,
-      lat,
-      lon,
-      categoria:categorias!reportes_categoria_id_fkey(nombre),
-      prioridad:prioridades!reportes_prioridad_id_fkey(nombre),
-      estado:estados!reportes_estado_id_fkey(nombre),
-      autor:profiles!reportes_usuario_id_fkey(username),
-      fotos:fotos_reporte(url)`,
-      { count: 'exact' }
-    )
-    .is("deleted_at", null)
-
-  // Aplicar filtro de búsqueda de texto (busca en título y descripción)
-  if (search && search.trim() !== "") {
-    query = query.or(`titulo.ilike.%${search}%,descripcion.ilike.%${search}%`)
+  const normalizedFilters = {
+    search,
+    categoria,
+    estado,
+    prioridad,
+    soloConCoordenadas,
+    limite,
+    offset,
   }
 
-  // Aplicar filtro de categoría
-  if (categoria && categoria !== "all") {
-    // Necesitamos hacer una subconsulta para filtrar por nombre de categoría
-    const { data: categoriaData } = await supabase
-      .from("categorias")
-      .select("id")
-      .ilike("nombre", categoria)
-      .single()
+  let { data, error, count } = await fetchReportes(normalizedFilters, true)
 
-    if (categoriaData) {
-      query = query.eq("categoria_id", categoriaData.id)
-    }
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error, count } = await fetchReportes(normalizedFilters, false))
   }
-
-  // Aplicar filtro de estado
-  if (estado && estado !== "all") {
-    // Necesitamos hacer una subconsulta para filtrar por nombre de estado
-    const { data: estadoData } = await supabase
-      .from("estados")
-      .select("id")
-      .ilike("nombre", estado)
-      .single()
-
-    if (estadoData) {
-      query = query.eq("estado_id", estadoData.id)
-    }
-  }
-
-  // Aplicar filtro de prioridad
-  if (prioridad && prioridad !== "all") {
-    // Necesitamos hacer una subconsulta para filtrar por nombre de prioridad
-    const { data: prioridadData } = await supabase
-      .from("prioridades")
-      .select("id")
-      .ilike("nombre", prioridad)
-      .single()
-
-    if (prioridadData) {
-      query = query.eq("prioridad_id", prioridadData.id)
-    }
-  }
-
-  // Filtrar solo reportes con coordenadas (útil para el mapa)
-  if (soloConCoordenadas) {
-    query = query.not("lat", "is", null).not("lon", "is", null)
-  }
-
-  // Ordenar y aplicar paginación con range
-  const { data, error, count } = await query
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limite - 1)
-    .returns<ReporteDB[]>()
 
   // Calcular si hay más resultados
   const hasMore = count !== null ? (offset + limite) < count : false
 
-  return { data, error, count, hasMore }
+  const resolvedData = (data ?? []).map((report: ReporteDBRaw) => ({
+    ...report,
+    fotos: resolveReportImageRows(report.fotos),
+  }))
+
+  return { data: resolvedData, error, count, hasMore }
+}
+
+export async function getReportCardData(filtros: FiltrosReportes = {}) {
+  const { data, error, count, hasMore } = await getReportes(filtros)
+
+  return {
+    data: (data ?? []).map(mapReportToCardData),
+    error,
+    count,
+    hasMore,
+  }
+}
+
+export async function getReportMapData(filtros: FiltrosReportes = {}) {
+  const { data, error } = await getReportes({
+    ...filtros,
+    soloConCoordenadas: true,
+  })
+
+  return {
+    data: (data ?? [])
+      .map(mapReportToMapItem)
+      .filter((report): report is ReportMapItem => report !== null),
+    error,
+  }
+}
+
+export async function getDashboardUserReports(userId: string) {
+  const supabase = await createClient()
+
+  let { data, error } = await supabase
+    .from("reportes")
+    .select(buildReportesSelect(true))
+    .eq("usuario_id", userId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .returns<ReporteDBRaw[]>()
+
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error } = await supabase
+      .from("reportes")
+      .select(buildReportesSelect(false))
+      .eq("usuario_id", userId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .returns<ReporteDBRaw[]>())
+  }
+
+  if (error || !data) {
+    return { data: [], error }
+  }
+
+  return {
+    data: data
+      .map((report) => ({
+        ...report,
+        fotos: resolveReportImageRows(report.fotos),
+      }))
+      .map(mapReportToDashboardItem),
+    error: null,
+  }
 }
 
 /**

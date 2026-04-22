@@ -18,7 +18,7 @@ import { List, Layers, Map, X, ChevronRight, MapPin } from "lucide-react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { FiltrosReportes } from "@/components/filtros-reportes"
-import type { ReporteDB } from "@/database/queries/reportes/get-reportes"
+import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
 import { getPriorityColor, getStatusColor, getCategoryColor } from "@/components/report-card"
 import { LoadingLogo } from "@/components/loading-logo"
 
@@ -56,7 +56,7 @@ interface ReporteParaMapa {
 }
 
 type MapaClientProps = {
-  reportesDB: ReporteDB[]
+  reportes: ReportMapItem[]
   categorias: { id: number; nombre: string }[]
   estados: { id: number; nombre: string }[]
   prioridades: { id: number; nombre: string }[]
@@ -74,7 +74,7 @@ type MapaClientProps = {
  * @param isAuthenticated - Indica si el usuario está autenticado para mostrar información contextual.
  * @returns Un elemento React que contiene el mapa interactivo, la barra lateral de reportes y el panel de filtros.
  */
-export function MapaClient({ reportesDB, categorias, estados, prioridades, error, isAuthenticated }: MapaClientProps) {
+export function MapaClient({ reportes, categorias, estados, prioridades, error, isAuthenticated }: MapaClientProps) {
   // Inicializar siempre con false para evitar hydration mismatch
   // El useEffect ajustará el valor según el tamaño de pantalla
   const [showSidebar, setShowSidebar] = useState(false)
@@ -104,20 +104,7 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Transformar los datos de BD al formato esperado por los componentes del mapa
-  const reportes: ReporteParaMapa[] = reportesDB.map((reporte) => ({
-    id: reporte.id,
-    title: reporte.titulo,
-    description: reporte.descripcion ?? "Sin descripción",
-    category: reporte.categoria?.nombre ?? "Sin categoría",
-    priority: reporte.prioridad?.nombre ?? "Sin prioridad",
-    status: reporte.estado?.nombre ?? "Sin estado",
-    location: `Lat ${reporte.lat!.toFixed(4)}, Lon ${reporte.lon!.toFixed(4)}`,
-    coordinates: [reporte.lat!, reporte.lon!] as [number, number],
-    author: reporte.autor?.username ?? "Anónimo",
-    createdAt: reporte.created_at,
-    image: reporte.fotos?.[0]?.url ?? undefined,
-  }))
+  const reportesMapa: ReporteParaMapa[] = reportes
 
   /**
    * Maneja el cierre del panel de filtros después de aplicar un filtro
@@ -201,7 +188,7 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
               <div className="bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5 whitespace-nowrap">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="text-sm font-semibold">{reportes.length}</span>
+                  <span className="text-sm font-semibold">{reportesMapa.length}</span>
                   <span className="text-xs text-muted-foreground hidden sm:inline">reportes</span>
                 </div>
               </div>
@@ -288,7 +275,7 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="default" className="text-[10px] md:text-xs px-1.5 md:px-2">
-                  {reportes.length} en el mapa
+                  {reportesMapa.length} en el mapa
                 </Badge>
                 {error && (
                   <Badge variant="destructive" className="text-[10px] md:text-xs px-1.5 md:px-2">
@@ -308,7 +295,7 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
               )}
 
               {/* Lista de reportes */}
-              {!error && reportes.length === 0 && (
+              {!error && reportesMapa.length === 0 && (
                 <Alert className="border-dashed">
                   <MapPin className="w-4 h-4" />
                   <AlertTitle>No hay reportes</AlertTitle>
@@ -318,9 +305,9 @@ export function MapaClient({ reportesDB, categorias, estados, prioridades, error
                 </Alert>
               )}
 
-              {!error && reportes.length > 0 && (
+              {!error && reportesMapa.length > 0 && (
                 <div className="space-y-3">
-                  {reportes.map((report) => (
+                  {reportesMapa.map((report) => (
                     <Card 
                       key={report.id} 
                       className="group cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all duration-200 overflow-hidden"

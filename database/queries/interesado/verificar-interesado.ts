@@ -1,5 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
+import { canViewDashboard } from "@/lib/authz/roles";
+
 /**
  * Determina si un usuario puede ver el panel de analíticas.
  *
@@ -14,7 +16,7 @@ export async function verificarPuedeVerDashboard(
 ) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("rol_id, roles (nombre)")
+    .select("rol_id")
     .eq("id", usuarioId)
     .single();
 
@@ -24,7 +26,7 @@ export async function verificarPuedeVerDashboard(
   }
 
   // El usuario puede ver el dashboard si es Admin (1) o Interesado (3)
-  const puedeVerDashboard = data?.rol_id === 1 || data?.rol_id === 3;
+  const puedeVerDashboard = canViewDashboard(data?.rol_id);
 
   return { puedeVerDashboard, error: null };
 }

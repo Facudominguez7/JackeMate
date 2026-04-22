@@ -1,5 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 
+import { REPORT_STATE_IDS } from "@/lib/authz/catalog"
+
 export interface CrearReporteParams {
   usuarioId: string
   titulo: string
@@ -25,12 +27,12 @@ export async function crearReporte(supabase: SupabaseClient, params: CrearReport
       usuario_id: params.usuarioId,
       titulo: params.titulo,
       descripcion: params.descripcion,
-      categoria_id: params.categoriaId,
-      prioridad_id: params.prioridadId,
-      estado_id: 1, // 1 = Pendiente
-      lat: params.lat,
-      lon: params.lon
-    })
+        categoria_id: params.categoriaId,
+        prioridad_id: params.prioridadId,
+        estado_id: REPORT_STATE_IDS.PENDIENTE,
+        lat: params.lat,
+        lon: params.lon
+      })
     .select()
     .single()
 
