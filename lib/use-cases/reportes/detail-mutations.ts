@@ -2,7 +2,7 @@ import "server-only"
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-import { actualizarPuntos, PUNTOS, sumarPuntos } from "@/database/queries/puntos"
+import { actualizarPuntos, PUNTOS, restarPuntos, sumarPuntos } from "@/database/queries/puntos"
 import { REPORT_STATE_IDS } from "@/lib/authz/catalog"
 import { isAdminRole, getUserRoleContext } from "@/lib/authz/roles"
 import {
@@ -63,6 +63,18 @@ type StatusChangeResult = {
 
 type SoftDeleteResult = {
   deleted: boolean
+}
+
+type CommentPointsContext = {
+  comentarioId: number
+  comentarioAutorId: string
+  reporteId: number
+  reporteAutorId: string | null
+}
+
+type CommentCreateResult = {
+  comment: CommentView
+  pointsAwarded: number
 }
 
 function getOwnerProfile(relation: ReportOwnerRelation) {
@@ -253,18 +265,48 @@ async function softDeleteComment(
   supabase: SupabaseClient,
   comentarioId: number,
   actorUserId?: string,
-): Promise<MutationResult<SoftDeleteResult>> {
-  let query = supabase
+): Promise<MutationResult<CommentPointsContext>> {
+  let contextQuery = supabase
+    .from("comentarios_reporte")
+    .select("id, reporte_id, usuario_id")
+    .eq("id", comentarioId)
+    .is("deleted_at", null)
+
+  if (actorUserId) {
+    contextQuery = contextQuery.eq("usuario_id", actorUserId)
+  }
+
+  const { data: commentRow, error: commentError } = await contextQuery.maybeSingle()
+
+  if (commentError) {
+    return { success: false, error: "No pudimos eliminar el comentario." }
+  }
+
+  if (!commentRow) {
+    return {
+      success: false,
+      error: actorUserId
+        ? "El comentario ya fue eliminado o no te pertenece."
+        : "El comentario ya fue eliminado o no está disponible.",
+    }
+  }
+
+  const reportResult = await getReportContext(supabase, commentRow.reporte_id)
+  if (!reportResult.success) {
+    return reportResult
+  }
+
+  let deleteQuery = supabase
     .from("comentarios_reporte")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", comentarioId)
     .is("deleted_at", null)
 
   if (actorUserId) {
-    query = query.eq("usuario_id", actorUserId)
+    deleteQuery = deleteQuery.eq("usuario_id", actorUserId)
   }
 
-  const { data, error } = await query.select("id").maybeSingle()
+  const { data, error } = await deleteQuery.select("id").maybeSingle()
 
   if (error) {
     return { success: false, error: "No pudimos eliminar el comentario." }
@@ -279,7 +321,15 @@ async function softDeleteComment(
     }
   }
 
-  return { success: true, data: { deleted: true } }
+  return {
+    success: true,
+    data: {
+      comentarioId: commentRow.id,
+      comentarioAutorId: commentRow.usuario_id,
+      reporteId: commentRow.reporte_id,
+      reporteAutorId: reportResult.data.usuario_id,
+    },
+  }
 }
 
 async function softDeleteReport(
@@ -313,6 +363,26 @@ async function softDeleteReport(
   }
 
   return { success: true, data: { deleted: true } }
+}
+
+async function revokeCommentPointsIfNeeded(
+  supabase: SupabaseClient,
+  context: CommentPointsContext,
+) {
+  if (context.reporteAutorId === context.comentarioAutorId) {
+    return
+  }
+
+  const revokeResult = await restarPuntos(
+    supabase,
+    context.comentarioAutorId,
+    PUNTOS.COMENTAR_REPORTE,
+    `Eliminar comentario ${context.comentarioId} del reporte ${context.reporteId}`,
+  )
+
+  if (!revokeResult.success) {
+    console.error("No pudimos revertir los puntos del comentario eliminado:", revokeResult.error)
+  }
 }
 
 async function createVote(
@@ -463,7 +533,7 @@ export async function crearComentarioWorkflow(
   reporteId: number,
   actorUserId: string,
   contenido: string,
-): Promise<MutationResult<CommentView>> {
+): Promise<MutationResult<CommentCreateResult>> {
   const cleanContent = contenido.trim()
   if (!cleanContent) {
     return { success: false, error: "El comentario no puede estar vacío." }
@@ -507,7 +577,15 @@ export async function crearComentarioWorkflow(
     return { success: false, error: "No pudimos publicar tu comentario." }
   }
 
-  await sumarPuntos(supabase, actorUserId, PUNTOS.COMENTAR_REPORTE, "Comentar en reporte")
+  const pointsAwarded = report.usuario_id === actorUserId ? 0 : PUNTOS.COMENTAR_REPORTE
+
+  if (pointsAwarded > 0) {
+    const pointsResult = await sumarPuntos(supabase, actorUserId, pointsAwarded, "Comentar en reporte ajeno")
+
+    if (!pointsResult.success) {
+      console.error("No pudimos acreditar puntos tras comentar un reporte ajeno:", pointsResult.error)
+    }
+  }
 
   const owner = getOwnerProfile(report.ownerProfile)
   if (report.usuario_id && report.usuario_id !== actorUserId && owner?.email) {
@@ -528,8 +606,11 @@ export async function crearComentarioWorkflow(
   return {
     success: true,
     data: {
-      ...(data as Omit<CommentView, "profiles"> & { profiles?: CommentView["profiles"] | null }),
-      profiles: normalizeCommentProfiles((data as CommentView).profiles),
+      comment: {
+        ...(data as Omit<CommentView, "profiles"> & { profiles?: CommentView["profiles"] | null }),
+        profiles: normalizeCommentProfiles((data as CommentView).profiles),
+      },
+      pointsAwarded,
     },
   }
 }
@@ -543,6 +624,8 @@ export async function eliminarComentarioPropioWorkflow(
   if (!deleteResult.success) {
     return deleteResult
   }
+
+  await revokeCommentPointsIfNeeded(supabase, deleteResult.data)
 
   return { success: true, data: true }
 }
@@ -561,6 +644,8 @@ export async function eliminarComentarioAdminWorkflow(
   if (!deleteResult.success) {
     return deleteResult
   }
+
+  await revokeCommentPointsIfNeeded(supabase, deleteResult.data)
 
   return { success: true, data: true }
 }
@@ -590,9 +675,28 @@ export async function eliminarReporteAdminWorkflow(
     return adminResult
   }
 
+  const reportResult = await getReportContext(supabase, reporteId)
+  if (!reportResult.success) {
+    return reportResult
+  }
+
   const deleteResult = await softDeleteReport(supabase, reporteId)
   if (!deleteResult.success) {
     return deleteResult
+  }
+
+  const reportOwnerId = reportResult.data.usuario_id
+  if (reportOwnerId && reportOwnerId !== actorUserId) {
+    const pointsResult = await actualizarPuntos(
+      supabase,
+      reportOwnerId,
+      PUNTOS.ELIMINAR_REPORTE_PROPIO,
+      "Eliminar reporte por administrador",
+    )
+
+    if (!pointsResult.success) {
+      console.error("No pudimos descontar puntos al autor del reporte eliminado por admin:", pointsResult.error)
+    }
   }
 
   return { success: true, data: true }

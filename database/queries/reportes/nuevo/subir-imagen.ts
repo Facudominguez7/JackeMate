@@ -26,7 +26,8 @@ export async function subirImagenReporte(
       .from(REPORT_BUCKET)
       .upload(filePath, image, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
+        contentType: image.type || undefined,
       })
 
     if (uploadError) {

@@ -3,6 +3,7 @@
 import { ZodError, z } from "zod"
 
 import { crearReporteWorkflow, mutationErrorMessage } from "@/lib/use-cases/reportes"
+import { REPORT_IMAGE_MAX_BYTES, isAcceptedReportImageType } from "@/lib/media/report-images"
 import { createAdminClient } from "@/utils/supabase/admin"
 import { createClient } from "@/utils/supabase/server"
 
@@ -20,6 +21,14 @@ function getOptionalImage(formData: FormData) {
 
   if (!(image instanceof File) || image.size === 0) {
     return null
+  }
+
+  if (!isAcceptedReportImageType(image.type)) {
+    throw new Error("La imagen debe estar en formato JPG, PNG o WebP.")
+  }
+
+  if (image.size > REPORT_IMAGE_MAX_BYTES) {
+    throw new Error("La imagen optimizada no puede superar los 5 MB.")
   }
 
   return image

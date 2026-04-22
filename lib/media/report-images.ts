@@ -2,6 +2,15 @@ import { REPORT_BUCKET } from "@/lib/authz/catalog"
 
 export type ReportImageBucket = typeof REPORT_BUCKET
 
+export const REPORT_IMAGE_ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"] as const
+export const REPORT_IMAGE_ACCEPT_ATTR = REPORT_IMAGE_ACCEPTED_TYPES.join(",")
+export const REPORT_IMAGE_MAX_DIMENSION = 1600
+export const REPORT_IMAGE_OUTPUT_TYPE = "image/jpeg" as const
+export const REPORT_IMAGE_OUTPUT_EXTENSION = "jpg" as const
+export const REPORT_IMAGE_OUTPUT_QUALITY = 0.78
+export const REPORT_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+export const REPORT_IMAGE_MAX_SOURCE_BYTES = 15 * 1024 * 1024
+
 export type ReportImageRef = {
   bucket: ReportImageBucket
   path: string
@@ -104,4 +113,8 @@ export function isMissingReportImageColumnsError(error: { message?: string; deta
   const message = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase()
 
   return message.includes("bucket") || message.includes("path")
+}
+
+export function isAcceptedReportImageType(type: string | null | undefined): type is (typeof REPORT_IMAGE_ACCEPTED_TYPES)[number] {
+  return REPORT_IMAGE_ACCEPTED_TYPES.includes((type ?? "") as (typeof REPORT_IMAGE_ACCEPTED_TYPES)[number])
 }

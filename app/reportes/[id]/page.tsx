@@ -374,6 +374,8 @@ export default function ReporteDetallePage({
     setShowPublishCommentDialog(true);
   };
 
+  const willAwardCommentPoints = Boolean(currentUser && reporte && currentUser.id !== reporte.usuario_id);
+
   const confirmPublishComment = async () => {
     if (!currentUser || !reporte || !nuevoComentario.trim()) return;
 
@@ -388,13 +390,18 @@ export default function ReporteDetallePage({
         return;
       }
 
-      setComentarios([...comentarios, result.data]);
+      setComentarios([...comentarios, result.data.comment]);
       setNuevoComentario("");
 
-      // Mostrar mensaje de puntos ganados
-      toast.success(`¡Comentario publicado! +${PUNTOS.COMENTAR_REPORTE} puntos`, {
-        description: "Tu comentario ha sido agregado correctamente"
-      });
+      if (result.data.pointsAwarded > 0) {
+        toast.success(`¡Comentario publicado! +${result.data.pointsAwarded} puntos`, {
+          description: "Tu comentario ha sido agregado correctamente"
+        });
+      } else {
+        toast.success("¡Comentario publicado!", {
+          description: "Tu comentario ha sido agregado correctamente"
+        });
+      }
 
     } catch (error) {
       console.error("Error:", error);
@@ -1220,7 +1227,13 @@ export default function ReporteDetallePage({
                   <p className="text-sm text-foreground whitespace-pre-wrap">{nuevoComentario}</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Ganarás <span className="font-bold text-primary">{PUNTOS.COMENTAR_REPORTE} puntos</span> por comentar.
+                  {willAwardCommentPoints ? (
+                    <>
+                      Ganarás <span className="font-bold text-primary">{PUNTOS.COMENTAR_REPORTE} puntos</span> por comentar.
+                    </>
+                  ) : (
+                    "Como es tu propio reporte, este comentario no suma puntos."
+                  )}
                 </p>
               </div>
             </AlertDialogDescription>

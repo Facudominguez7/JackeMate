@@ -25,6 +25,8 @@ import { MapPin, Camera, ArrowLeft, Send } from "lucide-react"
 import Link from "next/link"
 import { PUNTOS } from "@/database/queries/puntos"
 import { LoadingLogo } from "@/components/loading-logo"
+import { REPORT_IMAGE_ACCEPT_ATTR } from "@/lib/media/report-images"
+import { optimizeReportImage } from "@/lib/media/optimize-report-image"
 import { toast } from "sonner"
 import { 
   getCategorias, 
@@ -78,6 +80,7 @@ export default function NuevoReportePage() {
   const [geoStatus, setGeoStatus] = useState<"pending" | "ok" | "error">("pending")
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isOptimizingImage, setIsOptimizingImage] = useState(false)
 
   const supabase = createClient()
   const isMobile = useIsMobile()
@@ -155,14 +158,37 @@ export default function NuevoReportePage() {
     }
   }, [isMobile])
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      // Mantener solo una imagen como máximo
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+
+    if (!selectedFile) {
+      return
+    }
+
+    setIsOptimizingImage(true)
+
+    try {
+      const optimizedImage = await optimizeReportImage(selectedFile)
+
       setFormData((prev) => ({
         ...prev,
-        images: [file],
+        images: [optimizedImage.file],
       }))
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No pudimos procesar la imagen seleccionada."
+
+      toast.error("No se pudo usar esa imagen", {
+        description: message,
+      })
+
+      setFormData((prev) => ({
+        ...prev,
+        images: [],
+      }))
+    } finally {
+      e.target.value = ""
+      setIsOptimizingImage(false)
     }
   }
 
@@ -480,12 +506,18 @@ export default function NuevoReportePage() {
                       <input
                         id="images"
                         type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
+                         accept={REPORT_IMAGE_ACCEPT_ATTR}
+                         capture="environment"
+                         onChange={handleImageUpload}
+                         className="hidden"
+                       />
                     </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      1 imagen · JPG, PNG o WebP · se optimiza antes de subir
+                    </p>
+                    {isOptimizingImage && (
+                      <p className="text-xs text-primary">Optimizando imagen...</p>
+                    )}
                   </div>
                 </div>
 
@@ -554,8 +586,8 @@ export default function NuevoReportePage() {
                     {prioridades.find(p => p.id === parseInt(formData.priority))?.nombre}
                   </div>
                   {formData.images.length > 0 && (
-                    <div>
-                      <span className="font-semibold">Imagen:</span> Sí
+                   <div>
+                     <span className="font-semibold">Imagen:</span> Sí
                     </div>
                   )}
                 </div>
