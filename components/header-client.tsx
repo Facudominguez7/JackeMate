@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -50,6 +51,7 @@ type NavItem = {
 };
 
 export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const puedeCrearReportes = canCreateReports(userRolId);
 
   const items: NavItem[] = [
@@ -160,7 +162,7 @@ export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps
       </div>
 
       <div className="lg:hidden">
-        <Sheet>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" aria-label="Abrir menú">
               <Menu className="size-5" />
@@ -178,7 +180,7 @@ export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps
                 </p>
                 {items.map(({ href, label, icon: Icon }) => (
                   <Button key={href} variant="ghost" className="w-full justify-start" asChild>
-                    <Link href={href}>
+                    <Link href={href} onClick={() => setMobileMenuOpen(false)}>
                       <Icon className="size-4" />
                       {label}
                     </Link>
@@ -189,13 +191,13 @@ export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps
                     Reportes
                   </p>
                   <Button variant="ghost" className="w-full justify-start" asChild>
-                    <Link href="/reportes">
+                    <Link href="/reportes" onClick={() => setMobileMenuOpen(false)}>
                       <List className="size-4" />
                       Ver todos
                     </Link>
                   </Button>
                   <Button variant="ghost" className="w-full justify-start" asChild>
-                    <Link href="/reportes/nuevo">
+                    <Link href="/reportes/nuevo" onClick={() => setMobileMenuOpen(false)}>
                       <Plus className="size-4" />
                       Crear reporte
                     </Link>
@@ -214,12 +216,16 @@ export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps
                       <p className="mt-1 text-base font-medium">{displayName}</p>
                     </div>
                     <Button variant="outline" className="w-full justify-start" asChild>
-                      <Link href="/dashboard">
+                      <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                         <LayoutDashboard className="size-4" />
                         Mi dashboard
                       </Link>
                     </Button>
-                    <form action={signout} className="w-full">
+                    <form
+                      action={signout}
+                      className="w-full"
+                      onSubmit={() => setMobileMenuOpen(false)}
+                    >
                       <Button type="submit" variant="destructive" className="w-full justify-start">
                         <LogOut className="size-4" />
                         Cerrar sesión
@@ -229,13 +235,13 @@ export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps
                 ) : (
                   <>
                     <Button variant="outline" className="w-full justify-start" asChild>
-                      <Link href="/auth">
+                      <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
                         <LogIn className="size-4" />
                         Ingresar
                       </Link>
                     </Button>
                     <Button className="w-full justify-start" asChild>
-                      <Link href="/auth">
+                      <Link href="/auth" onClick={() => setMobileMenuOpen(false)}>
                         <UserPlus className="size-4" />
                         Crear cuenta
                       </Link>
