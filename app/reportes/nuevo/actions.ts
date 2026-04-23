@@ -10,10 +10,10 @@ import { createClient } from "@/utils/supabase/server"
 const createReportSchema = z.object({
   titulo: z.string().trim().min(3).max(120),
   descripcion: z.string().trim().min(10).max(5000),
-  categoriaId: z.coerce.number().int().positive(),
-  prioridadId: z.coerce.number().int().positive(),
-  lat: z.coerce.number().min(-90).max(90),
-  lon: z.coerce.number().min(-180).max(180),
+  categoriaId: z.coerce.number().int().positive("Seleccioná una categoría."),
+  prioridadId: z.coerce.number().int().positive("Seleccioná una prioridad."),
+  lat: z.coerce.number().min(-90, "Seleccioná una ubicación en el mapa." ).max(90, "Seleccioná una ubicación en el mapa."),
+  lon: z.coerce.number().min(-180, "Seleccioná una ubicación en el mapa.").max(180, "Seleccioná una ubicación en el mapa."),
 })
 
 function getOptionalImage(formData: FormData) {

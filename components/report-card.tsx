@@ -139,8 +139,8 @@ export function ReportCard({
   autor,
 }: ReportCardProps) {
   return (
-    <Link key={id} href={`/reportes/${id}`} className="block h-full">
-      <Card className="h-full overflow-hidden transition-colors hover:border-foreground/20">
+    <Link key={id} href={`/reportes/${id}`} className="block h-full w-full min-w-0">
+      <Card className="h-full w-full min-w-0 overflow-hidden transition-colors hover:border-foreground/20">
         <div className="aspect-[4/3] overflow-hidden bg-[var(--surface-subtle)]">
           <img
             src={imageUrl || "/placeholder.svg"}
@@ -150,8 +150,8 @@ export function ReportCard({
           />
         </div>
 
-        <CardContent className="flex h-full flex-col gap-4 pt-5">
-          <div className="flex flex-wrap items-center gap-2">
+        <CardContent className="flex h-full min-w-0 flex-col gap-4 pt-5">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Badge variant={getPriorityVariant(prioridad)} className="gap-1">
               {getPriorityIcon(prioridad)}
               {prioridad}

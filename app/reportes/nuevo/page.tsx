@@ -224,6 +224,24 @@ export default function NuevoReportePage() {
     }))
   }
 
+  const canSubmitReport =
+    formData.title.trim().length >= 3 &&
+    formData.description.trim().length >= 10 &&
+    formData.category !== "" &&
+    formData.priority !== "" &&
+    formData.lat !== null &&
+    formData.lon !== null &&
+    !loading &&
+    !isSubmitting
+
+  const missingFields = [
+    formData.title.trim().length >= 3 ? null : "título",
+    formData.description.trim().length >= 10 ? null : "descripción",
+    formData.category !== "" ? null : "categoría",
+    formData.priority !== "" ? null : "prioridad",
+    formData.lat !== null && formData.lon !== null ? null : "ubicación",
+  ].filter(Boolean) as string[]
+
   const confirmSubmit = async () => {
     try {
       setIsSubmitting(true)
@@ -370,6 +388,12 @@ export default function NuevoReportePage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                   required
                 />
+                {formData.title.trim().length > 0 && formData.title.trim().length < 3 && (
+                  <p className="text-xs text-destructive">El título debe tener al menos 3 caracteres.</p>
+                )}
+                {formData.title.trim().length === 0 && (
+                  <p className="text-xs text-destructive">Completá el título del reporte.</p>
+                )}
               </div>
 
               {/* Description */}
@@ -383,6 +407,12 @@ export default function NuevoReportePage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                   required
                 />
+                {formData.description.trim().length > 0 && formData.description.trim().length < 10 && (
+                  <p className="text-xs text-destructive">La descripción debe tener al menos 10 caracteres.</p>
+                )}
+                {formData.description.trim().length === 0 && (
+                  <p className="text-xs text-destructive">Completá la descripción del problema.</p>
+                )}
               </div>
 
               {/* Category and Priority */}
@@ -394,7 +424,7 @@ export default function NuevoReportePage() {
                       disabled={loading}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
                     >
-                      <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full">
                         <SelectValue placeholder={categorias.length > 0 ? "Selecciona una categoría" : "Cargando categorías..."} />
                       </SelectTrigger>
                       <SelectContent className="w-full">
@@ -405,6 +435,9 @@ export default function NuevoReportePage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {formData.category === "" && (
+                      <p className="text-xs text-destructive">Seleccioná una categoría.</p>
+                    )}
                   </div>
                 </div>
 
@@ -415,7 +448,7 @@ export default function NuevoReportePage() {
                       disabled={loading}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, priority: value }))}
                     >
-                      <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full">
                         <SelectValue placeholder={prioridades.length > 0 ? "Nivel de urgencia" : "Cargando prioridades..."} />
                       </SelectTrigger>
                       <SelectContent className="w-full">
@@ -426,6 +459,9 @@ export default function NuevoReportePage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {formData.priority === "" && (
+                      <p className="text-xs text-destructive">Seleccioná una prioridad.</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -448,6 +484,9 @@ export default function NuevoReportePage() {
                       <span>No se pudo obtener tu ubicación. Permití el acceso al GPS.</span>
                     )}
                   </div>
+                )}
+                {(!formData.lat || !formData.lon) && (
+                  <p className="text-xs text-destructive">Seleccioná una ubicación en el mapa.</p>
                 )}
 
                 {/* Desktop: Selección manual en mapa */}
@@ -542,18 +581,24 @@ export default function NuevoReportePage() {
 
               {/* Submit Button */}
               <div className="flex gap-4 pt-4">
-                <Button 
-                  type="submit" 
-                  className="flex-1" 
-                  disabled={!formData.lat || !formData.lon || loading || isSubmitting}
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={!canSubmitReport}
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  {isSubmitting ? "Enviando..." : "Enviar Reporte"}
+                  {isSubmitting ? "Enviando..." : canSubmitReport ? "Enviar Reporte" : "Faltan datos"}
                 </Button>
                 <Button type="button" variant="outline" asChild disabled={loading || isSubmitting}>
                   <Link href="/reportes">Cancelar</Link>
                 </Button>
               </div>
+
+              {!canSubmitReport && missingFields.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Te falta completar: <span className="font-medium text-foreground">{missingFields.join(", ")}</span>.
+                </p>
+              )}
             </form>
           </CardContent>
         </Card>

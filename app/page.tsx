@@ -318,7 +318,7 @@ export default function HomePage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {recentReports.map((report) => (
                 <ReportCard
                   key={report.id}
