@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import {
   ChevronDown,
+  CircleHelp,
   Home,
   LayoutDashboard,
   List,
@@ -53,13 +54,9 @@ export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps
 
   const items: NavItem[] = [
     { href: "/", label: "Inicio", icon: Home },
-    { href: "/reportes", label: "Reportes", icon: List },
     { href: "/mapa", label: "Mapa", icon: Map },
+    { href: "/como-funciona", label: "Cómo funciona", icon: CircleHelp },
   ];
-
-  if (user && puedeCrearReportes) {
-    items.push({ href: "/reportes/nuevo", label: "Nuevo reporte", icon: Plus });
-  }
 
   return (
     <>
@@ -69,6 +66,29 @@ export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps
             <Link href={href}>{label}</Link>
           </Button>
         ))}
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-2">
+              Reportes
+              <ChevronDown className="size-4 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56 rounded-[var(--radius-lg)]">
+            <DropdownMenuItem asChild>
+              <Link href="/reportes" className="flex items-center gap-2">
+                <List className="size-4" />
+                Ver todos
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/reportes/nuevo" className="flex items-center gap-2">
+                <Plus className="size-4" />
+                Crear reporte
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </nav>
 
       <div className="hidden items-center gap-3 lg:flex">
@@ -164,6 +184,23 @@ export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps
                     </Link>
                   </Button>
                 ))}
+                <div className="rounded-[var(--radius-lg)] border border-border bg-[var(--surface-subtle)] p-2">
+                  <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Reportes
+                  </p>
+                  <Button variant="ghost" className="w-full justify-start" asChild>
+                    <Link href="/reportes">
+                      <List className="size-4" />
+                      Ver todos
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start" asChild>
+                    <Link href="/reportes/nuevo">
+                      <Plus className="size-4" />
+                      Crear reporte
+                    </Link>
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-3 border-t border-border pt-6">

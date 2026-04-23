@@ -106,7 +106,7 @@ export default function HomePage() {
 
   return (
     <div className="page-shell">
-      <div className="page-container page-stack">
+      <div className="page-container space-y-10 py-6 md:space-y-14 md:py-8 lg:space-y-20 lg:py-10">
         <section className="overflow-hidden rounded-[var(--radius-xl)] border border-border bg-card">
           <div className="grid items-stretch lg:grid-cols-[1.15fr_0.85fr]">
             <div className="relative min-h-[30rem] overflow-hidden">
@@ -196,16 +196,16 @@ export default function HomePage() {
                     <Card className="surface-subtle">
                       <CardContent className="space-y-3 pt-6">
                         <p className="text-sm font-medium tracking-tight">
-                          {userRolId === null ? "¿Querés participar activamente?" : "Tu cuenta tiene acceso de consulta."}
+                          {userRolId === null ? "¿Querés reportar un problema?" : "Tu cuenta tiene acceso de consulta."}
                         </p>
                         <p className="text-sm leading-6 text-muted-foreground">
                           {userRolId === null
-                            ? "Creá una cuenta para reportar incidentes y sumar evidencia ciudadana en tu barrio."
+                            ? "Podés iniciar la carga del reporte ahora. Si hace falta, primero te vamos a pedir que ingreses a tu cuenta."
                             : "Podés revisar reportes y mapa. Para crear nuevos reportes necesitás permisos de ciudadano o administrador."}
                         </p>
                         {userRolId === null && (
                           <Button asChild>
-                            <Link href="/auth">Crear cuenta</Link>
+                            <Link href="/reportes/nuevo">Crear reporte</Link>
                           </Button>
                         )}
                       </CardContent>
@@ -217,13 +217,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="section-stack">
+        <section className="section-stack rounded-[var(--radius-xl)] border border-border bg-card p-6 md:p-8 lg:p-10">
           <div>
             <span className="section-eyebrow">Indicadores</span>
             <h2 className="section-title mt-3">Estado actual de la comunidad</h2>
-            <p className="section-copy mt-3">
-              Cada dato muestra participación real de vecinos y trazabilidad del trabajo que se reporta en la plataforma.
-            </p>
+            <p className="section-copy mt-3">Tres datos para entender rápido cómo viene la actividad.</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -251,13 +249,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="section-stack">
+        <section className="section-stack rounded-[var(--radius-xl)] border border-[var(--semantic-success-border)] bg-[var(--semantic-success-soft)] p-6 md:p-8 lg:p-10">
           <div>
             <span className="section-eyebrow">Comunidad</span>
             <h2 className="section-title mt-3">Personas que sostienen el movimiento</h2>
-            <p className="section-copy mt-3">
-              Reconocemos a quienes más reportan y ayudan a mantener información útil para toda Posadas.
-            </p>
+            <p className="section-copy mt-3">Vecinos que más ayudan a mantener visible lo que pasa en la ciudad.</p>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
@@ -294,12 +290,12 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="section-stack">
+        <section className="section-stack rounded-[var(--radius-xl)] border border-[var(--semantic-success-border)] bg-[color-mix(in_oklab,var(--primary)_10%,white)] p-6 md:p-8 lg:p-10">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <span className="section-eyebrow">Actividad reciente</span>
               <h2 className="section-title mt-3">Últimos reportes publicados</h2>
-              <p className="section-copy mt-3">Una vista rápida de lo que está ocurriendo en los barrios y corredores urbanos.</p>
+              <p className="section-copy mt-3">Lo último cargado por la comunidad.</p>
             </div>
             <Button variant="outline" asChild>
               <Link href="/reportes">Ver todos los reportes</Link>
@@ -341,14 +337,12 @@ export default function HomePage() {
           )}
         </section>
 
-        <section className="rounded-[var(--radius-xl)] border border-border bg-[var(--surface-subtle)] p-6 md:p-8 lg:p-10">
+        <section className="rounded-[var(--radius-xl)] border border-[var(--semantic-success-border)] bg-[color-mix(in_oklab,var(--primary)_18%,white)] p-6 md:p-8 lg:p-10">
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
             <div className="space-y-4">
               <span className="section-eyebrow">Participación ciudadana</span>
               <h2 className="section-title">Si algo está mal en tu barrio, que se vea.</h2>
-              <p className="section-copy max-w-3xl">
-                JackeMate está pensado para registrar problemas públicos con evidencia, ubicación y seguimiento. El diseño acompaña esa tarea: superficies limpias, foco claro y navegación consistente.
-              </p>
+              <p className="section-copy max-w-3xl">Reportá, seguí el estado y ayudá a que el problema no quede invisible.</p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
@@ -356,6 +350,9 @@ export default function HomePage() {
                 <>
                   <Button size="lg" asChild>
                     <Link href="/reportes/nuevo">Crear reporte</Link>
+                  </Button>
+                  <Button variant="outline" size="lg" asChild>
+                    <Link href="/como-funciona">Cómo funciona</Link>
                   </Button>
                   <Button variant="outline" size="lg" asChild>
                     <Link href="/mapa">Abrir mapa</Link>
@@ -366,9 +363,12 @@ export default function HomePage() {
                   <Button size="lg" asChild>
                     <Link href="/mapa">Explorar el mapa</Link>
                   </Button>
+                  <Button variant="outline" size="lg" asChild>
+                    <Link href="/como-funciona">Cómo funciona</Link>
+                  </Button>
                   {userRolId === null && (
                     <Button variant="outline" size="lg" asChild>
-                      <Link href="/auth">Registrarme</Link>
+                      <Link href="/reportes/nuevo">Crear reporte</Link>
                     </Button>
                   )}
                 </>
