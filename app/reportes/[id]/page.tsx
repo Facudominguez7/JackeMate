@@ -676,9 +676,9 @@ export default function ReporteDetallePage({
                     {/* Botón eliminar - solo para el creador */}
                     {currentUser && currentUser.id === reporte.usuario_id && (
                       <Button
-                        variant="outline"
+                        variant="destructive"
                         size="sm"
-                        className="h-8 border-destructive/30 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive md:h-9 md:px-3 lg:h-10 lg:px-4"
+                        className="h-8 px-2 md:h-9 md:px-3 lg:h-10 lg:px-4"
                         onClick={handleDeleteReporte}
                         disabled={isDeleting}
                       >
@@ -695,6 +695,49 @@ export default function ReporteDetallePage({
                 <p className="text-sm md:text-base lg:text-lg text-foreground leading-relaxed lg:leading-loose mb-4 md:mb-6 lg:mb-8">
                   {reporte.descripcion}
                 </p>
+
+                {currentUser && !isReporteCerrado && (
+                  <div className="mb-4 rounded-[var(--radius-lg)] border border-border bg-[var(--surface-subtle)] p-3 md:mb-6 lg:hidden">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold tracking-tight">Validación comunitaria</p>
+                        <p className="text-xs text-muted-foreground">Elegí una opción.</p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Button
+                        variant={hasVotedReparado ? "secondary" : "default"}
+                        size="sm"
+                        className={`justify-between ${hasVotedReparado ? "bg-muted text-muted-foreground hover:bg-muted" : ""}`}
+                        onClick={handleVoteReparado}
+                        disabled={hasVotedReparado || isVotingReparado}
+                      >
+                        <span className="flex items-center gap-2">
+                          <CheckCircle2 className="size-4" />
+                          {hasVotedReparado ? "Ya votaste reparado" : "Marcar reparado"}
+                        </span>
+                        <Badge variant="reparado">{votosReparadoCount} / 1</Badge>
+                      </Button>
+
+                      {currentUser.id !== reporte.usuario_id && (
+                      <Button
+                        variant={hasVoted ? "secondary" : "destructive"}
+                        size="sm"
+                        className={`justify-between ${hasVoted ? "bg-muted text-muted-foreground hover:bg-muted hover:text-muted-foreground border-border" : ""}`}
+                        onClick={handleVoteNoExiste}
+                        disabled={hasVoted || isVoting}
+                      >
+                        <span className="flex items-center gap-2">
+                          <ThumbsDown className="size-4" />
+                            {hasVoted ? "Ya votaste no existe" : "Votar no existe"}
+                        </span>
+                        <Badge variant="rechazado">{votosCount} / 1</Badge>
+                      </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Imágenes */}
                 {reporte.fotos_reporte && reporte.fotos_reporte.length > 0 && (
@@ -923,8 +966,8 @@ export default function ReporteDetallePage({
                    <div className="border-t border-[var(--semantic-admin-border)] pt-3">
                     <Button
                       onClick={handleAdminDeleteReporte}
-                      variant="outline"
-                      className="w-full text-xs md:text-sm text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                      variant="destructive"
+                      className="w-full text-xs md:text-sm"
                       size="sm"
                     >
                       <Trash2 className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
@@ -935,110 +978,66 @@ export default function ReporteDetallePage({
               </Card>
             )}
 
-            {/* Botón "Marcar como Reparado" - Solo si está PENDIENTE */}
             {currentUser && !isReporteCerrado && (
-              <Card className="tone-success-card border-2">
-                <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6 lg:p-6">
-                  <div className="text-center space-y-3 md:space-y-4">
-                    <div className="space-y-1.5 md:space-y-2">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <CheckCircle2 className="w-6 h-6 text-[var(--semantic-success)] lg:w-7 lg:h-7" />
-                        <h3 className="text-base font-semibold text-[var(--semantic-success)] md:text-lg lg:text-xl">
-                          ¿Ya está reparado?
-                        </h3>
-                      </div>
-                      <p className="text-xs md:text-sm lg:text-base text-muted-foreground">
-                        Si verificaste que este problema ya fue solucionado, marcalo como reparado.
-                      </p>
-                      <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground">
-                        Ayudá a mantener la información actualizada para todos.
-                      </p>
-                      <div className="tone-success-inline mt-2 rounded-md p-2">
-                        <p className="text-[10px] font-medium md:text-xs lg:text-sm">
-                          ✓ Con 1 voto, el reporte se marcará como reparado
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant={hasVotedReparado ? "secondary" : "default"}
-                      size="sm"
-                      className={`w-full h-9 md:h-10 lg:h-11 ${hasVotedReparado
-                          ? "bg-muted text-muted-foreground hover:bg-muted"
-                          : ""
-                        }`}
-                      onClick={handleVoteReparado}
-                      disabled={hasVotedReparado || isVotingReparado}
-                    >
-                      <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
-                      <span className="text-xs md:text-sm lg:text-base font-medium">
-                        {hasVotedReparado ? "✓ Ya votaste" : "Votar como Reparado"}
-                      </span>
-                    </Button>
-                    <div className="flex items-center justify-center gap-1.5 md:gap-2 text-xs md:text-sm lg:text-base flex-wrap">
-                      <div className="tone-success-inline flex items-center gap-1.5 rounded-md px-2 py-1">
-                        <span className="font-bold">
-                          {votosReparadoCount} / 1
-                        </span>
-                        <span>votos</span>
-                      </div>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">
-                        Faltan <span className="font-semibold text-[var(--semantic-success)]">{1 - votosReparadoCount}</span> para marcar como reparado
-                      </span>
-                    </div>
+              <Card className="hidden lg:block">
+                <CardContent className="space-y-4 pt-5 md:space-y-5 md:pt-6">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-semibold tracking-tight md:text-lg">Validación comunitaria</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Marcá si el problema ya fue reparado o si el reporte fue cargado por error.
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            )}
 
-            {/* Botón "No Existe" - Solo si está PENDIENTE y no es el creador */}
-            {currentUser && currentUser.id !== reporte.usuario_id && !isReporteCerrado && (
-              <Card className="tone-danger-card border-2">
-                <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6 lg:p-6">
-                  <div className="text-center space-y-3 md:space-y-4">
-                    <div className="space-y-1.5 md:space-y-2">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <ThumbsDown className="w-6 h-6 text-[var(--semantic-danger)] lg:w-7 lg:h-7" />
-                        <h3 className="text-base font-semibold text-[var(--semantic-danger)] md:text-lg lg:text-xl">
-                          ¿Este reporte no existe?
-                        </h3>
+                  <div className="space-y-3">
+                    <div className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--semantic-success-border)] bg-[var(--semantic-success-soft)] p-3 md:p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="size-4 text-[var(--semantic-success)]" />
+                            <p className="text-sm font-semibold text-[var(--semantic-success)]">Ya está reparado</p>
+                          </div>
+                          <p className="text-xs leading-5 text-muted-foreground">Con 1 voto, el reporte se marca como reparado.</p>
+                        </div>
+                        <Badge variant="reparado">{votosReparadoCount} / 1</Badge>
                       </div>
-                      <p className="text-xs md:text-sm lg:text-base text-muted-foreground">
-                        Si verificaste que este problema <span className="font-semibold text-[var(--semantic-danger)]">nunca existió</span> o fue reportado por error, marcalo.
-                      </p>
-                      <div className="tone-danger-inline mt-2 rounded-md p-2">
-                        <p className="text-[10px] font-medium md:text-xs lg:text-sm">
-                          ⚠️ Con 1 voto, el reporte será rechazado permanentemente
-                        </p>
-                      </div>
+
+                      <Button
+                        variant={hasVotedReparado ? "secondary" : "default"}
+                        size="sm"
+                        className={`w-full ${hasVotedReparado ? "bg-muted text-muted-foreground hover:bg-muted" : ""}`}
+                        onClick={handleVoteReparado}
+                        disabled={hasVotedReparado || isVotingReparado}
+                      >
+                        <CheckCircle2 className="size-4" />
+                        {hasVotedReparado ? "Ya votaste" : "Votar reparado"}
+                      </Button>
                     </div>
-                    <Button
-                      variant={hasVoted ? "secondary" : "default"}
-                      size="sm"
-                      className={`w-full h-9 md:h-10 lg:h-11 ${hasVoted
-                          ? "bg-muted text-muted-foreground hover:bg-muted"
-                          : ""
-                        }`}
-                      onClick={handleVoteNoExiste}
-                      disabled={hasVoted || isVoting}
-                    >
-                      <ThumbsDown className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
-                      <span className="text-xs md:text-sm lg:text-base font-medium">
-                        {hasVoted ? "✓ Ya votaste" : "Votar: No Existe"}
-                      </span>
-                    </Button>
-                    <div className="flex items-center justify-center gap-1.5 md:gap-2 text-xs md:text-sm lg:text-base flex-wrap">
-                      <div className="tone-danger-inline flex items-center gap-1.5 rounded-md px-2 py-1">
-                        <span className="font-bold">
-                          {votosCount} / 1
-                        </span>
-                        <span>votos</span>
+
+                    {currentUser.id !== reporte.usuario_id && (
+                      <div className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--semantic-danger-border)] bg-[var(--semantic-danger-soft)] p-3 md:p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <ThumbsDown className="size-4 text-[var(--semantic-danger)]" />
+                              <p className="text-sm font-semibold text-[var(--semantic-danger)]">No existe</p>
+                            </div>
+                            <p className="text-xs leading-5 text-muted-foreground">Usalo si el reporte fue cargado por error o el problema nunca existió.</p>
+                          </div>
+                          <Badge variant="rechazado">{votosCount} / 1</Badge>
+                        </div>
+
+                        <Button
+                          variant={hasVoted ? "secondary" : "destructive"}
+                          size="sm"
+                          className={`w-full ${hasVoted ? "bg-muted text-muted-foreground hover:bg-muted" : ""}`}
+                          onClick={handleVoteNoExiste}
+                          disabled={hasVoted || isVoting}
+                        >
+                          <ThumbsDown className="size-4" />
+                          {hasVoted ? "Ya votaste" : "Votar no existe"}
+                        </Button>
                       </div>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">
-                        Faltan <span className="font-semibold text-[var(--semantic-danger)]">{1 - votosCount}</span> para rechazar
-                      </span>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1107,7 +1106,7 @@ export default function ReporteDetallePage({
             <AlertDialogAction
               onClick={confirmDeleteReporte}
               disabled={isDeleting}
-              className="bg-destructive text-accent-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? (
                 <>
