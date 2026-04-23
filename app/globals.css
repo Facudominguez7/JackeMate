@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Importación de estilos de Leaflet para el mapa */
 @import "leaflet/dist/leaflet.css";
 @import "leaflet.markercluster/dist/MarkerCluster.css";
 @import "leaflet.markercluster/dist/MarkerCluster.Default.css";
@@ -9,79 +8,142 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.988 0.008 155);
+  --foreground: oklch(0.19 0.01 95);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.19 0.01 95);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.58 0.15 160);
+  --popover-foreground: oklch(0.19 0.01 95);
+
+  --primary: oklch(0.57 0.12 157);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.65 0.15 160);
+  --secondary: oklch(0.34 0.04 157);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.97 0.005 250);
-  --muted-foreground: oklch(0.45 0.01 250);
-  --accent: oklch(0.65 0.15 160);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  --muted: oklch(0.965 0.012 157);
+  --muted-foreground: oklch(0.45 0.028 157);
+  --accent: oklch(0.93 0.03 157);
+  --accent-foreground: oklch(0.3 0.05 157);
+  --destructive: oklch(0.57 0.18 25);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.88 0.015 157);
+  --input: oklch(0.955 0.012 157);
+  --ring: oklch(0.62 0.08 230);
+
+  --radius: 0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-pill: 999px;
+
+  --surface-subtle: oklch(0.972 0.014 157);
+  --surface-strong: oklch(0.945 0.022 157);
+
+  --semantic-info: oklch(0.56 0.11 240);
+  --semantic-info-soft: oklch(0.95 0.02 240);
+  --semantic-info-border: oklch(0.88 0.03 240);
+
+  --semantic-success: oklch(0.57 0.12 157);
+  --semantic-success-soft: oklch(0.95 0.02 157);
+  --semantic-success-border: oklch(0.88 0.03 157);
+
+  --semantic-warning: oklch(0.72 0.13 85);
+  --semantic-warning-soft: oklch(0.97 0.03 90);
+  --semantic-warning-border: oklch(0.9 0.04 90);
+
+  --semantic-danger: oklch(0.57 0.18 25);
+  --semantic-danger-soft: oklch(0.96 0.02 25);
+  --semantic-danger-border: oklch(0.89 0.04 25);
+
+  --semantic-admin: oklch(0.5 0.1 285);
+  --semantic-admin-soft: oklch(0.95 0.02 285);
+  --semantic-admin-border: oklch(0.88 0.03 285);
+
+  --rank-gold: oklch(0.76 0.14 84);
+  --rank-gold-soft: oklch(0.96 0.03 88);
+  --rank-gold-border: oklch(0.9 0.05 86);
+  --rank-silver: oklch(0.66 0.01 250);
+  --rank-silver-soft: oklch(0.95 0.004 250);
+  --rank-silver-border: oklch(0.86 0.008 250);
+  --rank-bronze: oklch(0.61 0.09 50);
+  --rank-bronze-soft: oklch(0.95 0.02 55);
+  --rank-bronze-border: oklch(0.87 0.03 55);
+
+  --priority-high: var(--semantic-danger);
+  --priority-medium: var(--semantic-warning);
+  --priority-low: oklch(0.55 0.03 95);
+  --priority-low-soft: oklch(0.96 0.002 95);
+  --priority-low-border: oklch(0.88 0.004 95);
+
+  --status-pending: var(--semantic-warning);
+  --status-repaired: var(--semantic-success);
+  --status-rejected: var(--semantic-danger);
+  --category-accent: var(--semantic-info);
+
+  --map-heat-high: var(--semantic-danger);
+  --map-heat-medium: var(--semantic-warning);
+  --map-heat-low: var(--semantic-info);
+  --map-heat-neutral: var(--muted-foreground);
+  --map-marker-stroke: var(--card);
+  --map-marker-foreground: var(--card);
+  --elevation-soft: 0 10px 30px color-mix(in oklab, var(--foreground) 12%, transparent);
+
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.65 0.15 160);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.58 0.15 160);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.65 0.15 160);
-  --accent-foreground: oklch(0.145 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --background: oklch(0.18 0.008 95);
+  --foreground: oklch(0.97 0.002 95);
+  --card: oklch(0.22 0.008 95);
+  --card-foreground: oklch(0.97 0.002 95);
+  --popover: oklch(0.22 0.008 95);
+  --popover-foreground: oklch(0.97 0.002 95);
+
+  --primary: oklch(0.66 0.11 157);
+  --primary-foreground: oklch(0.18 0.008 95);
+  --secondary: oklch(0.38 0.05 157);
+  --secondary-foreground: oklch(0.97 0.002 95);
+
+  --muted: oklch(0.24 0.02 157);
+  --muted-foreground: oklch(0.8 0.02 157);
+  --accent: oklch(0.3 0.04 157);
+  --accent-foreground: oklch(0.96 0.002 157);
+  --destructive: oklch(0.64 0.18 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.34 0.02 157);
+  --input: oklch(0.27 0.02 157);
+  --ring: oklch(0.72 0.08 230);
+
+  --surface-subtle: oklch(0.22 0.018 157);
+  --surface-strong: oklch(0.26 0.026 157);
+
+  --semantic-info-soft: oklch(0.27 0.03 240);
+  --semantic-info-border: oklch(0.4 0.04 240);
+  --semantic-success-soft: oklch(0.27 0.03 157);
+  --semantic-success-border: oklch(0.39 0.04 157);
+  --semantic-warning-soft: oklch(0.28 0.03 90);
+  --semantic-warning-border: oklch(0.42 0.04 90);
+  --semantic-danger-soft: oklch(0.27 0.03 25);
+  --semantic-danger-border: oklch(0.41 0.04 25);
+  --semantic-admin-soft: oklch(0.27 0.03 285);
+  --semantic-admin-border: oklch(0.41 0.04 285);
+
+  --rank-gold-soft: oklch(0.31 0.05 86);
+  --rank-gold-border: oklch(0.45 0.07 86);
+  --rank-silver-soft: oklch(0.3 0.01 250);
+  --rank-silver-border: oklch(0.42 0.012 250);
+  --rank-bronze-soft: oklch(0.3 0.03 55);
+  --rank-bronze-border: oklch(0.43 0.05 55);
+
+  --priority-low: oklch(0.74 0.01 95);
+  --priority-low-soft: oklch(0.25 0.004 95);
+  --priority-low-border: oklch(0.36 0.006 95);
 }
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -101,88 +163,236 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 22%, white);
+    color: var(--foreground);
   }
 }
 
-/* Estilos para clusters de marcadores en el mapa */
-.custom-cluster-icon {
+@layer components {
+  .page-shell {
+    @apply min-h-screen bg-background;
+  }
+
+  .page-container {
+    @apply mx-auto w-full max-w-[120rem] px-4 sm:px-6 lg:px-8;
+  }
+
+  .page-stack {
+    @apply space-y-8 py-6 md:space-y-12 md:py-8 lg:space-y-16 lg:py-10;
+  }
+
+  .section-stack {
+    @apply space-y-4 md:space-y-5;
+  }
+
+  .page-hero-panel {
+    @apply overflow-hidden rounded-[var(--radius-xl)] border border-border bg-card;
+  }
+
+  .page-hero-grid {
+    @apply grid gap-6 p-6 md:gap-8 md:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:p-10;
+  }
+
+  .page-kicker {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground;
+  }
+
+  .page-meta-grid {
+    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .page-meta-card {
+    @apply rounded-[var(--radius-lg)] border border-border bg-[var(--surface-subtle)] p-4;
+  }
+
+  .page-meta-label {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  .page-meta-value {
+    @apply mt-2 text-lg font-semibold tracking-tight md:text-xl;
+  }
+
+  .surface-subtle {
+    background: var(--surface-subtle);
+  }
+
+  .surface-strong {
+    background: var(--surface-strong);
+  }
+
+  .section-eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em];
+    background: var(--semantic-success-soft);
+    border-color: var(--semantic-success-border);
+    color: var(--primary);
+  }
+
+  .section-title {
+    @apply text-2xl font-semibold tracking-tight md:text-3xl lg:text-4xl;
+  }
+
+  .section-copy {
+    @apply max-w-2xl text-sm leading-6 text-muted-foreground md:text-base;
+  }
+
+  .hero-title {
+    @apply text-balance text-4xl font-semibold leading-none tracking-[-0.05em] md:text-6xl lg:text-7xl xl:text-[5.5rem];
+  }
+
+  .hero-copy {
+    @apply max-w-2xl text-base leading-7 text-muted-foreground md:text-lg;
+  }
+
+  .kpi-card {
+    @apply rounded-[var(--radius-lg)] border border-border bg-card p-5 md:p-6;
+  }
+
+  .kpi-value {
+    @apply text-3xl font-semibold tracking-tight md:text-4xl;
+  }
+
+  .tone-info-card {
+    background: var(--semantic-info-soft);
+    border-color: var(--semantic-info-border);
+  }
+
+  .tone-success-card {
+    background: var(--semantic-success-soft);
+    border-color: var(--semantic-success-border);
+  }
+
+  .tone-warning-card {
+    background: var(--semantic-warning-soft);
+    border-color: var(--semantic-warning-border);
+  }
+
+  .tone-danger-card {
+    background: var(--semantic-danger-soft);
+    border-color: var(--semantic-danger-border);
+  }
+
+  .tone-admin-card {
+    background: var(--semantic-admin-soft);
+    border-color: var(--semantic-admin-border);
+  }
+
+  .tone-success-inline {
+    @apply rounded-xl border px-3 py-2;
+    background: var(--semantic-success-soft);
+    border-color: var(--semantic-success-border);
+    color: var(--semantic-success);
+  }
+
+  .tone-danger-inline {
+    @apply rounded-xl border px-3 py-2;
+    background: var(--semantic-danger-soft);
+    border-color: var(--semantic-danger-border);
+    color: var(--semantic-danger);
+  }
+
+  .tone-admin-inline {
+    @apply rounded-xl border px-3 py-2;
+    background: var(--semantic-admin-soft);
+    border-color: var(--semantic-admin-border);
+    color: var(--semantic-admin);
+  }
+
+  .tone-info-inline {
+    @apply rounded-xl border px-3 py-2;
+    background: var(--semantic-info-soft);
+    border-color: var(--semantic-info-border);
+    color: var(--semantic-info);
+  }
+
+  .tone-warning-inline {
+    @apply rounded-xl border px-3 py-2;
+    background: var(--semantic-warning-soft);
+    border-color: var(--semantic-warning-border);
+    color: var(--semantic-warning);
+  }
+
+  .map-card-dot {
+    @apply inline-flex size-2.5 rounded-full border border-background;
+  }
+
+  .map-legend-card {
+    @apply rounded-[var(--radius-lg)] border border-border bg-card/95 p-3 backdrop-blur-sm;
+  }
+
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background: var(--card) !important;
+    color: var(--foreground) !important;
+    box-shadow: none !important;
+    border: 1px solid var(--border) !important;
+  }
+}
+
+.custom-cluster-icon,
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large,
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
   background: transparent !important;
   border: none !important;
 }
 
-.marker-cluster-small,
-.marker-cluster-medium,
-.marker-cluster-large {
-  background-color: transparent !important;
-}
-
-.marker-cluster-small div,
-.marker-cluster-medium div,
-.marker-cluster-large div {
-  background-color: transparent !important;
-}
-
-/* Mejorar visibilidad de controles de zoom de Leaflet */
 .leaflet-control-zoom {
-  border: 1px solid hsl(var(--border)) !important;
+  border: 1px solid var(--border) !important;
   border-radius: var(--radius) !important;
-  box-shadow: 0 4px 12px rgb(15 23 42 / 0.18) !important;
+  box-shadow: none !important;
   overflow: hidden !important;
-  background-color: rgba(255, 255, 255, 0.98) !important;
-  backdrop-filter: blur(10px) !important;
+  background: var(--card) !important;
 }
 
 .leaflet-control-zoom a {
-  background-color: transparent !important;
-  color: hsl(var(--foreground)) !important;
-  border-bottom: 1px solid hsl(var(--border)) !important;
-  font-size: 18px !important;
-  font-weight: 700 !important;
-  line-height: 36px !important;
-  width: 36px !important;
-  height: 36px !important;
+  background: transparent !important;
+  color: var(--foreground) !important;
+  border-bottom: 1px solid var(--border) !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  line-height: 2.5rem !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  font-weight: 700 !important;
 }
 
 .leaflet-control-zoom a:hover {
-  background-color: hsl(var(--accent)) !important;
-  color: hsl(var(--accent-foreground)) !important;
+  background: var(--surface-subtle) !important;
+  color: var(--foreground) !important;
 }
 
 .leaflet-control-zoom a:last-child {
   border-bottom: none !important;
 }
 
-/* Ajuste de márgenes para controles Leaflet (evita que se corten con el header) */
 .leaflet-top .leaflet-control {
-  margin-top: 3.5rem !important;
+  margin-top: 4.75rem !important;
   margin-left: 1rem !important;
   margin-right: 1rem !important;
 }
@@ -193,31 +403,13 @@
   }
 }
 
-/* Modo oscuro para controles de Leaflet */
-.dark .leaflet-control-zoom a {
-  background-color: transparent !important;
-  color: hsl(var(--foreground)) !important;
-}
-
-.dark .leaflet-control-zoom {
-  background-color: rgba(15, 23, 42, 0.95) !important;
-}
-
-.dark .leaflet-control-zoom a:hover {
-  background-color: hsl(var(--accent)) !important;
-}
-
-/* Ajustar z-index de Leaflet para que no interfiera con UI components */
 .leaflet-pane,
 .leaflet-tile-pane,
 .leaflet-overlay-pane,
 .leaflet-shadow-pane,
 .leaflet-marker-pane,
 .leaflet-tooltip-pane,
-.leaflet-popup-pane {
-  z-index: 1 !important;
-}
-
+.leaflet-popup-pane,
 .leaflet-map-pane {
   z-index: 1 !important;
 }
@@ -226,7 +418,6 @@
   z-index: 2 !important;
 }
 
-/* Asegurar que los componentes de UI tengan mayor z-index */
 [role="dialog"],
 [role="alertdialog"],
 [role="menu"],

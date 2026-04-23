@@ -1,34 +1,16 @@
-/**
- * Página de listado de reportes públicos
- * 
- * Server Component que consulta y muestra todos los reportes de problemas
- * públicos en Posadas desde Supabase.
- * 
- * Características:
- * - Renderizado en el servidor (RSC - React Server Component)
- * - Consulta a Supabase con relaciones (joins)
- * - Manejo de estados de error y datos vacíos
- * - Optimización con lazy loading de imágenes
- * - Filtros reales por categoría, estado, prioridad y texto
- */
+import Link from "next/link"
+import { AlertTriangle, ArrowRight, Plus, SearchCheck } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-import Link from "next/link"
-import { ReportesClientWrapper } from "./reportes-client"
+import { Card, CardContent } from "@/components/ui/card"
 import { ListaReportesClient } from "@/components/lista-reportes-client"
-import { getReportCardData, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
+import { ReportesClientWrapper } from "./reportes-client"
+import { getCategorias, getEstados, getPrioridades, getReportCardData } from "@/database/queries/reportes/get-reportes"
 
-/**
- * Fuerza el renderizado dinámico en cada petición
- * Evita que Next.js cachee esta página para mostrar siempre datos actualizados
- */
 export const dynamic = "force-dynamic"
 
-/**
- * Props del componente - searchParams de Next.js para filtros
- */
 type ReportesPageProps = {
   searchParams: Promise<{
     search?: string
@@ -38,82 +20,95 @@ type ReportesPageProps = {
   }>
 }
 
-/**
- * Muestra la página de reportes públicos incluyendo controles de filtrado, mensajes de estado y la lista de tarjetas de reporte.
- *
- * @param searchParams - Parámetros opcionales de filtrado: `search`, `categoria`, `estado` y `prioridad`.
- * @returns El elemento React que representa la interfaz completa de la página de reportes.
- */
 export default async function ReportesPage({ searchParams }: ReportesPageProps) {
-  // Obtener los parámetros de búsqueda
   const params = await searchParams
   const { search, categoria, estado, prioridad } = params
 
-  // Obtener reportes con filtros aplicados (SSR inicial)
   const { data: reports, error, hasMore } = await getReportCardData({
     search,
     categoria,
     estado,
     prioridad,
     limite: 12,
-    offset: 0
+    offset: 0,
   })
 
-  // Obtener opciones para los filtros
   const { data: categorias } = await getCategorias()
   const { data: estados } = await getEstados()
   const { data: prioridades } = await getPrioridades()
 
+  const activeFilters = [search, categoria, estado, prioridad].filter(Boolean).length
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sección de acciones: botón para crear nuevo reporte */}
-      <div className="container mx-auto px-4 pt-6">
-        <div className="flex items-center justify-end gap-3">
-          <Button asChild size="sm">
-            <Link href="/reportes/nuevo">
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Reporte
-            </Link>
-          </Button>
-        </div>
-      </div>
+    <div className="page-shell">
+      <div className="page-container page-stack">
+        <section className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="section-eyebrow">Reportes</span>
+            <Badge variant="secondary">{reports.length} visibles</Badge>
+            {activeFilters > 0 && <Badge variant="secondary">{activeFilters} filtros activos</Badge>}
+          </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Encabezado de la página */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">Reportes Públicos</h2>
-          <p className="text-muted-foreground">Explora todos los reportes de problemas públicos en Posadas</p>
-        </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:w-auto lg:grid-cols-[repeat(2,minmax(0,auto))]">
+            <Button size="lg" className="justify-between" asChild>
+              <Link href="/reportes/nuevo">
+                <span className="flex items-center gap-2">
+                  <Plus className="size-4" />
+                  Crear reporte
+                </span>
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" className="justify-between" asChild>
+              <Link href="/mapa">
+                <span className="flex items-center gap-2">
+                  <SearchCheck className="size-4" />
+                  Ver en mapa
+                </span>
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        </section>
 
-        {/* Sección de filtros con funcionalidad real */}
-        <ReportesClientWrapper
-          categorias={categorias ?? []}
-          estados={estados ?? []}
-          prioridades={prioridades ?? []}
-        />
+        <section className="section-stack">
+          <ReportesClientWrapper
+            categorias={categorias ?? []}
+            estados={estados ?? []}
+            prioridades={prioridades ?? []}
+          />
+        </section>
 
-        {/* Mensaje de error si falla la consulta a Supabase */}
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="size-4" />
             <AlertTitle>No se pudieron cargar los reportes</AlertTitle>
             <AlertDescription>Intenta nuevamente en unos minutos.</AlertDescription>
           </Alert>
         )}
 
-        {/* Renderizado condicional: Lista de reportes con paginación, mensaje vacío, o nada si hay error */}
         {reports.length > 0 ? (
-          <ListaReportesClient
-            initialReports={reports}
-            initialHasMore={hasMore ?? false}
-          />
+          <section className="section-stack">
+            <div>
+              <span className="section-eyebrow">Listado</span>
+              <h2 className="section-title mt-3">Incidentes visibles para toda la comunidad</h2>
+            </div>
+            <ListaReportesClient initialReports={reports} initialHasMore={hasMore ?? false} />
+          </section>
         ) : !error ? (
-          // Mensaje cuando no hay reportes y no hubo error
-          <Alert className="mt-6">
-            <AlertTitle>No hay reportes publicados</AlertTitle>
-            <AlertDescription>
-              Creá el primero para ayudar a mejorar tu comunidad.
-            </AlertDescription>
-          </Alert>
+          <Card className="border-dashed">
+            <CardContent className="space-y-3 pt-6 text-center">
+              <p className="text-lg font-semibold tracking-tight">No hay reportes publicados con esos criterios.</p>
+              <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground">
+                Ajustá los filtros o creá un nuevo reporte para sumar evidencia ciudadana desde tu barrio.
+              </p>
+              <div className="flex justify-center">
+                <Button asChild>
+                  <Link href="/reportes/nuevo">Crear el primer reporte</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         ) : null}
       </div>
     </div>

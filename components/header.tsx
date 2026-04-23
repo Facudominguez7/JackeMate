@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import { getUserRoleContext } from "@/lib/authz/roles"
@@ -14,46 +13,43 @@ import { HeaderClient } from "./header-client"
  * @returns El elemento JSX del encabezado que contiene el logotipo, el título responsive y los controles de usuario.
  */
 export default async function Header() {
-    const supabase = await createClient()
-    const { data } = await supabase.auth.getUser()
-    const user = data?.user
-    const displayName = getUserDisplayName(user)
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getUser()
+  const user = data?.user
+  const displayName = getUserDisplayName(user)
 
-    let userRolId: number | null = null
-    if (user) {
-        const { data: roleContext } = await getUserRoleContext(supabase, user.id)
+  let userRolId: number | null = null
+  if (user) {
+    const { data: roleContext } = await getUserRoleContext(supabase, user.id)
+    userRolId = roleContext?.roleId ?? null
+  }
 
-        userRolId = roleContext?.roleId ?? null
-    }
-
-    return (
-        <header className="border-b-4 border-b-primary bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-md">
-            <div className="container mx-auto px-1 py-1">
-                <div className="flex items-center justify-between gap-4">
-                    {/* Logo - Izquierda */}
-                    <div className="flex-1">
-                        <Link href="/" className="flex items-center gap-3 flex-shrink-0 w-fit" aria-label="Ir al inicio">
-                            <div className="w-20 h-20 rounded-lg relative overflow-hidden">
-                                <Image
-                                    src="/logo/logoJackeMate.png"
-                                    alt="JackeMate logo"
-                                    fill
-                                    sizes="40px"
-                                    className="object-cover"
-                                    priority
-                                />
-                            </div>
-                            <div className="hidden lg:block">
-                                <h1 className="text-xl font-bold text-foreground">JackeMate</h1>
-                                <p className="text-sm text-muted-foreground">Mejoremos nuestra ciudad juntos</p>
-                            </div>
-                        </Link>
-                    </div>
-
-                    {/* Navegación Central y Derecha */}
-                    <HeaderClient user={user} displayName={displayName} userRolId={userRolId} />
-                </div>
+  return (
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
+      <div className="page-container">
+        <div className="flex min-h-18 items-center justify-between gap-4 py-3">
+          <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="Ir al inicio">
+            <div className="relative size-11 overflow-hidden rounded-2xl border border-border bg-[var(--surface-subtle)]">
+              <Image
+                src="/logo/logoJackeMate.png"
+                alt="JackeMate logo"
+                fill
+                sizes="44px"
+                className="object-cover"
+                priority
+              />
             </div>
-        </header>
-    )
+            <div className="min-w-0">
+              <p className="text-base font-semibold tracking-tight">JackeMate</p>
+              <p className="hidden text-sm text-muted-foreground sm:block">
+                Reportes ciudadanos para Posadas, Misiones
+              </p>
+            </div>
+          </Link>
+
+          <HeaderClient user={user} displayName={displayName} userRolId={userRolId} />
+        </div>
+      </div>
+    </header>
+  )
 }

@@ -309,6 +309,37 @@ export default function ReporteDetallePage({
     setShowDeleteReporteDialog(true);
   };
 
+  const handleShareReport = async () => {
+    if (typeof window === "undefined" || !reporte) return;
+
+    const shareUrl = window.location.href;
+    const shareData = {
+      title: reporte.titulo,
+      text: `Mirá este reporte ciudadano en JackeMate: ${reporte.titulo}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Enlace copiado", {
+        description: "Ya podés compartir este reporte.",
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      toast.error("No se pudo compartir el reporte", {
+        description: "Intentá nuevamente en unos segundos.",
+      });
+    }
+  };
+
   const confirmDeleteReporte = async () => {
     if (!currentUser || !reporte) return;
 
@@ -534,7 +565,7 @@ export default function ReporteDetallePage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="page-shell flex items-center justify-center">
         <LoadingLogo size="lg" text="Cargando reporte..." />
       </div>
     );
@@ -542,7 +573,7 @@ export default function ReporteDetallePage({
 
   if (!reporte) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="page-shell flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-lg text-muted-foreground">Reporte no encontrado</p>
           <Button asChild className="mt-4">
@@ -554,9 +585,9 @@ export default function ReporteDetallePage({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="page-shell">
       {/* Acciones de la página */}
-      <div className="container mx-auto px-3 md:px-4 lg:px-6 pt-3 md:pt-6 lg:pt-8 max-w-7xl">
+      <div className="page-container pt-4 md:pt-6 lg:pt-8">
         <div className="flex items-center justify-between">
           <Button variant="outline" size="sm" asChild>
             <Link href="/reportes">
@@ -568,12 +599,12 @@ export default function ReporteDetallePage({
           {/* Badge de Admin y Botones de acción rápida en desktop */}
           <div className="hidden lg:flex items-center gap-2">
             {isAdmin && (
-              <Badge variant="default" className="bg-purple-600 hover:bg-purple-700 text-white">
+              <Badge variant="admin">
                 <Shield className="w-3 h-3 mr-1" />
                 Administrador
               </Badge>
             )}
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleShareReport}>
               <Share2 className="w-4 h-4 mr-2" />
               Compartir
             </Button>
@@ -581,12 +612,12 @@ export default function ReporteDetallePage({
         </div>
       </div>
 
-      <div className="container mx-auto px-3 md:px-4 lg:px-6 py-4 md:py-8 max-w-7xl">
+      <div className="page-container py-4 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 lg:gap-8">
           {/* Contenido Principal */}
           <div className="lg:col-span-8 space-y-4 md:space-y-6 lg:space-y-8">
             {/* Encabezado del Reporte */}
-            <Card className="lg:shadow-md">
+            <Card>
               <CardHeader className="pb-3 md:pb-6 lg:pb-8">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-2 lg:space-y-3 flex-1 min-w-0">
@@ -612,9 +643,9 @@ export default function ReporteDetallePage({
                     </div>
                     {/* Mostrar fecha de cambio si está Reparado o Rechazado */}
                     {fechaCambioEstado && isReporteCerrado && (
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs md:text-sm font-medium ${getNameFromRelation(reporte.estados).toLowerCase() === 'reparado'
-                          ? 'bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900'
-                          : 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900'
+                      <div className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-medium md:text-sm ${getNameFromRelation(reporte.estados).toLowerCase() === 'reparado'
+                          ? 'tone-success-inline'
+                          : 'tone-danger-inline'
                         }`}>
                         <Clock className="w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0" />
                         <span>
@@ -638,7 +669,7 @@ export default function ReporteDetallePage({
                   </div>
                   <div className="flex gap-1.5 md:gap-2 flex-shrink-0">
                     {/* Botón compartir en mobile */}
-                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-9 md:w-9 lg:hidden">
+                    <Button variant="outline" size="sm" className="h-8 w-8 p-0 md:h-9 md:w-9 lg:hidden" onClick={handleShareReport} aria-label="Compartir reporte">
                       <Share2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     </Button>
 
@@ -647,7 +678,7 @@ export default function ReporteDetallePage({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 px-2 md:h-9 md:px-3 lg:h-10 lg:px-4 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                        className="h-8 border-destructive/30 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive md:h-9 md:px-3 lg:h-10 lg:px-4"
                         onClick={handleDeleteReporte}
                         disabled={isDeleting}
                       >
@@ -671,7 +702,7 @@ export default function ReporteDetallePage({
                     {reporte.fotos_reporte.map((foto, index) => (
                       <div
                         key={index}
-                        className="w-full max-w-2xl aspect-video bg-muted rounded-md md:rounded-lg lg:rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex items-center justify-center"
+                        className="flex aspect-video w-full max-w-2xl items-center justify-center overflow-hidden rounded-md bg-[var(--surface-subtle)] md:rounded-lg lg:rounded-xl"
                       >
                         <img
                           src={foto.publicUrl || foto.url || "/placeholder.svg"}
@@ -708,7 +739,7 @@ export default function ReporteDetallePage({
             </Card>
 
             {/* Sección de Comentarios */}
-            <Card className="lg:shadow-md">
+            <Card>
               <CardHeader className="pb-3 md:pb-6 lg:pb-8 lg:px-8 lg:pt-8">
                 <CardTitle className="text-base md:text-xl lg:text-2xl flex items-center gap-2 lg:gap-3">
                   <MessageCircle className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
@@ -761,7 +792,7 @@ export default function ReporteDetallePage({
                     comentarios.map((comentario) => (
                       <div
                         key={comentario.id}
-                        className="border rounded-md md:rounded-lg lg:rounded-xl p-3 md:p-4 lg:p-6 space-y-2 md:space-y-3 lg:space-y-4 hover:bg-muted/50 transition-all hover:shadow-sm"
+                         className="space-y-2 rounded-md border p-3 transition-colors hover:bg-[var(--surface-subtle)] md:space-y-3 md:rounded-lg md:p-4 lg:space-y-4 lg:rounded-xl lg:p-6"
                       >
                         <div className="flex items-start justify-between gap-2 md:gap-3 lg:gap-4">
                           <div className="flex items-center gap-2 md:gap-3 lg:gap-4 flex-1 min-w-0">
@@ -841,11 +872,11 @@ export default function ReporteDetallePage({
 
             {/* Panel de Administrador - Solo visible para admins */}
             {isAdmin && (
-              <Card className="border-2 border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/20 lg:shadow-md">
+              <Card className="tone-admin-card border-2">
                 <CardHeader className="pb-3 md:pb-4 lg:pb-6">
                   <div className="flex items-center gap-2 mb-2">
-                    <Shield className="w-5 h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
-                    <CardTitle className="text-base md:text-lg lg:text-xl text-purple-700 dark:text-purple-400">
+                    <Shield className="w-5 h-5 text-[var(--semantic-admin)] md:w-6 md:h-6" />
+                    <CardTitle className="text-base text-[var(--semantic-admin)] md:text-lg lg:text-xl">
                       Panel de Administrador
                     </CardTitle>
                   </div>
@@ -880,7 +911,7 @@ export default function ReporteDetallePage({
                     <Button
                       onClick={handleAdminChangeEstado}
                       disabled={!estadoSeleccionado || isChangingEstado}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm"
+                       className="w-full text-xs md:text-sm"
                       size="sm"
                     >
                       <Settings className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
@@ -889,7 +920,7 @@ export default function ReporteDetallePage({
                   </div>
 
                   {/* Eliminar Reporte */}
-                  <div className="pt-3 border-t border-purple-200 dark:border-purple-900">
+                   <div className="border-t border-[var(--semantic-admin-border)] pt-3">
                     <Button
                       onClick={handleAdminDeleteReporte}
                       variant="outline"
@@ -906,13 +937,13 @@ export default function ReporteDetallePage({
 
             {/* Botón "Marcar como Reparado" - Solo si está PENDIENTE */}
             {currentUser && !isReporteCerrado && (
-              <Card className="border-2 border-green-500/20 bg-green-50/50 dark:bg-green-950/20 lg:shadow-md hover:shadow-lg transition-shadow">
+              <Card className="tone-success-card border-2">
                 <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6 lg:p-6">
                   <div className="text-center space-y-3 md:space-y-4">
                     <div className="space-y-1.5 md:space-y-2">
                       <div className="flex items-center justify-center gap-2 mb-2">
-                        <CheckCircle2 className="w-6 h-6 lg:w-7 lg:h-7 text-green-600 dark:text-green-500" />
-                        <h3 className="font-semibold text-base md:text-lg lg:text-xl text-green-700 dark:text-green-500">
+                        <CheckCircle2 className="w-6 h-6 text-[var(--semantic-success)] lg:w-7 lg:h-7" />
+                        <h3 className="text-base font-semibold text-[var(--semantic-success)] md:text-lg lg:text-xl">
                           ¿Ya está reparado?
                         </h3>
                       </div>
@@ -922,8 +953,8 @@ export default function ReporteDetallePage({
                       <p className="text-[10px] md:text-xs lg:text-sm text-muted-foreground">
                         Ayudá a mantener la información actualizada para todos.
                       </p>
-                      <div className="bg-green-100 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-md p-2 mt-2">
-                        <p className="text-[10px] md:text-xs lg:text-sm text-green-700 dark:text-green-400 font-medium">
+                      <div className="tone-success-inline mt-2 rounded-md p-2">
+                        <p className="text-[10px] font-medium md:text-xs lg:text-sm">
                           ✓ Con 1 voto, el reporte se marcará como reparado
                         </p>
                       </div>
@@ -932,8 +963,8 @@ export default function ReporteDetallePage({
                       variant={hasVotedReparado ? "secondary" : "default"}
                       size="sm"
                       className={`w-full h-9 md:h-10 lg:h-11 ${hasVotedReparado
-                          ? "bg-gray-500 hover:bg-gray-600"
-                          : "bg-green-600 hover:bg-green-700 text-white"
+                          ? "bg-muted text-muted-foreground hover:bg-muted"
+                          : ""
                         }`}
                       onClick={handleVoteReparado}
                       disabled={hasVotedReparado || isVotingReparado}
@@ -944,15 +975,15 @@ export default function ReporteDetallePage({
                       </span>
                     </Button>
                     <div className="flex items-center justify-center gap-1.5 md:gap-2 text-xs md:text-sm lg:text-base flex-wrap">
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-950/40 rounded-md border border-green-200 dark:border-green-900">
-                        <span className="font-bold text-green-700 dark:text-green-400">
+                      <div className="tone-success-inline flex items-center gap-1.5 rounded-md px-2 py-1">
+                        <span className="font-bold">
                           {votosReparadoCount} / 1
                         </span>
-                        <span className="text-green-600 dark:text-green-500">votos</span>
+                        <span>votos</span>
                       </div>
                       <span className="text-muted-foreground">•</span>
                       <span className="text-muted-foreground">
-                        Faltan <span className="font-semibold text-green-600 dark:text-green-500">{1 - votosReparadoCount}</span> para marcar como reparado
+                        Faltan <span className="font-semibold text-[var(--semantic-success)]">{1 - votosReparadoCount}</span> para marcar como reparado
                       </span>
                     </div>
                   </div>
@@ -962,21 +993,21 @@ export default function ReporteDetallePage({
 
             {/* Botón "No Existe" - Solo si está PENDIENTE y no es el creador */}
             {currentUser && currentUser.id !== reporte.usuario_id && !isReporteCerrado && (
-              <Card className="border-2 border-red-500/30 bg-red-50/50 dark:bg-red-950/20 lg:shadow-md hover:shadow-lg transition-shadow">
+              <Card className="tone-danger-card border-2">
                 <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6 lg:p-6">
                   <div className="text-center space-y-3 md:space-y-4">
                     <div className="space-y-1.5 md:space-y-2">
                       <div className="flex items-center justify-center gap-2 mb-2">
-                        <ThumbsDown className="w-6 h-6 lg:w-7 lg:h-7 text-red-600 dark:text-red-500" />
-                        <h3 className="font-semibold text-base md:text-lg lg:text-xl text-red-700 dark:text-red-500">
+                        <ThumbsDown className="w-6 h-6 text-[var(--semantic-danger)] lg:w-7 lg:h-7" />
+                        <h3 className="text-base font-semibold text-[var(--semantic-danger)] md:text-lg lg:text-xl">
                           ¿Este reporte no existe?
                         </h3>
                       </div>
                       <p className="text-xs md:text-sm lg:text-base text-muted-foreground">
-                        Si verificaste que este problema <span className="font-semibold text-red-600 dark:text-red-500">nunca existió</span> o fue reportado por error, marcalo.
+                        Si verificaste que este problema <span className="font-semibold text-[var(--semantic-danger)]">nunca existió</span> o fue reportado por error, marcalo.
                       </p>
-                      <div className="bg-red-100 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md p-2 mt-2">
-                        <p className="text-[10px] md:text-xs lg:text-sm text-red-700 dark:text-red-400 font-medium">
+                      <div className="tone-danger-inline mt-2 rounded-md p-2">
+                        <p className="text-[10px] font-medium md:text-xs lg:text-sm">
                           ⚠️ Con 1 voto, el reporte será rechazado permanentemente
                         </p>
                       </div>
@@ -985,8 +1016,8 @@ export default function ReporteDetallePage({
                       variant={hasVoted ? "secondary" : "default"}
                       size="sm"
                       className={`w-full h-9 md:h-10 lg:h-11 ${hasVoted
-                          ? "bg-gray-500 hover:bg-gray-600"
-                          : "bg-red-600 hover:bg-red-700 text-white"
+                          ? "bg-muted text-muted-foreground hover:bg-muted"
+                          : ""
                         }`}
                       onClick={handleVoteNoExiste}
                       disabled={hasVoted || isVoting}
@@ -997,15 +1028,15 @@ export default function ReporteDetallePage({
                       </span>
                     </Button>
                     <div className="flex items-center justify-center gap-1.5 md:gap-2 text-xs md:text-sm lg:text-base flex-wrap">
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-950/40 rounded-md border border-red-200 dark:border-red-900">
-                        <span className="font-bold text-red-700 dark:text-red-400">
+                      <div className="tone-danger-inline flex items-center gap-1.5 rounded-md px-2 py-1">
+                        <span className="font-bold">
                           {votosCount} / 1
                         </span>
-                        <span className="text-red-600 dark:text-red-500">votos</span>
+                        <span>votos</span>
                       </div>
                       <span className="text-muted-foreground">•</span>
                       <span className="text-muted-foreground">
-                        Faltan <span className="font-semibold text-red-600 dark:text-red-500">{1 - votosCount}</span> para rechazar
+                        Faltan <span className="font-semibold text-[var(--semantic-danger)]">{1 - votosCount}</span> para rechazar
                       </span>
                     </div>
                   </div>
@@ -1014,7 +1045,7 @@ export default function ReporteDetallePage({
             )}
 
             {/* Marcador de Posición del Mapa */}
-            <Card className="lg:shadow-md hover:shadow-lg transition-shadow">
+            <Card>
               <CardHeader className="pb-3 md:pb-6 lg:pb-4">
                 <CardTitle className="text-base md:text-lg lg:text-xl">Ubicación</CardTitle>
               </CardHeader>
@@ -1108,8 +1139,8 @@ export default function ReporteDetallePage({
                     Votantes actuales: {votosCount} / 1
                   </p>
                 </div>
-                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
-                  <p className="text-sm text-red-700 dark:text-red-400">
+                <div className="tone-danger-inline rounded-md p-3">
+                  <p className="text-sm">
                     ⚠️ Con 1 voto, el reporte será <span className="font-bold">rechazado automáticamente</span>
                   </p>
                 </div>
@@ -1124,7 +1155,7 @@ export default function ReporteDetallePage({
             <AlertDialogAction
               onClick={confirmVoteNoExiste}
               disabled={isVoting}
-              className="bg-red-600 text-white hover:bg-red-700"
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isVoting ? (
                 <>
@@ -1156,8 +1187,8 @@ export default function ReporteDetallePage({
                     Votantes actuales: {votosReparadoCount} / 1
                   </p>
                 </div>
-                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-md p-3">
-                  <p className="text-sm text-green-700 dark:text-green-400">
+                <div className="tone-success-inline rounded-md p-3">
+                  <p className="text-sm">
                     ✓ Con 1 voto, el reporte se marcará como <span className="font-bold">Reparado</span>
                   </p>
                 </div>
@@ -1172,7 +1203,6 @@ export default function ReporteDetallePage({
             <AlertDialogAction
               onClick={confirmVoteReparado}
               disabled={isVotingReparado}
-              className="bg-green-600 text-white hover:bg-green-700"
             >
               {isVotingReparado ? (
                 <>
@@ -1269,7 +1299,7 @@ export default function ReporteDetallePage({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-purple-600" />
+              <Shield className="w-5 h-5 text-[var(--semantic-admin)]" />
               ¿Cambiar estado del reporte?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -1296,8 +1326,8 @@ export default function ReporteDetallePage({
                     </div>
                   )}
                 </div>
-                <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900 rounded-md p-3">
-                  <p className="text-sm text-purple-700 dark:text-purple-400">
+                <div className="tone-admin-inline rounded-md p-3">
+                  <p className="text-sm">
                     ℹ️ Esta acción quedará registrada en el historial del reporte
                   </p>
                 </div>
@@ -1309,7 +1339,7 @@ export default function ReporteDetallePage({
             <AlertDialogAction
               onClick={confirmAdminChangeEstado}
               disabled={isChangingEstado}
-              className="bg-purple-600 text-white hover:bg-purple-700"
+                className="bg-foreground text-background hover:bg-foreground/88"
             >
               {isChangingEstado ? (
                 <>
@@ -1332,7 +1362,7 @@ export default function ReporteDetallePage({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-purple-600" />
+              <Shield className="w-5 h-5 text-[var(--semantic-admin)]" />
               ¿Eliminar reporte como administrador?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -1348,11 +1378,11 @@ export default function ReporteDetallePage({
                     </Badge>
                   </div>
                 </div>
-                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
-                  <p className="text-sm text-red-700 dark:text-red-400 font-medium">
+                <div className="tone-danger-inline rounded-md p-3">
+                  <p className="text-sm font-medium">
                     ⚠️ Esta acción no se puede deshacer
                   </p>
-                  <p className="text-xs text-red-600 dark:text-red-500 mt-1">
+                  <p className="mt-1 text-xs">
                     El reporte y todos sus comentarios serán eliminados permanentemente
                   </p>
                 </div>
@@ -1377,7 +1407,7 @@ export default function ReporteDetallePage({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-purple-600" />
+              <Shield className="w-5 h-5 text-[var(--semantic-admin)]" />
               ¿Eliminar comentario como administrador?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -1394,8 +1424,8 @@ export default function ReporteDetallePage({
                     </span>
                   </div>
                 </div>
-                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-md p-3">
-                  <p className="text-sm text-red-700 dark:text-red-400">
+                <div className="tone-danger-inline rounded-md p-3">
+                  <p className="text-sm">
                     ⚠️ Esta acción no se puede deshacer
                   </p>
                 </div>

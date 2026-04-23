@@ -1,59 +1,27 @@
-/**
- * Componente cliente del mapa interactivo de reportes
- * 
- * Este componente Client Component se encarga de:
- * - Mostrar un mapa interactivo con marcadores de reportes
- * - Incluir una barra lateral con la lista de reportes
- * - Manejar estados de UI (sidebar, etc)
- */
-
 "use client"
 
-import { useState, useEffect, useCallback, useTransition } from "react"
+import { useCallback, useEffect, useState, useTransition } from "react"
+import dynamic from "next/dynamic"
+import Link from "next/link"
+import { Layers3, List, Map, MapPin, SlidersHorizontal, UserPlus, X } from "lucide-react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { List, Layers, Map, X, ChevronRight, MapPin } from "lucide-react"
-import Link from "next/link"
-import dynamic from "next/dynamic"
 import { FiltrosReportes } from "@/components/filtros-reportes"
-import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
-import { getPriorityColor, getStatusColor, getCategoryColor } from "@/components/report-card"
 import { LoadingLogo } from "@/components/loading-logo"
+import { getCategoryColor, getPriorityColor, getStatusColor } from "@/components/report-card"
+import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
 
-/**
- * Importar el mapa solo en el cliente para evitar "window is not defined"
- * Leaflet requiere acceso al DOM, por lo que debe cargarse dinámicamente
- */
-const MapContainer = dynamic(
-  () => import("@/components/map-container").then((m) => m.MapContainer),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex items-center justify-center">
-        <LoadingLogo size="md" text="Cargando mapa..." />
-      </div>
-    ),
-  }
-)
-
-/**
- * Tipo que representa un reporte con toda la información necesaria para el mapa
- */
-interface ReporteParaMapa {
-  id: number
-  title: string
-  description: string
-  category: string
-  priority: string
-  status: string
-  location: string
-  coordinates: [number, number]
-  author: string
-  createdAt: string
-  image?: string
-}
+const MapContainer = dynamic(() => import("@/components/map-container").then((m) => m.MapContainer), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center">
+      <LoadingLogo size="md" text="Cargando mapa..." />
+    </div>
+  ),
+})
 
 type MapaClientProps = {
   reportes: ReportMapItem[]
@@ -64,169 +32,97 @@ type MapaClientProps = {
   isAuthenticated: boolean
 }
 
-/**
- * Componente cliente que renderiza un mapa interactivo de reportes con una barra lateral y un panel de filtros.
- *
- * Transforma los registros crudos de la base de datos al formato esperado por el mapa, controla la visibilidad responsiva del sidebar y del panel de filtros, y muestra estados de error o de lista vacía.
- *
- * @param reportesDB - Array de reportes tal como vienen de la base de datos; se convierte internamente al formato utilizado por el mapa (incluye campos como id, titulo, lat, lon, autor, fotos, etc.).
- * @param error - Mensaje de error opcional que, si está presente, se muestra en la interfaz en lugar del mapa o de la lista.
- * @param isAuthenticated - Indica si el usuario está autenticado para mostrar información contextual.
- * @returns Un elemento React que contiene el mapa interactivo, la barra lateral de reportes y el panel de filtros.
- */
 export function MapaClient({ reportes, categorias, estados, prioridades, error, isAuthenticated }: MapaClientProps) {
-  // Inicializar siempre con false para evitar hydration mismatch
-  // El useEffect ajustará el valor según el tamaño de pantalla
   const [showSidebar, setShowSidebar] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [mapKey, setMapKey] = useState(0)
   const [isPending, startTransition] = useTransition()
 
-  /**
-   * Efecto para inicializar y actualizar el estado del sidebar según el tamaño de pantalla
-   * En desktop (>= 768px) se muestra por defecto, en mobile se oculta
-   * Se ejecuta solo una vez al montar para evitar hydration errors
-   */
   useEffect(() => {
-    // Configurar el valor inicial basado en el tamaño de pantalla
-    const isDesktop = window.innerWidth >= 768
-    setShowSidebar(isDesktop)
-    // Generar key única para el mapa
-    setMapKey(Date.now())
+    const syncLayout = () => setShowSidebar(window.innerWidth >= 1024)
 
-    const handleResize = () => {
-      setShowSidebar(window.innerWidth >= 768)
-    }
-    
-    // Escuchar cambios de tamaño de ventana
-    window.addEventListener('resize', handleResize)
-    
-    return () => window.removeEventListener('resize', handleResize)
+    syncLayout()
+    setMapKey(Date.now())
+    window.addEventListener("resize", syncLayout)
+
+    return () => window.removeEventListener("resize", syncLayout)
   }, [])
 
-  const reportesMapa: ReporteParaMapa[] = reportes
-
-  /**
-   * Maneja el cierre del panel de filtros después de aplicar un filtro
-   */
   const handleFilterApplied = useCallback(() => {
-    // Cerrar el panel de filtros siempre que se aplique un filtro
     setShowFilters(false)
   }, [])
 
   return (
-    <div className="bg-background">
-      {/* Loader flotante sobre toda la página */}
+    <div className="page-shell">
       {isPending && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-5 duration-300">
-          <div className="bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
+        <div className="fixed left-1/2 top-20 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-5 duration-300">
+          <div className="inline-flex items-center gap-3 rounded-full border border-border bg-card px-5 py-3 text-sm font-medium text-foreground">
             <div className="flex gap-1">
-              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce"></div>
-              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="size-2 animate-bounce rounded-full bg-foreground"></div>
+              <div className="size-2 animate-bounce rounded-full bg-foreground" style={{ animationDelay: "0.1s" }}></div>
+              <div className="size-2 animate-bounce rounded-full bg-foreground" style={{ animationDelay: "0.2s" }}></div>
             </div>
-            <span className="font-medium text-sm">Aplicando filtros...</span>
+            Aplicando filtros…
           </div>
         </div>
       )}
 
-      {/* Banner informativo para usuarios anónimos */}
-      {!isAuthenticated && (
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-primary/20">
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="bg-primary/20 rounded-full p-2 flex-shrink-0">
-                  <MapPin className="w-4 h-4 text-primary" />
+      <div className="page-container page-stack">
+        {!isAuthenticated && (
+          <div className="tone-info-card rounded-[var(--radius-xl)] border p-4 md:p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="inline-flex size-10 items-center justify-center rounded-2xl border border-[var(--semantic-info-border)] bg-card text-[var(--semantic-info)]">
+                  <MapPin className="size-4" />
                 </div>
-                <p className="text-foreground">
-                  <span className="font-semibold">Estás viendo el mapa como visitante.</span>
-                  <span className="hidden sm:inline text-muted-foreground ml-2">
-                    Regístrate para crear y gestionar reportes
-                  </span>
-                </p>
-              </div>
-              <Link href="/auth">
-                <Button size="sm" className="whitespace-nowrap shadow-md">
-                  Crear cuenta gratis
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Barra de control superior */}
-      <div className="border-b bg-background shadow-sm z-30">
-        <div className="container mx-auto px-3 sm:px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
-            {/* Controles izquierda */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowSidebar(!showSidebar)}
-                className="hidden sm:flex shadow-sm h-9 px-3 whitespace-nowrap"
-              >
-                <Layers className="w-4 h-4 mr-2" />
-                <span>{showSidebar ? "Ocultar" : "Mostrar"}</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="shadow-sm h-9 px-3 whitespace-nowrap"
-              >
-                <Map className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Filtros</span>
-              </Button>
-            </div>
-
-            {/* Contador de reportes y controles derecha */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5 whitespace-nowrap">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="text-sm font-semibold">{reportesMapa.length}</span>
-                  <span className="text-xs text-muted-foreground hidden sm:inline">reportes</span>
+                <div>
+                  <p className="text-sm font-semibold tracking-tight">Estás viendo el mapa como visitante.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Podés explorar incidentes públicos. Para crear y gestionar reportes necesitás una cuenta.</p>
                 </div>
               </div>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                asChild
-                className="shadow-sm h-9 px-3 whitespace-nowrap"
-              >
-                <Link href="/reportes">
-                  <List className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Vista Lista</span>
+              <Button size="sm" asChild>
+                <Link href="/auth">
+                  <UserPlus className="size-4" />
+                  Crear cuenta
                 </Link>
               </Button>
             </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Panel de filtros expandible */}
-      {showFilters && (
-        <div className="flex-shrink-0 border-b bg-background shadow-md z-20 animate-in slide-in-from-top-5 duration-300 max-h-[70vh] overflow-y-auto">
-          <div className="container mx-auto px-2 md:px-4 py-3 md:py-4">
-            <div className="flex items-center justify-between mb-2 md:mb-3">
-              <h3 className="font-semibold flex items-center gap-2 text-xs md:text-sm">
-                <Map className="w-4 h-4 text-primary" />
-                Filtrar Reportes
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowFilters(false)}
-                className="h-7 w-7 md:h-8 md:w-8 p-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+        <section className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="section-eyebrow">Mapa</span>
+            <Badge variant="secondary">{reportes.length} puntos visibles</Badge>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:w-auto lg:grid-cols-[repeat(3,minmax(0,auto))]">
+            <Button size="lg" variant="outline" className="justify-between" onClick={() => setShowFilters((prev) => !prev)}>
+              <span className="flex items-center gap-2">
+                <SlidersHorizontal className="size-4" />
+                {showFilters ? "Ocultar filtros" : "Mostrar filtros"}
+              </span>
+            </Button>
+            <Button size="lg" variant="outline" className="justify-between" onClick={() => setShowSidebar((prev) => !prev)}>
+              <span className="flex items-center gap-2">
+                <Layers3 className="size-4" />
+                {showSidebar ? "Ocultar panel" : "Mostrar panel"}
+              </span>
+            </Button>
+            <Button size="lg" className="justify-between md:col-span-2 lg:col-span-1" asChild>
+              <Link href="/reportes">
+                <span className="flex items-center gap-2">
+                  <List className="size-4" />
+                  Ir a la vista lista
+                </span>
+                <Map className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        </section>
+
+        {showFilters && (
+          <section className="section-stack">
             <FiltrosReportes
               categorias={categorias}
               estados={estados}
@@ -235,155 +131,119 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error, 
               externalIsPending={isPending}
               externalStartTransition={startTransition}
             />
-          </div>
-        </div>
-      )}
-
-      {/* Contenedor principal del mapa y sidebar */}
-      <div className="flex h-[calc(100vh-160px)] overflow-hidden relative">
-        {/* Backdrop para cerrar sidebar en mobile */}
-        {showSidebar && (
-          <div 
-            className="sm:hidden fixed inset-0 bg-black/50 z-20 backdrop-blur-sm"
-            onClick={() => setShowSidebar(false)}
-          />
+          </section>
         )}
 
-        {/* Barra lateral con lista de reportes */}
-        <div 
-          className={`${
-            showSidebar ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'
-          } ${
-            showSidebar ? 'w-full sm:w-80 md:w-96' : 'w-0 sm:w-0'
-          } border-r bg-background transition-all duration-300 overflow-hidden flex-shrink-0 shadow-lg fixed sm:relative inset-y-0 left-0 z-30 sm:z-0`}
-        >
-          <div className="h-full overflow-y-auto">
-            <div className="p-3 md:p-4 border-b bg-muted/30 sticky top-0 backdrop-blur-sm z-10">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-                  <MapPin className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-                  Reportes
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
+        <section className="relative overflow-hidden rounded-[var(--radius-xl)] border border-border bg-card">
+          <div className="grid min-h-[72vh] lg:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[26rem_minmax(0,1fr)]">
+            {showSidebar && (
+              <>
+                <button
+                  type="button"
+                  className="absolute inset-0 z-20 bg-black/35 lg:hidden"
                   onClick={() => setShowSidebar(false)}
-                  className="h-7 w-7 md:h-8 md:w-8 p-0"
-                >
-                  <X className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="default" className="text-[10px] md:text-xs px-1.5 md:px-2">
-                  {reportesMapa.length} en el mapa
-                </Badge>
-                {error && (
-                  <Badge variant="destructive" className="text-[10px] md:text-xs px-1.5 md:px-2">
-                    Error
-                  </Badge>
-                )}
-              </div>
-            </div>
+                  aria-label="Cerrar panel lateral"
+                />
 
-            <div className="p-3 md:p-4">
-              {/* Mensaje de error */}
-              {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+                <aside className="absolute inset-y-0 left-0 z-30 flex w-[min(24rem,100%)] flex-col border-r border-border bg-card lg:static lg:z-0 lg:w-auto">
+                  <div className="flex items-center justify-between border-b border-border px-4 py-4 md:px-5">
+                    <div>
+                      <p className="page-kicker">Panel lateral</p>
+                      <h2 className="mt-1 text-lg font-semibold tracking-tight">Reportes visibles</h2>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setShowSidebar(false)}>
+                      <X className="size-4" />
+                    </Button>
+                  </div>
 
-              {/* Lista de reportes */}
-              {!error && reportesMapa.length === 0 && (
-                <Alert className="border-dashed">
-                  <MapPin className="w-4 h-4" />
-                  <AlertTitle>No hay reportes</AlertTitle>
-                  <AlertDescription>
-                    No se encontraron reportes con los filtros aplicados.
-                  </AlertDescription>
-                </Alert>
-              )}
+                  <div className="border-b border-border px-4 py-4 md:px-5">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                      <div className="page-meta-card p-3">
+                        <p className="page-meta-label">Total visible</p>
+                        <p className="page-meta-value text-xl">{reportes.length}</p>
+                      </div>
+                      <div className="page-meta-card p-3">
+                        <p className="page-meta-label">Estado del panel</p>
+                        <p className="mt-2 text-sm text-muted-foreground">{error ? "Con incidencia" : "Operativo"}</p>
+                      </div>
+                    </div>
+                  </div>
 
-              {!error && reportesMapa.length > 0 && (
-                <div className="space-y-3">
-                  {reportesMapa.map((report) => (
-                    <Card 
-                      key={report.id} 
-                      className="group cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all duration-200 overflow-hidden"
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-start gap-3">
-                          <div
-                            className="w-3 h-3 rounded-full mt-1 flex-shrink-0 ring-2 ring-background shadow-sm"
-                            style={{ backgroundColor: getPriorityColor(report.priority) }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <Link 
-                              href={`/reportes/${report.id}`} 
-                              className="block"
-                            >
-                              <h4 className="font-semibold text-sm mb-1 truncate group-hover:text-primary transition-colors flex items-center gap-1">
-                                {report.title}
-                                <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                              </h4>
-                              <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                                {report.description}
-                              </p>
-                              <div className="flex items-center gap-1 mb-2">
-                                <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                                <span className="text-[10px] text-muted-foreground truncate">{report.location}</span>
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] px-1.5 py-0"
-                                  style={{ borderColor: getStatusColor(report.status), color: getStatusColor(report.status) }}
-                                >
-                                  {report.status}
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-[10px] px-1.5 py-0"
-                                  style={{ borderColor: getCategoryColor(), color: getCategoryColor() }}
-                                >
-                                  {report.category}
-                                </Badge>
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] px-1.5 py-0"
-                                  style={{ borderColor: getPriorityColor(report.priority), color: getPriorityColor(report.priority) }}
-                                >
-                                  {report.priority}
-                                </Badge>
-                              </div>
-                            </Link>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">
+                    {error && (
+                      <Alert variant="destructive">
+                        <AlertTitle>Error al cargar el mapa</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {!error && reportes.length === 0 && (
+                      <Alert>
+                        <AlertTitle>No hay reportes con estos filtros</AlertTitle>
+                        <AlertDescription>Probá cambiando la combinación de búsqueda o abrí la vista lista para revisar más contexto.</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {!error && reportes.length > 0 && (
+                      <div className="space-y-3">
+                        {reportes.map((report) => (
+                          <Link key={report.id} href={`/reportes/${report.id}`} className="block">
+                            <Card className="h-full transition-colors hover:border-foreground/15">
+                              <CardContent className="space-y-3 pt-5">
+                                <div className="flex items-start gap-3">
+                                  <div
+                                    className="map-card-dot mt-1"
+                                    style={{ backgroundColor: getPriorityColor(report.priority) }}
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <h3 className="line-clamp-2 text-sm font-semibold tracking-tight">{report.title}</h3>
+                                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{report.description}</p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <MapPin className="size-3.5 flex-none" />
+                                  <span className="truncate">{report.location}</span>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="outline" style={{ borderColor: getStatusColor(report.status), color: getStatusColor(report.status) }}>
+                                    {report.status}
+                                  </Badge>
+                                  <Badge variant="outline" style={{ borderColor: getCategoryColor(), color: getCategoryColor() }}>
+                                    {report.category}
+                                  </Badge>
+                                  <Badge variant="outline" style={{ borderColor: getPriorityColor(report.priority), color: getPriorityColor(report.priority) }}>
+                                    {report.priority}
+                                  </Badge>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </aside>
+              </>
+            )}
+
+            <div className="relative min-h-[72vh] bg-[var(--surface-subtle)]">
+              {error ? (
+                <div className="flex h-full items-center justify-center p-6">
+                  <Alert variant="destructive" className="max-w-lg">
+                    <AlertTitle>Error al cargar el mapa</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                </div>
+              ) : (
+                <div className="h-full w-full" key={mapKey}>
+                  <MapContainer reports={reportes} showLegend />
                 </div>
               )}
             </div>
           </div>
-        </div>
-
-        {/* Contenedor del mapa */}
-        <div className="flex-1 relative overflow-hidden bg-muted/20">
-          {error ? (
-            <div className="w-full h-full flex items-center justify-center p-8">
-              <Alert variant="destructive" className="max-w-md">
-                <AlertTitle>Error al cargar el mapa</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            </div>
-          ) : (
-            <div className="w-full h-full" key={mapKey}>
-              <MapContainer reports={reportes} showLegend={true} />
-            </div>
-          )}
-        </div>
+        </section>
       </div>
     </div>
   )

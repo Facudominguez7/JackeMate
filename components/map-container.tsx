@@ -70,7 +70,7 @@ export function MapContainer({ reports, showLegend = true }: MapContainerProps) 
 
       {/* Leyenda de colores flotante - Ajustada para mobile */}
       {showLegend && (
-        <div className="absolute bottom-16 left-2 sm:bottom-6 md:left-4 bg-card/95 backdrop-blur-sm border rounded-lg p-3 md:p-4 shadow-lg z-[1000] max-w-[140px] md:max-w-[160px]">
+        <div className="map-legend-card absolute bottom-16 left-2 z-[1000] max-w-[140px] sm:bottom-6 md:left-4 md:max-w-[160px]">
           <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3">Leyenda</h4>
           <div className="space-y-1.5 md:space-y-2">
             <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs">
@@ -99,7 +99,7 @@ export function MapContainer({ reports, showLegend = true }: MapContainerProps) 
       )}
 
       {/* Instrucciones de uso del mapa - Oculta en mobile para no saturar */}
-      <div className="hidden md:block absolute top-4 right-4 max-w-xs bg-card/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg z-[1000]">
+      <div className="map-legend-card absolute right-4 top-4 hidden max-w-xs z-[1000] md:block">
         <p className="text-xs text-muted-foreground flex items-center gap-2">
           <span className="text-base">💡</span>
           <span>Haz clic en los marcadores para ver detalles</span>

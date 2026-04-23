@@ -1,12 +1,13 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Plus, Calendar, Trophy, Star, TrendingUp, FileText, CheckCircle, Clock, AlertCircle, BarChart3, Timer } from "lucide-react"
+import { BarChart3, Calendar, CheckCircle, Clock, FileText, Plus, Star, Timer, TrendingUp, Trophy } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { GraficoReportesPorCategoria, GraficoZonasCalientes, MapaCalorZonas, MetricCard } from "@/components/dashboard"
 import { ReportCard } from "@/components/report-card"
-import { GraficoReportesPorCategoria, GraficoZonasCalientes, MetricCard, MapaCalorZonas } from "@/components/dashboard"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { getDashboardPageData } from "@/database/queries/dashboard"
 import { getUserInitials } from "@/lib/identity/display"
 
@@ -19,207 +20,171 @@ export default async function DashboardPage() {
 
   if (data.isAnalyticsDashboard) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard de Analíticas</h1>
-            <p className="text-muted-foreground">Métricas y estadísticas generales de la plataforma</p>
-          </div>
+      <div className="page-shell">
+        <div className="page-container page-stack">
+          <section className="page-hero-panel">
+            <div className="page-hero-grid lg:items-end">
+              <div className="section-stack">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="section-eyebrow">Panel institucional</span>
+                  <Badge variant="admin">Analíticas</Badge>
+                </div>
+                <div className="space-y-4">
+                  <h1 className="hero-title max-w-4xl">Lectura ejecutiva del sistema de reportes ciudadanos.</h1>
+                  <p className="hero-copy max-w-3xl">
+                    Métricas, distribución temática y zonas con mayor concentración para decidir dónde mirar primero sin perder sobriedad visual.
+                  </p>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="grid gap-3">
+                {data.tiempoResolucion && (
+                  <Card className="tone-admin-card border">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-4">
+                        <div className="inline-flex size-12 items-center justify-center rounded-2xl border border-[var(--semantic-admin-border)] bg-card text-[var(--semantic-admin)]">
+                          <Timer className="size-6" />
+                        </div>
+                        <div>
+                          <p className="page-meta-label">Tiempo promedio de resolución</p>
+                          <p className="mt-2 text-3xl font-semibold tracking-tight">{data.tiempoResolucion.diasPromedio} días</p>
+                          <p className="mt-1 text-sm text-muted-foreground">≈ {data.tiempoResolucion.horasPromedio} horas promedio entre apertura y cierre.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                <Button size="lg" className="justify-between" asChild>
+                  <Link href="/mapa">
+                    <span className="flex items-center gap-2">
+                      <BarChart3 className="size-4" />
+                      Abrir mapa general
+                    </span>
+                    <TrendingUp className="size-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard title="Total de reportes" value={data.estadisticas?.totalReportes || 0} icon={FileText} tone="info" />
             <MetricCard
-              title="Total de Reportes"
-              value={data.estadisticas?.totalReportes || 0}
-              icon={FileText}
-              iconColor="text-blue-600 dark:text-blue-400"
-              iconBgColor="bg-blue-100 dark:bg-blue-950/40"
-            />
-            <MetricCard
-              title="Reportes Resueltos"
+              title="Reportes resueltos"
               value={data.estadisticas?.reportesResueltos || 0}
               icon={CheckCircle}
               description={`${data.estadisticas?.tasaResolucion || 0}% de resolución`}
-              iconColor="text-green-600 dark:text-green-400"
-              iconBgColor="bg-green-100 dark:bg-green-950/40"
+              tone="success"
             />
-            <MetricCard
-              title="Reportes Pendientes"
-              value={data.estadisticas?.reportesPendientes || 0}
-              icon={Clock}
-              iconColor="text-yellow-600 dark:text-yellow-400"
-              iconBgColor="bg-yellow-100 dark:bg-yellow-950/40"
-            />
-            <MetricCard
-              title="En Progreso"
-              value={data.estadisticas?.reportesEnProgreso || 0}
-              icon={AlertCircle}
-              iconColor="text-orange-600 dark:text-orange-400"
-              iconBgColor="bg-orange-100 dark:bg-orange-950/40"
-            />
-          </div>
+            <MetricCard title="Pendientes" value={data.estadisticas?.reportesPendientes || 0} icon={Clock} tone="warning" />
+            <MetricCard title="En progreso" value={data.estadisticas?.reportesEnProgreso || 0} icon={TrendingUp} tone="admin" />
+          </section>
 
-          {data.tiempoResolucion && (
-            <div className="mb-8">
-              <Card className="border-primary/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-purple-100 dark:bg-purple-950/40 rounded-lg flex items-center justify-center">
-                      <Timer className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-foreground mb-1">Tiempo Promedio de Resolución</h3>
-                      <div className="flex items-baseline gap-3">
-                        <p className="text-3xl font-bold text-foreground">{data.tiempoResolucion.diasPromedio}</p>
-                        <span className="text-muted-foreground">días</span>
-                        <span className="text-muted-foreground mx-2">≈</span>
-                        <p className="text-2xl font-bold text-foreground">{data.tiempoResolucion.horasPromedio}</p>
-                        <span className="text-muted-foreground">horas</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <section className="grid gap-6 xl:grid-cols-2">
             <GraficoReportesPorCategoria data={data.reportesPorCategoria} />
             <GraficoZonasCalientes zonas={data.zonasCalientes} />
-          </div>
+          </section>
 
-          <div className="mb-8">
+          <section>
             <MapaCalorZonas zonas={data.zonasCalientes} height="500px" />
-          </div>
-
-          <div className="flex justify-center">
-            <Button asChild size="lg" className="gap-2">
-              <Link href="/mapa">
-                <BarChart3 className="w-5 h-5" />
-                Ver Todos los Reportes en el Mapa
-              </Link>
-            </Button>
-          </div>
+          </section>
         </div>
       </div>
     )
   }
 
+  const resolvedReports = data.userReports.filter((report) => report.estado.toLowerCase() === "reparado").length
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Card className="border-2 border-primary/20">
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                <Avatar className="w-24 h-24 border-4 border-primary/20">
-                  <AvatarFallback className="text-3xl bg-gradient-to-br from-primary/20 to-primary/10">
-                    {getUserInitials(data.user.email)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 text-center md:text-left">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">{data.user.email}</h2>
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      <span>{data.userReports.length} {data.userReports.length === 1 ? "reporte" : "reportes"}</span>
-                    </div>
-                  </div>
+    <div className="page-shell">
+      <div className="page-container page-stack">
+        <section className="page-hero-panel">
+          <div className="page-hero-grid lg:items-center">
+            <div className="flex items-start gap-4 md:gap-6">
+              <Avatar className="h-[4.5rem] w-[4.5rem] border border-border bg-[var(--surface-subtle)] md:h-24 md:w-24">
+                <AvatarFallback className="text-2xl font-semibold md:text-3xl">{getUserInitials(data.user.email)}</AvatarFallback>
+              </Avatar>
 
-                  <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-950/40 dark:to-yellow-950/40 rounded-full border-2 border-amber-300 dark:border-amber-700 shadow-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-md">
-                        <Trophy className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs text-amber-700 dark:text-amber-400 font-medium uppercase tracking-wide">Puntos Totales</p>
-                        <p className="text-3xl font-bold text-amber-900 dark:text-amber-100">{data.puntos}</p>
-                      </div>
-                    </div>
-                    <div className="hidden sm:flex items-center gap-2 pl-4 border-l-2 border-amber-300 dark:border-amber-700">
-                      <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                      <span className="text-sm text-amber-700 dark:text-amber-400 font-medium">¡Sigue así!</span>
-                    </div>
+              <div className="min-w-0 flex-1 space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="section-eyebrow">Panel personal</span>
+                  <Badge variant="secondary">{data.userReports.length} reportes</Badge>
+                </div>
+                <div>
+                  <h1 className="section-title text-balance">{data.user.email}</h1>
+                  <p className="section-copy mt-3 max-w-2xl">Acá gestionás tus reportes, seguís el avance y entendés cuánto aportaste al pulso cívico de la ciudad.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5">
+                    <Calendar className="size-4" />
+                    {data.userReports.length} {data.userReports.length === 1 ? "reporte" : "reportes"}
+                  </div>
+                  <div className="tone-warning-inline inline-flex items-center gap-2 rounded-full px-3 py-1.5">
+                    <Trophy className="size-4" />
+                    {data.puntos} puntos acumulados
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <Card className="border-primary/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950/40 rounded-lg flex items-center justify-center">
-                  <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{data.userReports.length}</p>
-                  <p className="text-xs text-muted-foreground">Reportes Creados</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="grid gap-3">
+              <Button size="lg" className="justify-between" asChild>
+                <Link href="/reportes/nuevo">
+                  <span className="flex items-center gap-2">
+                    <Plus className="size-4" />
+                    Crear nuevo reporte
+                  </span>
+                  <TrendingUp className="size-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="justify-between" asChild>
+                <Link href="/reportes">
+                  <span className="flex items-center gap-2">
+                    <FileText className="size-4" />
+                    Ver reportes públicos
+                  </span>
+                  <BarChart3 className="size-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
 
-          <Card className="border-primary/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-100 dark:bg-green-950/40 rounded-lg flex items-center justify-center">
-                  <Star className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">
-                    {data.userReports.filter((report) => report.estado.toLowerCase() === "reparado").length}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Problemas Resueltos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <section className="grid gap-4 sm:grid-cols-3">
+          <MetricCard title="Reportes creados" value={data.userReports.length} icon={Plus} tone="info" />
+          <MetricCard title="Casos resueltos" value={resolvedReports} icon={Star} tone="success" />
+          <MetricCard title="Puntos acumulados" value={data.puntos} icon={Trophy} tone="warning" />
+        </section>
 
-          <Card className="border-primary/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950/40 rounded-lg flex items-center justify-center">
-                  <Trophy className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{data.puntos}</p>
-                  <p className="text-xs text-muted-foreground">Puntos Acumulados</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <section className="section-stack">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h3 className="text-2xl font-bold text-foreground">Mis Reportes</h3>
-              <p className="text-muted-foreground">Gestiona todos tus reportes creados</p>
+              <span className="section-eyebrow">Gestión personal</span>
+              <h2 className="section-title mt-3">Mis reportes</h2>
+              <p className="section-copy mt-3">Un listado directo para entrar al detalle, revisar comentarios o ver el estado actual de cada caso.</p>
             </div>
             <Button asChild>
               <Link href="/reportes/nuevo">
-                <Plus className="w-4 h-4 mr-2" />
-                Crear Nuevo Reporte
+                <Plus className="size-4" />
+                Crear reporte
               </Link>
             </Button>
           </div>
 
           {data.userReports.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center py-12">
-                <p className="text-muted-foreground mb-4">Aún no has creado ningún reporte</p>
-                <Button asChild>
-                  <Link href="/reportes/nuevo">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear Mi Primer Reporte
-                  </Link>
-                </Button>
+            <Card className="border-dashed">
+              <CardContent className="space-y-4 py-12 text-center">
+                <p className="text-lg font-semibold tracking-tight">Todavía no creaste reportes.</p>
+                <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground">Cuando publiques el primero, lo vas a ver acá con acceso rápido a seguimiento y edición contextual.</p>
+                <div className="flex justify-center">
+                  <Button asChild>
+                    <Link href="/reportes/nuevo">Crear mi primer reporte</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
               {data.userReports.map((report) => (
                 <ReportCard
                   key={report.id}
@@ -236,7 +201,7 @@ export default async function DashboardPage() {
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   )

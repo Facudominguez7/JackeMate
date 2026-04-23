@@ -4,6 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ReportesPorCategoria } from "@/database/queries/interesado"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
+const CATEGORY_COLORS = [
+  "var(--semantic-info)",
+  "var(--semantic-success)",
+  "var(--semantic-warning)",
+  "var(--semantic-admin)",
+  "var(--foreground)",
+]
+
 type Props = {
   data: ReportesPorCategoria[]
 }
@@ -48,14 +56,15 @@ export function GraficoReportesPorCategoria({ data }: Props) {
             <YAxis className="text-xs" />
             <Tooltip 
               contentStyle={{ 
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '6px'
+                backgroundColor: 'var(--card)',
+                border: '1px solid var(--border)',
+                borderRadius: '16px',
+                boxShadow: 'none'
               }}
             />
             <Bar dataKey="cantidad" radius={[8, 8, 0, 0]}>
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
               ))}
             </Bar>
           </BarChart>

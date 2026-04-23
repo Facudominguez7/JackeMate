@@ -81,7 +81,7 @@ function FitBounds({ reports }: { reports: Report[] }) {
  */
 const createClusterIconHTML = (count: number): string => {
   const size = count > 10 ? 50 : count > 5 ? 40 : 30
-  const color = count > 10 ? '#ef4444' : count > 5 ? '#f97316' : '#3b82f6'
+  const color = count > 10 ? 'var(--map-heat-high)' : count > 5 ? 'var(--map-heat-medium)' : 'var(--map-heat-low)'
   const fontSize = count > 10 ? 16 : count > 5 ? 14 : 12
 
   return `
@@ -93,11 +93,11 @@ const createClusterIconHTML = (count: number): string => {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--map-marker-foreground);
       font-weight: bold;
       font-size: ${fontSize}px;
-      border: 3px solid white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      border: 3px solid var(--map-marker-stroke);
+      box-shadow: var(--elevation-soft);
     ">
       ${count}
     </div>
@@ -136,12 +136,12 @@ const createPopupContent = (
   return `
     <div style="min-width: 250px;">
       <div style="margin-bottom: 8px;">
-        <h3 style="margin: 0; margin-bottom: 4px; font-size: 16px; font-weight: 600; color: #1f2937;">
-          <a href="/reportes/${report.id}" style="color: #059669; text-decoration: none;">
+        <h3 style="margin: 0; margin-bottom: 4px; font-size: 16px; font-weight: 600; color: var(--foreground);">
+          <a href="/reportes/${report.id}" style="color: var(--primary); text-decoration: none;">
             ${safeTitle}
           </a>
         </h3>
-        <p style="margin: 0; font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 4px;">
+        <p style="margin: 0; font-size: 12px; color: var(--muted-foreground); display: flex; align-items: center; gap: 4px;">
           <span>📍</span> ${safeLocation}
         </p>
       </div>
@@ -156,7 +156,7 @@ const createPopupContent = (
         </div>
       ` : ''}
 
-      <p style="margin: 0; margin-bottom: 8px; font-size: 14px; color: #374151; line-height: 1.4;">
+      <p style="margin: 0; margin-bottom: 8px; font-size: 14px; color: var(--foreground); line-height: 1.4;">
         ${safeDescription.length > 100 ? `${safeDescription.substring(0, 100)}...` : safeDescription}
       </p>
 
@@ -196,7 +196,7 @@ const createPopupContent = (
         </span>
       </div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #6b7280;">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted-foreground);">
         <span>👤 ${safeAuthor}</span>
         <span>📅 ${new Date(report.createdAt).toLocaleDateString("es-AR")}</span>
       </div>
@@ -326,8 +326,8 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            border: 3px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 3px solid var(--map-marker-stroke);
+            box-shadow: var(--elevation-soft);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -335,7 +335,7 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
             <div style="
               width: 8px;
               height: 8px;
-              background-color: white;
+              background-color: var(--map-marker-foreground);
               border-radius: 50%;
             "></div>
           </div>
@@ -349,7 +349,7 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
       ["Alta", mk(getPriorityColor("Alta"))],
       ["Media", mk(getPriorityColor("Media"))],
       ["Baja", mk(getPriorityColor("Baja"))],
-      ["default", mk("#6b7280")],
+      ["default", mk("var(--map-heat-neutral)")],
     ])
   }, [])
 

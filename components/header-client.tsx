@@ -1,10 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -17,19 +19,20 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import {
-  Menu,
   ChevronDown,
-  Map,
-  Plus,
-  List,
   Home,
   LayoutDashboard,
-  LogOut,
+  List,
   LogIn,
+  LogOut,
+  Map,
+  Menu,
+  Plus,
   UserPlus,
 } from "lucide-react";
-import { signout } from "@/app/auth/actions";
 import type { User } from "@supabase/supabase-js";
+
+import { signout } from "@/app/auth/actions";
 import { canCreateReports } from "@/lib/authz/roles";
 import { getUserInitials } from "@/lib/identity/display";
 
@@ -39,101 +42,85 @@ interface HeaderClientProps {
   userRolId: number | null;
 }
 
-/**
- * Renderiza la cabecera responsiva con navegación (escritorio y móvil) y controles de cuenta según el estado de autenticación.
- *
- * Muestra enlaces de navegación, un menú desplegable de Reportes y una hoja lateral para móviles. Cuando hay un usuario
- * autenticado muestra un saludo con `displayName`, acceso a "Mi Dashboard" y la opción de cerrar sesión; en caso contrario
- * muestra botones para iniciar sesión o registrarse.
- *
- * @param user - Objeto `User` de Supabase o `null`/`undefined` que determina la renderización de las acciones de cuenta
- * @param displayName - Nombre que se muestra cuando el usuario está autenticado
- * @param userRolId - ID del rol del usuario (1: Admin, 2: Ciudadano, 3: Interesado)
- * @returns El elemento JSX de la cabecera con la navegación y los controles de cuenta según el estado de autenticación
- */
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof Home;
+};
+
 export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps) {
   const puedeCrearReportes = canCreateReports(userRolId);
 
+  const items: NavItem[] = [
+    { href: "/", label: "Inicio", icon: Home },
+    { href: "/reportes", label: "Reportes", icon: List },
+    { href: "/mapa", label: "Mapa", icon: Map },
+  ];
+
+  if (user && puedeCrearReportes) {
+    items.push({ href: "/reportes/nuevo", label: "Nuevo reporte", icon: Plus });
+  }
+
   return (
     <>
-      {/* Centro - Botones de navegación */}
-      <div className="hidden md:flex items-center gap-3 flex-1 justify-center">
-        {/* Dropdown de Reportes - Solo para Admin y Ciudadano */}
-        {user && puedeCrearReportes && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                Reportes <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/reportes/nuevo"
-                  className="cursor-pointer flex items-center"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Crear
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/reportes"
-                  className="cursor-pointer flex items-center"
-                >
-                  <List className="mr-2 h-4 w-4" />
-                  Ver todos
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+      <nav className="hidden items-center gap-1 lg:flex">
+        {items.map(({ href, label }) => (
+          <Button key={href} variant="ghost" size="sm" asChild>
+            <Link href={href}>{label}</Link>
+          </Button>
+        ))}
+      </nav>
 
-        {/* Botón del Mapa - Accesible para todos */}
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/mapa">
-            <Map className="mr-2 h-4 w-4" />
-            Mapa
-          </Link>
-        </Button>
-      </div>
-
-      {/* Derecha - Auth buttons */}
-      <div className="hidden md:flex items-center gap-3 flex-1 justify-end">
+      <div className="hidden items-center gap-3 lg:flex">
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="link" size="sm" className="gap-2 px-2">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="text-sm bg-gradient-to-br from-primary/20 to-primary/10">
+            <Button variant="outline" size="sm" className="gap-2 pr-3">
+                <Avatar className="size-8 border border-border">
+                  <AvatarFallback className="bg-[var(--surface-subtle)] text-xs font-semibold text-foreground">
                     {getUserInitials(user.email || "US")}
                   </AvatarFallback>
                 </Avatar>
-                <ChevronDown className="h-4 w-4" />
+                <div className="hidden text-left lg:block">
+                  <p className="max-w-32 truncate text-sm font-medium">{displayName}</p>
+                </div>
+                <ChevronDown className="size-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <div className="px-2 py-2 text-sm">
-                <p className="text-muted-foreground text-xs">Hola,</p>
-                <p className="font-semibold text-foreground">{displayName}</p>
+            <DropdownMenuContent align="end" className="w-60 rounded-[var(--radius-lg)]">
+              <div className="space-y-1 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Sesión activa
+                </p>
+                <p className="truncate text-sm font-medium">{displayName}</p>
+                {puedeCrearReportes && <Badge variant="secondary">Ciudadanía activa</Badge>}
               </div>
-              <div className="border-t my-1" />
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link
-                  href="/dashboard"
-                  className="cursor-pointer flex items-center"
-                >
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  Mi Dashboard
+                <Link href="/dashboard" className="flex items-center gap-2">
+                  <LayoutDashboard className="size-4" />
+                  Mi dashboard
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link href="/reportes" className="flex items-center gap-2">
+                  <List className="size-4" />
+                  Ver reportes
+                </Link>
+              </DropdownMenuItem>
+              {puedeCrearReportes && (
+                <DropdownMenuItem asChild>
+                  <Link href="/reportes/nuevo" className="flex items-center gap-2">
+                    <Plus className="size-4" />
+                    Crear reporte
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
                 <form action={signout} className="w-full">
-                  <button
-                    type="submit"
-                    className="w-full cursor-pointer flex items-center text-destructive hover:text-white"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
+                  <button type="submit" className="flex w-full items-center gap-2 text-left text-destructive">
+                    <LogOut className="size-4" />
                     Cerrar sesión
                   </button>
                 </form>
@@ -141,114 +128,79 @@ export function HeaderClient({ user, displayName, userRolId }: HeaderClientProps
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <>
+          <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" asChild>
-              <Link href="/auth">Iniciar Sesión</Link>
+              <Link href="/auth">Ingresar</Link>
             </Button>
             <Button size="sm" asChild>
-              <Link href="/auth">Registrarse</Link>
+              <Link href="/auth">Crear cuenta</Link>
             </Button>
-          </>
+          </div>
         )}
       </div>
 
-      {/* Mobile Navigation - Hamburger Menu */}
-      <div className="md:hidden mr-2">
+      <div className="lg:hidden">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Menu className="h-5 w-5" />
+            <Button variant="outline" size="icon" aria-label="Abrir menú">
+              <Menu className="size-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-            <SheetHeader>
+          <SheetContent side="right" className="w-[min(22rem,calc(100vw-1rem))] border-l border-border bg-background p-0 sm:w-[22rem]">
+            <SheetHeader className="border-b border-border px-6 py-5 text-left">
               <SheetTitle>Menú</SheetTitle>
             </SheetHeader>
-            <div className="flex flex-col gap-4 mt-6">
-              {/* Navigation Links */}
-              <div className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+
+            <div className="space-y-6 px-6 py-6">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Navegación
-                </h3>
-                <Button variant="ghost" className="justify-start" asChild>
-                  <Link href="/">
-                    <Home className="mr-2 h-4 w-4" />
-                    Inicio
-                  </Link>
-                </Button>
-                {/* Solo mostrar opciones de reportes a Admin y Ciudadano */}
-                {user && puedeCrearReportes && (
-                  <>
-                    <Button variant="ghost" className="justify-start" asChild>
-                      <Link href="/reportes/nuevo">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Crear Reporte
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" className="justify-start" asChild>
-                      <Link href="/reportes">
-                        <List className="mr-2 h-4 w-4" />
-                        Ver Reportes
-                      </Link>
-                    </Button>
-                  </>
-                )}
-                {/* Mapa disponible para todos */}
-                <Button variant="ghost" className="justify-start" asChild>
-                  <Link href="/mapa">
-                    <Map className="mr-2 h-4 w-4" />
-                    Mapa
-                  </Link>
-                </Button>
+                </p>
+                {items.map(({ href, label, icon: Icon }) => (
+                  <Button key={href} variant="ghost" className="w-full justify-start" asChild>
+                    <Link href={href}>
+                      <Icon className="size-4" />
+                      {label}
+                    </Link>
+                  </Button>
+                ))}
               </div>
 
-              {/* Divider */}
-              <div className="border-t" />
-
-              {/* Auth Section */}
-              <div className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+              <div className="space-y-3 border-t border-border pt-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Cuenta
-                </h3>
+                </p>
                 {user ? (
                   <>
-                    <div className="px-3 py-2 text-sm rounded-md bg-muted">
-                      <p className="text-muted-foreground">
-                        Sesión iniciada como:
-                      </p>
-                      <p className="font-medium text-foreground">
-                        {displayName}
-                      </p>
+                    <div className="rounded-[var(--radius-lg)] border border-border bg-[var(--surface-subtle)] p-4">
+                      <p className="text-sm text-muted-foreground">Ingresaste como</p>
+                      <p className="mt-1 text-base font-medium">{displayName}</p>
                     </div>
-                    <Button variant="outline" className="justify-start" asChild>
+                    <Button variant="outline" className="w-full justify-start" asChild>
                       <Link href="/dashboard">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        Mi Dashboard
+                        <LayoutDashboard className="size-4" />
+                        Mi dashboard
                       </Link>
                     </Button>
                     <form action={signout} className="w-full">
-                      <Button
-                        type="submit"
-                        variant="destructive"
-                        className="w-full justify-start"
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
+                      <Button type="submit" variant="destructive" className="w-full justify-start">
+                        <LogOut className="size-4" />
                         Cerrar sesión
                       </Button>
                     </form>
                   </>
                 ) : (
                   <>
-                    <Button variant="ghost" className="justify-start" asChild>
+                    <Button variant="outline" className="w-full justify-start" asChild>
                       <Link href="/auth">
-                        <LogIn className="mr-2 h-4 w-4" />
-                        Iniciar Sesión
+                        <LogIn className="size-4" />
+                        Ingresar
                       </Link>
                     </Button>
-                    <Button variant="default" className="justify-start" asChild>
+                    <Button className="w-full justify-start" asChild>
                       <Link href="/auth">
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Registrarse
+                        <UserPlus className="size-4" />
+                        Crear cuenta
                       </Link>
                     </Button>
                   </>

@@ -14,28 +14,55 @@ interface LoadingLogoProps {
  */
 export function LoadingLogo({ size = "md", text }: LoadingLogoProps) {
   const sizeClasses = {
-    sm: "w-12 h-12",
-    md: "w-24 h-24",
-    lg: "w-32 h-32"
+    sm: "h-12 w-12",
+    md: "h-20 w-20",
+    lg: "h-24 w-24"
+  }
+
+  const frameClasses = {
+    sm: "p-3",
+    md: "p-4",
+    lg: "p-5"
+  }
+
+  const textClasses = {
+    sm: "text-xs",
+    md: "text-sm",
+    lg: "text-base"
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4">
-      <div className={`${sizeClasses[size]} relative animate-bounce`}>
-        <Image
-          src="/logo/logoJackeMate.png"
-          alt="JackeMate Logo"
-          width={128}
-          height={128}
-          className="w-full h-full object-contain animate-pulse"
-          priority
-        />
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex flex-col items-center justify-center gap-4 text-center"
+    >
+      <div className="relative">
+        <div className="absolute inset-0 rounded-full bg-primary/10 blur-xl" />
+        <div className={`relative rounded-full border border-primary/15 bg-card ${frameClasses[size]}`}>
+          <div className="absolute inset-[10%] rounded-full border border-primary/10 animate-pulse" />
+          <div className={`${sizeClasses[size]} relative animate-[spin_9s_linear_infinite]`}>
+            <div className="absolute inset-0 rounded-full border border-transparent border-t-primary/45 border-r-primary/20" />
+            <div className="absolute inset-[18%] rounded-full border border-transparent border-b-primary/35 border-l-primary/15" />
+            <div className="absolute inset-[24%] animate-[spin_5s_linear_infinite_reverse]">
+              <Image
+                src="/logo/logoJackeMate.png"
+                alt="JackeMate Logo"
+                width={128}
+                height={128}
+                className="h-full w-full object-contain"
+                priority
+              />
+            </div>
+          </div>
+        </div>
       </div>
       {text && (
-        <p className="text-lg text-muted-foreground animate-pulse">
+        <p className={`${textClasses[size]} max-w-xs font-medium tracking-tight text-muted-foreground`}>
           {text}
         </p>
       )}
+      <span className="sr-only">Cargando contenido</span>
     </div>
   )
 }

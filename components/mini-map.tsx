@@ -38,7 +38,7 @@ export function MiniMap({ lat, lon }: MiniMapProps) {
         <CircleMarker
           center={center}
           radius={10}
-          pathOptions={{ color: "#2563eb", fillColor: "#3b82f6", fillOpacity: 0.8 }}
+          pathOptions={{ color: "var(--semantic-info)", fillColor: "var(--semantic-info)", fillOpacity: 0.82 }}
         />
       </RLMapContainer>
     </div>

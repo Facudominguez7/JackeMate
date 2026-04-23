@@ -5,6 +5,13 @@ import { ZonaConReportes } from "@/database/queries/interesado"
 import { MapPin } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
+const ZONE_COLORS = [
+  "var(--map-heat-high)",
+  "var(--semantic-warning)",
+  "var(--semantic-info)",
+  "var(--foreground)",
+]
+
 type Props = {
   zonas: ZonaConReportes[]
 }
@@ -38,7 +45,7 @@ export function GraficoZonasCalientes({ zonas }: Props) {
     nombre: `Zona ${index + 1}`,
     cantidad: zona.cantidad,
     coordenadas: `${zona.lat.toFixed(4)}, ${zona.lon.toFixed(4)}`,
-    color: index === 0 ? '#ef4444' : index === 1 ? '#f97316' : index === 2 ? '#eab308' : '#3b82f6'
+    color: ZONE_COLORS[index % ZONE_COLORS.length]
   }))
 
   // Custom tooltip
@@ -46,7 +53,7 @@ export function GraficoZonasCalientes({ zonas }: Props) {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+        <div className="rounded-[var(--radius-lg)] border border-border bg-card p-3">
           <p className="font-semibold text-sm mb-1">{data.nombre}</p>
           <p className="text-xs text-muted-foreground mb-1">
             {data.coordenadas}
@@ -103,19 +110,19 @@ export function GraficoZonasCalientes({ zonas }: Props) {
         {/* Leyenda */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-red-500"></div>
+            <div className="h-3 w-3 rounded" style={{ backgroundColor: "var(--map-heat-high)" }}></div>
             <span>Top 1</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-orange-500"></div>
+            <div className="h-3 w-3 rounded" style={{ backgroundColor: "var(--semantic-warning)" }}></div>
             <span>Top 2</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-yellow-500"></div>
+            <div className="h-3 w-3 rounded" style={{ backgroundColor: "var(--semantic-info)" }}></div>
             <span>Top 3</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-blue-500"></div>
+            <div className="h-3 w-3 rounded" style={{ backgroundColor: "var(--foreground)" }}></div>
             <span>Otras zonas</span>
           </div>
         </div>

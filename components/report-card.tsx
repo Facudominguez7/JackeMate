@@ -1,10 +1,22 @@
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { User, Calendar, Construction, TrafficCone, Lightbulb, Trash2, ShieldAlert, MoreHorizontal, Trees, AlertTriangle, AlertCircle, Info, CheckCircle, X } from "lucide-react"
-
-
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  AlertCircle,
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  Construction,
+  Info,
+  Lightbulb,
+  MoreHorizontal,
+  ShieldAlert,
+  TrafficCone,
+  Trash2,
+  Trees,
+  User,
+  X,
+} from "lucide-react"
 
 export type ReportCardProps = {
   id: number
@@ -18,7 +30,6 @@ export type ReportCardProps = {
   autor?: string
 }
 
-// Exportar función para obtener variante de estado
 export const getStatusVariant = (status: string): "reparado" | "pendiente" | "rechazado" | "outline" => {
   switch (status) {
     case "Reparado":
@@ -32,8 +43,7 @@ export const getStatusVariant = (status: string): "reparado" | "pendiente" | "re
   }
 }
 
-// Exportar función para obtener iconos de estado
-export const getStatusIcon = (status: string, className: string = "w-3 h-3") => {
+export const getStatusIcon = (status: string, className = "w-3 h-3") => {
   switch (status) {
     case "Reparado":
       return <CheckCircle className={className} />
@@ -44,7 +54,6 @@ export const getStatusIcon = (status: string, className: string = "w-3 h-3") => 
   }
 }
 
-// Exportar función para obtener variante de prioridad
 export const getPriorityVariant = (priority: string): "alta" | "media" | "baja" | "outline" => {
   switch (priority) {
     case "Alta":
@@ -58,8 +67,7 @@ export const getPriorityVariant = (priority: string): "alta" | "media" | "baja" 
   }
 }
 
-// Exportar función para obtener iconos de prioridad
-export const getPriorityIcon = (priority: string, className: string = "w-3 h-3") => {
+export const getPriorityIcon = (priority: string, className = "w-3 h-3") => {
   switch (priority) {
     case "Alta":
       return <AlertTriangle className={className} />
@@ -72,8 +80,7 @@ export const getPriorityIcon = (priority: string, className: string = "w-3 h-3")
   }
 }
 
-// Exportar función para obtener iconos de categoría
-export const getCategoryIcon = (category: string, className: string = "w-3 h-3") => {
+export const getCategoryIcon = (category: string, className = "w-3 h-3") => {
   switch (category) {
     case "Bache":
       return <Construction className={className} />
@@ -87,60 +94,39 @@ export const getCategoryIcon = (category: string, className: string = "w-3 h-3")
       return <Trash2 className={className} />
     case "Seguridad":
       return <ShieldAlert className={className} />
-    case "Otros":
-      return <MoreHorizontal className={className} />
     default:
-      return null
+      return <MoreHorizontal className={className} />
   }
 }
 
-// Exportar función para obtener color de prioridad (coincide con variantes del badge)
 export const getPriorityColor = (priority: string): string => {
   switch (priority) {
     case "Alta":
-      return "#dc2626" // red-600 (coincide con variante "alta" del badge)
+      return "var(--priority-high)"
     case "Media":
-      return "#ea580c" // orange-600 (coincide con variante "media" del badge)
+      return "var(--priority-medium)"
     case "Baja":
-      return "#ca8a04" // yellow-600 (coincide con variante "baja" del badge)
+      return "var(--priority-low)"
     default:
-      return "#6b7280" // gray-500
+      return "var(--muted-foreground)"
   }
 }
 
-// Exportar función para obtener color de estado (coincide con variantes del badge)
 export const getStatusColor = (status: string): string => {
   switch (status) {
     case "Reparado":
-      return "#15803d" // green-700 (coincide con variante "reparado" del badge)
+      return "var(--status-repaired)"
     case "Pendiente":
-      return "#ca8a04" // yellow-600 (coincide con variante "pendiente" del badge)
+      return "var(--status-pending)"
     case "Rechazado":
-      return "#b91c1c" // red-700 (coincide con variante "rechazado" del badge)
+      return "var(--status-rejected)"
     default:
-      return "#6b7280" // gray-500
+      return "var(--muted-foreground)"
   }
 }
 
-// Exportar función para obtener color de categoría (coincide con variante "blue" del badge)
-export const getCategoryColor = (): string => {
-  return "#2563eb" // blue-600 (coincide con variante "blue" del badge)
-}
+export const getCategoryColor = (): string => "var(--category-accent)"
 
-/**
- * Componente de tarjeta que muestra la información principal de un reporte y enlaza a su vista detallada.
- *
- * @param id - Identificador único del reporte usado en la ruta del enlace
- * @param titulo - Título del reporte que se muestra como encabezado
- * @param descripcion - Texto descriptivo del reporte; se muestra "Sin descripción" si no existe
- * @param categoria - Categoría del reporte (p. ej. "Bache", "Semaforo") mostrada con su icono
- * @param prioridad - Nivel de prioridad (p. ej. "Alta", "Media", "Baja") mostrado en una badge con icono
- * @param estado - Estado actual del reporte (p. ej. "Reparado", "Pendiente", "Rechazado") mostrado en una badge con icono
- * @param imageUrl - URL de la imagen del reporte; se usa un placeholder si no se proporciona
- * @param createdAt - Fecha de creación en formato compatible con Date; se muestra formateada en "es-AR"
- * @param autor - Nombre del autor; muestra "Anónimo" si no está disponible
- * @returns Un elemento React que representa la tarjeta enlazable del reporte
- */
 export function ReportCard({
   id,
   titulo,
@@ -153,56 +139,50 @@ export function ReportCard({
   autor,
 }: ReportCardProps) {
   return (
-    <Link key={id} href={`/reportes/${id}`}>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <CardTitle className="text-lg line-clamp-1">{titulo}</CardTitle>
-            <Badge variant={getPriorityVariant(prioridad)} className="flex items-center gap-1">
+    <Link key={id} href={`/reportes/${id}`} className="block h-full">
+      <Card className="h-full overflow-hidden transition-colors hover:border-foreground/20">
+        <div className="aspect-[4/3] overflow-hidden bg-[var(--surface-subtle)]">
+          <img
+            src={imageUrl || "/placeholder.svg"}
+            alt={titulo}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        </div>
+
+        <CardContent className="flex h-full flex-col gap-4 pt-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={getPriorityVariant(prioridad)} className="gap-1">
               {getPriorityIcon(prioridad)}
               {prioridad}
             </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Imagen del reporte con lazy loading para optimización */}
-          <div className="aspect-video bg-muted rounded-lg mb-4 overflow-hidden">
-            <img
-              src={imageUrl || "/placeholder.svg"}
-              alt={titulo}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+            <Badge variant={getStatusVariant(estado)} className="gap-1">
+              {getStatusIcon(estado)}
+              {estado}
+            </Badge>
+            <Badge variant="blue" className="gap-1">
+              {getCategoryIcon(categoria)}
+              {categoria}
+            </Badge>
           </div>
 
-          {/* Descripción con límite de 2 líneas */}
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-            {descripcion || "Sin descripción"}
-          </p>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold tracking-tight text-foreground line-clamp-2">
+              {titulo}
+            </h3>
+            <p className="text-sm leading-6 text-muted-foreground line-clamp-3">
+              {descripcion || "Sin descripción adicional."}
+            </p>
+          </div>
 
-          <div className="space-y-3">
-            {/* Badges de estado y categoría */}
-            <div className="flex items-center justify-between text-sm">
-              <Badge variant={getStatusVariant(estado)} className="flex items-center gap-1">
-                {getStatusIcon(estado)}
-                {estado}
-              </Badge>
-              <Badge variant="blue" className="flex items-center gap-1">
-                {getCategoryIcon(categoria)}
-                {categoria}
-              </Badge>
+          <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 truncate">
+              <User className="size-3.5 flex-none" />
+              <span className="truncate">{autor || "Anónimo"}</span>
             </div>
-            
-            {/* Metadata: autor y fecha de creación */}
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <User className="w-3 h-3" />
-                {autor || "Anónimo"}
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {new Date(createdAt).toLocaleDateString("es-AR")}
-              </div>
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <Calendar className="size-3.5 flex-none" />
+              <span>{new Date(createdAt).toLocaleDateString("es-AR")}</span>
             </div>
           </div>
         </CardContent>

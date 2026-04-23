@@ -51,16 +51,24 @@ export async function signup(_prevState: AuthFormState | void, formData: FormDat
   // in practice, you should validate your inputs
   const name = formData.get('name') as string
   const lastname = formData.get('lastname') as string
+  const phone = (formData.get('phone') as string | null)?.trim() ?? ''
+  const password = formData.get('password') as string
+  const confirmPassword = formData.get('confirm_password') as string
   const displayName = `${name} ${lastname}`.trim()
+
+  if (password !== confirmPassword) {
+    return { error: 'Las contraseñas no coinciden' }
+  }
   
   const data = {
     email: formData.get('email') as string,
-    password: formData.get('password') as string,
+    password,
     options: {
       data: {
         display_name: displayName,
         name: name,
         lastname: lastname,
+        phone: phone || undefined,
       }
     }
   }

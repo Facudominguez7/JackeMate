@@ -7,6 +7,12 @@ import { ZonaConReportes } from "@/database/queries/interesado"
 import { MapPin, ChevronDown, ChevronUp } from "lucide-react"
 import dynamic from "next/dynamic"
 
+const getHeatColor = (cantidad: number) => {
+  if (cantidad >= 10) return "var(--map-heat-high)"
+  if (cantidad >= 5) return "var(--map-heat-medium)"
+  return "var(--map-heat-low)"
+}
+
 type Props = {
   zonas: ZonaConReportes[]
   height?: string
@@ -60,14 +66,12 @@ function MapaCalorInterno({ zonas, height }: { zonas: ZonaConReportes[], height:
       // Agregar marcadores para cada zona
       zonas.forEach((zona, index) => {
         // Determinar color según cantidad
-        let color = "#eab308" // amarillo (baja)
+        let color = getHeatColor(zona.cantidad)
         let size = 20
         
         if (zona.cantidad >= 10) {
-          color = "#ef4444" // rojo (alta)
           size = 40
         } else if (zona.cantidad >= 5) {
-          color = "#f97316" // naranja (media)
           size = 30
         }
 
@@ -85,7 +89,7 @@ function MapaCalorInterno({ zonas, height }: { zonas: ZonaConReportes[], height:
               color: white;
               font-weight: bold;
               font-size: ${size > 30 ? 14 : 12}px;
-              border: 3px solid white;
+              border: 3px solid var(--map-marker-stroke);
               box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             ">
               ${zona.cantidad}
@@ -119,7 +123,7 @@ function MapaCalorInterno({ zonas, height }: { zonas: ZonaConReportes[], height:
             <p style="margin: 4px 0; font-size: 12px;">
               <strong>Último reporte:</strong><br/>${fechaFormateada}
             </p>
-            <p style="margin: 4px 0; font-size: 11px; color: #666;">
+            <p style="margin: 4px 0; font-size: 11px; color: var(--muted-foreground);">
               Lat: ${zona.lat.toFixed(4)}, Lon: ${zona.lon.toFixed(4)}
             </p>
           </div>
@@ -238,15 +242,15 @@ export function MapaCalorZonas({ zonas, height = "400px" }: Props) {
             {/* Leyenda del mapa */}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-xs">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "var(--map-heat-high)" }}></div>
                 <span>Alta concentración (10+)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "var(--map-heat-medium)" }}></div>
                 <span>Media (5-9)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "var(--map-heat-low)" }}></div>
                 <span>Baja (1-4)</span>
               </div>
             </div>

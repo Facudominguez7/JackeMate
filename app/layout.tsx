@@ -7,15 +7,15 @@ import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "JackeMate",
-  description: "Created by Facundo y Octavio",
+  description: "Plataforma ciudadana para reportar problemas urbanos en Posadas, Misiones.",
   icons: {
-  icon: [
-    {
-      url: "/ico/logoJackeMate.png",
-      href: "/ico/logoJackeMate.png",
-    }
-  ],
-}
+    icon: [
+      {
+        url: "/ico/logoJackeMate.png",
+        href: "/ico/logoJackeMate.png",
+      },
+    ],
+  },
 };
 
 /**
@@ -30,11 +30,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground"
+        >
+          Saltar al contenido
+        </a>
         <Header />
-        {children}
-        <Toaster richColors  position="top-center"  />
+        <main id="main-content">{children}</main>
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

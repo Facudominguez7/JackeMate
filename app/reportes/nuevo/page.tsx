@@ -280,7 +280,7 @@ export default function NuevoReportePage() {
   // Mostrar mensaje de carga o error de autenticación
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="page-shell flex items-center justify-center">
         <LoadingLogo size="lg" text="Preparando formulario..." />
       </div>
     )
@@ -289,8 +289,8 @@ export default function NuevoReportePage() {
   // Si no hay usuario, redirigir al login
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md mx-4">
+      <div className="page-shell flex items-center justify-center px-4">
+        <Card className="max-w-xl">
           <CardHeader>
             <CardTitle>Autenticación requerida</CardTitle>
             <CardDescription>Debes iniciar sesión para crear reportes</CardDescription>
@@ -316,8 +316,8 @@ export default function NuevoReportePage() {
   // Si el usuario no tiene permisos para crear reportes
   if (!puedeCrear) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md mx-4">
+      <div className="page-shell flex items-center justify-center px-4">
+        <Card className="max-w-xl">
           <CardHeader>
             <CardTitle>Acceso no autorizado</CardTitle>
             <CardDescription>Tu rol no permite crear reportes</CardDescription>
@@ -342,21 +342,15 @@ export default function NuevoReportePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Page actions */}
-      <div className="container mx-auto px-4 pt-6 max-w-2xl">
-        <Button variant="outline" asChild>
-          <Link href="/reportes">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver
-          </Link>
-        </Button>
-      </div>
-
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">Crear Nuevo Reporte</h2>
-          <p className="text-muted-foreground">Ayuda a mejorar Posadas reportando problemas públicos en tu barrio</p>
+    <div className="page-shell">
+      <div className="page-container max-w-5xl space-y-6 py-6 md:space-y-8 md:py-8 lg:space-y-10 lg:py-10">
+        <div>
+          <Button variant="outline" asChild>
+            <Link href="/reportes">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver a reportes
+            </Link>
+          </Button>
         </div>
 
         <Card>
@@ -476,7 +470,7 @@ export default function NuevoReportePage() {
                       </div>
                     )}
                     {!formData.lat && !formData.lon && (
-                      <p className="text-sm text-amber-600">
+                      <p className="tone-warning-inline text-sm">
                         ⚠️ Debes seleccionar una ubicación en el mapa
                       </p>
                     )}
@@ -487,9 +481,9 @@ export default function NuevoReportePage() {
               {/* Image Upload */}
               <div className="space-y-4">
                 <Label>Fotografía</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                <div className="rounded-[var(--radius-lg)] border border-dashed border-border bg-[var(--surface-subtle)] p-6 text-center">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-card">
                       <Camera className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
@@ -497,7 +491,7 @@ export default function NuevoReportePage() {
                       <p className="text-xs text-muted-foreground">Usa tu cámara para capturar la imagen en el momento</p>
                     </div>
                     <div className="flex gap-2">
-                      <Button type="button" variant="outline" size="sm" asChild>
+                      <Button type="button" size="sm" asChild>
                         <label htmlFor="images" className="cursor-pointer">
                           <Camera className="w-4 h-4 mr-2" />
                           Tomar Foto

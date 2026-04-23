@@ -1,21 +1,46 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { LucideIcon } from "lucide-react"
 
+const toneClasses = {
+  neutral: {
+    wrapper: "bg-[var(--surface-subtle)] text-foreground",
+    icon: "text-foreground",
+  },
+  info: {
+    wrapper: "tone-info-card",
+    icon: "text-[var(--semantic-info)]",
+  },
+  success: {
+    wrapper: "tone-success-card",
+    icon: "text-[var(--semantic-success)]",
+  },
+  warning: {
+    wrapper: "tone-warning-card",
+    icon: "text-[var(--semantic-warning)]",
+  },
+  danger: {
+    wrapper: "tone-danger-card",
+    icon: "text-[var(--semantic-danger)]",
+  },
+  admin: {
+    wrapper: "tone-admin-card",
+    icon: "text-[var(--semantic-admin)]",
+  },
+} as const
+
 type Props = {
   title: string
   value: string | number
   icon: LucideIcon
   description?: string
-  iconColor?: string
-  iconBgColor?: string
+  tone?: keyof typeof toneClasses
 }
 
 /**
  * Componente que renderiza una tarjeta de métrica con icono, valor y texto auxiliar.
  *
  * @param icon - Componente de icono (LucideIcon) que se renderiza dentro del contenedor de color
- * @param iconColor - Clase(s) de Tailwind para el color del icono
- * @param iconBgColor - Clase(s) de Tailwind para el fondo del contenedor del icono
+ * @param tone - Variante cromática basada en tokens globales
  * @returns El elemento JSX que representa la tarjeta de métrica
  */
 export function MetricCard({ 
@@ -23,15 +48,16 @@ export function MetricCard({
   value, 
   icon: Icon, 
   description,
-  iconColor = "text-blue-600 dark:text-blue-400",
-  iconBgColor = "bg-blue-100 dark:bg-blue-950/40"
+  tone = "info"
 }: Props) {
+  const styles = toneClasses[tone]
+
   return (
-    <Card className="border-primary/20 hover:border-primary/40 transition-colors">
+    <Card className="h-full transition-colors hover:border-foreground/15">
       <CardContent className="pt-6">
         <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 ${iconBgColor} rounded-lg flex items-center justify-center`}>
-            <Icon className={`w-6 h-6 ${iconColor}`} />
+          <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${styles.wrapper}`}>
+            <Icon className={`h-6 w-6 ${styles.icon}`} />
           </div>
           <div className="flex-1">
             <p className="text-2xl font-bold text-foreground">{value}</p>

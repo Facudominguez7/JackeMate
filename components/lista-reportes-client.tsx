@@ -100,9 +100,8 @@ export function ListaReportesClient({
 
     return (
         <>
-            {/* Grid de reportes */}
             {reports.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                     {reports.map((report) => (
                         <ReportCard
                             key={report.id}
@@ -122,13 +121,14 @@ export function ListaReportesClient({
 
             {/* Botón para cargar más reportes */}
             {reports.length > 0 && (
-                <div className="text-center mt-12">
+                <div className="mt-10 flex justify-center">
                     {hasMore ? (
                         <Button
                             variant="outline"
                             size="lg"
                             onClick={cargarMas}
                             disabled={isLoading}
+                            className="min-w-56"
                         >
                             {isLoading ? (
                                 <>
@@ -140,7 +140,7 @@ export function ListaReportesClient({
                             )}
                         </Button>
                     ) : (
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-sm text-muted-foreground">
                             No hay más reportes para mostrar
                         </p>
                     )}
