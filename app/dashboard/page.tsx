@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   const data = await getDashboardPageData()
 
   if (!data.user) {
-    redirect("/auth")
+    redirect("/auth?modo=completar-cuenta")
   }
 
   if (data.isAnalyticsDashboard) {

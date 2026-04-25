@@ -139,11 +139,15 @@ export async function getPuntosUsuario(
     .from("profiles")
     .select("puntos")
     .eq("id", usuarioId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("Error al obtener puntos del usuario:", error);
     return { puntos: 0, error };
+  }
+
+  if (!data) {
+    return { puntos: 0, error: null };
   }
 
   return { puntos: data?.puntos || 0, error: null };

@@ -27,6 +27,7 @@ import { PUNTOS } from "@/database/queries/puntos"
 import { LoadingLogo } from "@/components/loading-logo"
 import { REPORT_IMAGE_ACCEPT_ATTR } from "@/lib/media/report-images"
 import { optimizeReportImage } from "@/lib/media/optimize-report-image"
+import { isAnonymousUser } from "@/lib/authz/anonymous"
 import { toast } from "sonner"
 import { 
   getCategorias, 
@@ -77,29 +78,109 @@ export default function NuevoReportePage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const [puedeCrear, setPuedeCrear] = useState(false)
+  const [anonymousAuthEnabled, setAnonymousAuthEnabled] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
   const [geoStatus, setGeoStatus] = useState<"pending" | "ok" | "error">("pending")
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isOptimizingImage, setIsOptimizingImage] = useState(false)
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
 
   const supabase = createClient()
   const isMobile = useIsMobile()
+
+  /**
+   * Determina si el error de Supabase corresponde a una sesión inexistente.
+   *
+   * @param error - Error retornado por `supabase.auth.getUser()`.
+   * @returns `true` si el error indica ausencia de sesión activa.
+   */
+  const isMissingSessionError = (error: Error) => {
+    const normalizedMessage = error.message.toLowerCase()
+
+    return (
+      normalizedMessage.includes("auth session missing") ||
+      normalizedMessage.includes("session from session_id claim in jwt does not exist")
+    )
+  }
+
+  /**
+   * Determina si el error recibido corresponde a la funcionalidad de login anónimo deshabilitada.
+   *
+   * @param error - Error desconocido proveniente de Supabase.
+   * @returns `true` cuando el mensaje indica explícitamente que los sign-ins anónimos están desactivados.
+   */
+  const isAnonymousSignInDisabledError = (error: unknown) => {
+    if (!(error instanceof Error)) {
+      return false
+    }
+
+    return error.message.toLowerCase().includes("anonymous sign-ins are disabled")
+  }
+
+  /**
+   * Traduce y normaliza los errores de autenticación anónima para mantener una UX clara.
+   *
+   * @param error - Error capturado al intentar iniciar sesión anónima.
+   * @returns Mensaje de error en español listo para renderizar en UI.
+   */
+  const getAnonymousAuthErrorMessage = (error: unknown) => {
+    if (isAnonymousSignInDisabledError(error)) {
+      setAnonymousAuthEnabled(false)
+      return "El inicio anónimo está deshabilitado momentáneamente. Iniciá sesión con tu cuenta para crear un reporte."
+    }
+
+    return error instanceof Error
+      ? error.message
+      : "No pudimos iniciar sesión anónima. Probá iniciar sesión con tu cuenta."
+  }
+
+  /**
+   * Inicia una sesión anónima en Supabase para reducir fricción al crear reportes.
+   *
+   * @returns Usuario autenticado de Supabase en modo anónimo.
+   * @throws Error cuando la creación de sesión falla o no retorna usuario.
+   */
+  const startAnonymousSession = async () => {
+    const { data, error } = await supabase.auth.signInAnonymously()
+
+    if (error || !data.user) {
+      throw new Error(error?.message || "No pudimos iniciar una sesión anónima en este momento.")
+    }
+
+    return data.user
+  }
   
   useEffect(() => {
     const checkUserAndLoadData = async () => {
       try {
         // Verificar autenticación del usuario
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
-        if (userError || !user) {
-          setLoading(false)
+        const {
+          data: { user: currentUser },
+          error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError && !isMissingSessionError(userError)) {
+          setAuthError("No pudimos verificar tu sesión actual.")
+        }
+
+        const activeUser = currentUser ?? (await startAnonymousSession())
+        setUser(activeUser)
+        setAuthError(null)
+
+        if (isAnonymousUser(activeUser)) {
+          setPuedeCrear(true)
+
+          const categoriasData = await getCategorias(supabase)
+          setCategorias(categoriasData)
+
+          const prioridadesData = await getPrioridades(supabase)
+          setPrioridades(prioridadesData)
           return
         }
 
-        setUser(user)
-
         // Verificar si el usuario puede crear reportes (Admin o Ciudadano)
-        const { puedeCrear: canCreate } = await verificarPuedeCrearReporte(supabase, user.id)
+        const { puedeCrear: canCreate } = await verificarPuedeCrearReporte(supabase, activeUser.id)
         setPuedeCrear(canCreate)
 
         if (!canCreate) {
@@ -115,7 +196,8 @@ export default function NuevoReportePage() {
         const prioridadesData = await getPrioridades(supabase)
         setPrioridades(prioridadesData)
       } catch (error) {
-        // Manejar error silenciosamente
+        const message = getAnonymousAuthErrorMessage(error)
+        setAuthError(message)
       } finally {
         setLoading(false)
       }
@@ -199,8 +281,14 @@ export default function NuevoReportePage() {
     }))
   }
 
+  /**
+   * Maneja el intento de envío del formulario y habilita validaciones visuales.
+   *
+   * @param e - Evento de envío del formulario.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setHasAttemptedSubmit(true)
     
     // Validar que se haya seleccionado una ubicación
     if (!formData.lat || !formData.lon) {
@@ -242,6 +330,12 @@ export default function NuevoReportePage() {
     formData.lat !== null && formData.lon !== null ? null : "ubicación",
   ].filter(Boolean) as string[]
 
+  /**
+   * Confirma el envío del formulario, crea el reporte y dirige al siguiente paso.
+   *
+   * Si la sesión pertenece a un usuario anónimo, redirige a completar cuenta para
+   * conservar la continuidad del historial y habilitar notificaciones/votos.
+   */
   const confirmSubmit = async () => {
     try {
       setIsSubmitting(true)
@@ -275,6 +369,18 @@ export default function NuevoReportePage() {
 
       const puntosGanados = result.data.pointsAwarded || PUNTOS.CREAR_REPORTE
 
+      if (isAnonymousUser(user)) {
+        toast.success("¡Reporte creado! Completá tu cuenta para continuar", {
+          description: "Con tu cuenta vas a poder seguir el estado del reporte, recibir notificaciones y votar.",
+        })
+
+        setTimeout(() => {
+          window.location.href = "/auth?modo=completar-cuenta"
+        }, 1500)
+
+        return
+      }
+
       toast.success(`¡Reporte creado exitosamente! +${puntosGanados} puntos`, {
         description: "Redirigiendo a la lista de reportes..."
       })
@@ -295,6 +401,14 @@ export default function NuevoReportePage() {
     }
   }
 
+  const detalleErrorAutenticacion = authError?.trim() ?? null
+  const shouldRenderAuthErrorDetail = Boolean(
+    detalleErrorAutenticacion &&
+    detalleErrorAutenticacion !== "No pudimos verificar tu sesión actual." &&
+    detalleErrorAutenticacion !== "Para crear reportes rápidos, intentá con sesión anónima.",
+  )
+  const usuarioEsAnonimo = isAnonymousUser(user)
+
   // Mostrar mensaje de carga o error de autenticación
   if (loading) {
     return (
@@ -304,25 +418,53 @@ export default function NuevoReportePage() {
     )
   }
 
-  // Si no hay usuario, redirigir al login
+  // Si no hay usuario, ofrecer inicio anónimo o con cuenta
   if (!user) {
     return (
       <div className="page-shell flex items-center justify-center px-4">
         <Card className="max-w-xl">
           <CardHeader>
-            <CardTitle>Autenticación requerida</CardTitle>
-            <CardDescription>Debes iniciar sesión para crear reportes</CardDescription>
+            <CardTitle>No pudimos verificar tu sesión actual.</CardTitle>
+            <CardDescription>
+              {anonymousAuthEnabled
+                ? "Para crear reportes rápidos, intentá con sesión anónima."
+                : "El modo anónimo no está disponible. Iniciá sesión con tu cuenta"
+              }
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              Para crear reportes y contribuir a mejorar tu comunidad, necesitas tener una cuenta.
-            </p>
+            {shouldRenderAuthErrorDetail ? (
+              <p className="text-muted-foreground">{detalleErrorAutenticacion}</p>
+            ) : null}
             <div className="flex gap-3">
-              <Button asChild className="flex-1">
-                <Link href="/auth">Iniciar Sesión</Link>
-              </Button>
+              {anonymousAuthEnabled ? (
+                <Button
+                  className="flex-1"
+                  onClick={async () => {
+                    try {
+                      setLoading(true)
+                      const anonUser = await startAnonymousSession()
+                      setUser(anonUser)
+                      setPuedeCrear(true)
+
+                      const categoriasData = await getCategorias(supabase)
+                      setCategorias(categoriasData)
+                      const prioridadesData = await getPrioridades(supabase)
+                      setPrioridades(prioridadesData)
+                      setAuthError(null)
+                    } catch (error) {
+                      const message = getAnonymousAuthErrorMessage(error)
+                      setAuthError(message)
+                    } finally {
+                      setLoading(false)
+                    }
+                  }}
+                >
+                  Continuar sin cuenta
+                </Button>
+              ) : null}
               <Button asChild variant="outline" className="flex-1">
-                <Link href="/">Volver al Inicio</Link>
+                <Link href="/auth">Iniciar Sesión</Link>
               </Button>
             </div>
           </CardContent>
@@ -371,6 +513,23 @@ export default function NuevoReportePage() {
           </Button>
         </div>
 
+        {usuarioEsAnonimo ? (
+          <Card className="border-warning/30 bg-warning/5">
+            <CardHeader>
+              <CardTitle className="text-base">Estás reportando como invitado</CardTitle>
+              <CardDescription>
+                Podés crear este reporte ahora mismo. Si después querés seguir su estado, votar o recibir notificaciones,
+                tenés que completar tu cuenta.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/auth?modo=completar-cuenta">Completar cuenta ahora</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <Card>
           <CardHeader>
             <CardTitle>Información del Problema</CardTitle>
@@ -391,7 +550,7 @@ export default function NuevoReportePage() {
                 {formData.title.trim().length > 0 && formData.title.trim().length < 3 && (
                   <p className="text-xs text-destructive">El título debe tener al menos 3 caracteres.</p>
                 )}
-                {formData.title.trim().length === 0 && (
+                {hasAttemptedSubmit && formData.title.trim().length === 0 && (
                   <p className="text-xs text-destructive">Completá el título del reporte.</p>
                 )}
               </div>
@@ -410,7 +569,7 @@ export default function NuevoReportePage() {
                 {formData.description.trim().length > 0 && formData.description.trim().length < 10 && (
                   <p className="text-xs text-destructive">La descripción debe tener al menos 10 caracteres.</p>
                 )}
-                {formData.description.trim().length === 0 && (
+                {hasAttemptedSubmit && formData.description.trim().length === 0 && (
                   <p className="text-xs text-destructive">Completá la descripción del problema.</p>
                 )}
               </div>
@@ -435,7 +594,7 @@ export default function NuevoReportePage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {formData.category === "" && (
+                    {hasAttemptedSubmit && formData.category === "" && (
                       <p className="text-xs text-destructive">Seleccioná una categoría.</p>
                     )}
                   </div>
@@ -459,7 +618,7 @@ export default function NuevoReportePage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {formData.priority === "" && (
+                    {hasAttemptedSubmit && formData.priority === "" && (
                       <p className="text-xs text-destructive">Seleccioná una prioridad.</p>
                     )}
                   </div>
@@ -485,7 +644,7 @@ export default function NuevoReportePage() {
                     )}
                   </div>
                 )}
-                {(!formData.lat || !formData.lon) && (
+                {hasAttemptedSubmit && (!formData.lat || !formData.lon) && (
                   <p className="text-xs text-destructive">Seleccioná una ubicación en el mapa.</p>
                 )}
 
@@ -508,7 +667,7 @@ export default function NuevoReportePage() {
                         </span>
                       </div>
                     )}
-                    {!formData.lat && !formData.lon && (
+                    {hasAttemptedSubmit && !formData.lat && !formData.lon && (
                       <p className="tone-warning-inline text-sm">
                         ⚠️ Debes seleccionar una ubicación en el mapa
                       </p>
@@ -594,7 +753,7 @@ export default function NuevoReportePage() {
                 </Button>
               </div>
 
-              {!canSubmitReport && missingFields.length > 0 && (
+              {hasAttemptedSubmit && !canSubmitReport && missingFields.length > 0 && (
                 <p className="text-xs text-muted-foreground">
                   Te falta completar: <span className="font-medium text-foreground">{missingFields.join(", ")}</span>.
                 </p>
@@ -630,9 +789,16 @@ export default function NuevoReportePage() {
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Al confirmar, ganarás <span className="font-bold text-primary">{PUNTOS.CREAR_REPORTE} puntos</span> por crear este reporte.
-                </p>
+                {usuarioEsAnonimo ? (
+                  <p className="text-xs text-muted-foreground">
+                    Vas a enviar este reporte como invitado. Para seguir su estado, votar y recibir notificaciones,
+                    completá tu cuenta al finalizar.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Al confirmar, ganarás <span className="font-bold text-primary">{PUNTOS.CREAR_REPORTE} puntos</span> por crear este reporte.
+                  </p>
+                )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>

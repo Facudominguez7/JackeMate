@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { isAnonymousUser } from '@/lib/authz/anonymous'
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -39,9 +41,16 @@ export async function updateSession(request: NextRequest) {
 
   // Define which paths require authentication
   // /reportes y /mapa son públicas para que usuarios anónimos puedan ver reportes
-  // /reportes/nuevo sigue protegida porque crear reportes requiere sesión + rol permitido
-  const protectedPaths = ['/dashboard', '/reportes/nuevo']
+  // /reportes/nuevo queda pública para permitir inicio anónimo desde la propia página
+  const protectedPaths = ['/dashboard']
   const isProtected = protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p))
+
+  if (isAnonymousUser(user) && isProtected) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth'
+    url.searchParams.set('modo', 'completar-cuenta')
+    return NextResponse.redirect(url)
+  }
 
   if (!user && isProtected) {
     // no user and trying to access a protected route -> redirect to login
@@ -51,7 +60,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Verificar permisos para crear reportes (solo Admin y Ciudadano)
-  if (user && request.nextUrl.pathname.startsWith('/reportes/nuevo')) {
+  if (request.nextUrl.pathname.startsWith('/reportes/nuevo')) {
+    if (!user || isAnonymousUser(user)) {
+      return supabaseResponse
+    }
+
     const { data: profileData } = await supabase
       .from('profiles')
       .select('rol_id')

@@ -9,6 +9,7 @@ import {
   type ZonaConReportes,
 } from "@/database/queries/interesado"
 import { getDashboardUserReports, type DashboardUserReport } from "@/database/queries/reportes/get-reportes"
+import { isAnonymousUser } from "@/lib/authz/anonymous"
 import { getUserRoleContext, canViewDashboard } from "@/lib/authz/roles"
 import { createClient } from "@/utils/supabase/server"
 
@@ -40,7 +41,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (!user || isAnonymousUser(user)) {
     return {
       user: null,
       isAnalyticsDashboard: false,

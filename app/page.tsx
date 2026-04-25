@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
 import {
   ArrowRight,
   CheckCircle,
@@ -22,6 +23,7 @@ import { getTopUsuarios } from "@/database/queries/puntos";
 import { getEstadisticas } from "@/database/queries/estadisticas";
 import { getReportesRecientes, type ReporteReciente } from "@/database/queries/reportes-recientes";
 import { createClient } from "@/utils/supabase/client";
+import { isAnonymousUser } from "@/lib/authz/anonymous";
 
 const getRankingVariant = (index: number) => {
   if (index === 0) return "oro" as const;
@@ -69,6 +71,7 @@ export default function HomePage() {
   const [topUsuarios, setTopUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRolId, setUserRolId] = useState<number | null>(null);
+  const [sessionUser, setSessionUser] = useState<User | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -77,6 +80,8 @@ export default function HomePage() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
+
+        setSessionUser(user);
 
         if (user) {
           const { data: profileData } = await supabase.from("profiles").select("rol_id").eq("id", user.id).single();
@@ -104,9 +109,39 @@ export default function HomePage() {
   const canCreate = userRolId === 1 || userRolId === 2;
   const readOnly = userRolId === null || userRolId === 3;
 
+  // Un anónimo que usó "completar cuenta" tiene is_anonymous:true + email set + email_confirmed_at:null
+  // hasta que confirme el link. No es un "invitado puro".
+  const esInvitadoPuro = !loading && !!sessionUser && isAnonymousUser(sessionUser) && !sessionUser.email;
+  const esPendienteDeConfirmacion = !loading && !!sessionUser && (
+    (isAnonymousUser(sessionUser) && !!sessionUser.email && !sessionUser.email_confirmed_at) ||
+    (!isAnonymousUser(sessionUser) && !sessionUser.email_confirmed_at)
+  );
+
   return (
     <div className="page-shell">
       <div className="page-container space-y-10 py-6 md:space-y-14 md:py-8 lg:space-y-20 lg:py-10">
+        {(esInvitadoPuro || esPendienteDeConfirmacion) && (
+          <div className="flex flex-col gap-3 rounded-[var(--radius-xl)] border border-warning/30 bg-warning/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">
+                {esInvitadoPuro
+                  ? "Estás usando la plataforma como invitado"
+                  : "Tu correo electrónico no está verificado"}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {esInvitadoPuro
+                  ? "Completá tu cuenta para seguir tus reportes, recibir notificaciones y acceder al dashboard."
+                  : "Confirmá el enlace que te enviamos por correo para activar todas las funciones."}
+              </p>
+            </div>
+            <Button asChild size="sm" className="shrink-0">
+              <Link href="/auth?modo=completar-cuenta">
+                {esInvitadoPuro ? "Completar cuenta" : "Reenviar correo"}
+              </Link>
+            </Button>
+          </div>
+        )}
+
         <section className="overflow-hidden rounded-[var(--radius-xl)] border border-border bg-card">
           <div className="grid items-stretch lg:grid-cols-[1.15fr_0.85fr]">
             <div className="relative min-h-[30rem] overflow-hidden">
@@ -145,7 +180,7 @@ export default function HomePage() {
               <div className="section-stack">
                 <span className="section-eyebrow">Acciones rápidas</span>
                 <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
-                  Un producto cívico, no una vitrina.
+                  Un producto misionero, hecho por misioneros.
                 </h2>
                 <p className="section-copy max-w-none">
                   Priorizamos reportar, consultar y entender el estado de la ciudad. Menos ruido visual. Más contexto útil para tomar acción.
@@ -196,16 +231,24 @@ export default function HomePage() {
                     <Card className="surface-subtle">
                       <CardContent className="space-y-3 pt-6">
                         <p className="text-sm font-medium tracking-tight">
-                          {userRolId === null ? "¿Querés reportar un problema?" : "Tu cuenta tiene acceso de consulta."}
+                          {userRolId === null && !sessionUser
+                            ? "Reportá un problema sin cuenta"
+                            : userRolId === null
+                            ? "¿Querés reportar un problema?"
+                            : "Tu cuenta tiene acceso de consulta."}
                         </p>
                         <p className="text-sm leading-6 text-muted-foreground">
-                          {userRolId === null
-                            ? "Podés iniciar la carga del reporte ahora. Si hace falta, primero te vamos a pedir que ingreses a tu cuenta."
+                          {userRolId === null && !sessionUser
+                            ? "Podés crear un reporte ahora mismo como invitado. Para seguir su estado y recibir notificaciones, después podés completar tu cuenta."
+                            : userRolId === null
+                            ? "Podés iniciar la carga del reporte. Al finalizar te vamos a pedir que completes tu cuenta para hacer seguimiento."
                             : "Podés revisar reportes y mapa. Para crear nuevos reportes necesitás permisos de ciudadano o administrador."}
                         </p>
                         {userRolId === null && (
                           <Button asChild>
-                            <Link href="/reportes/nuevo">Crear reporte</Link>
+                            <Link href="/reportes/nuevo">
+                              {!sessionUser ? "Reportar sin cuenta" : "Crear reporte"}
+                            </Link>
                           </Button>
                         )}
                       </CardContent>

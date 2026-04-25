@@ -16,6 +16,7 @@ type MutationResult<T> =
 
 export type CreateReportWorkflowInput = CrearReporteParams & {
   image?: File | null
+  isAnonymous?: boolean
 }
 
 export type CreateReportWorkflowResult = {
@@ -28,10 +29,12 @@ export async function crearReporteWorkflow(
   supabase: SupabaseClient,
   input: CreateReportWorkflowInput,
 ): Promise<MutationResult<CreateReportWorkflowResult>> {
-  const roleResult = await getUserRoleContext(supabase, input.usuarioId)
+  if (!input.isAnonymous) {
+    const roleResult = await getUserRoleContext(supabase, input.usuarioId)
 
-  if (roleResult.error || !canCreateReports(roleResult.data?.roleId)) {
-    return { success: false, error: "No tenés permisos para crear reportes." }
+    if (roleResult.error || !canCreateReports(roleResult.data?.roleId)) {
+      return { success: false, error: "No tenés permisos para crear reportes." }
+    }
   }
 
   const reporte = await crearReporte(supabase, input)

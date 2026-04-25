@@ -200,3 +200,40 @@ export async function getPrivateProfileContact(
     return { data: null, error };
   }
 }
+
+/**
+ * Asegura que exista un perfil base para un usuario en `public.profiles`.
+ *
+ * Esta utilidad está pensada para flujos donde existe un `auth.users.id` válido
+ * pero puede faltar la fila relacionada en `profiles` (por ejemplo, sesiones anónimas).
+ *
+ * @param supabase - Cliente de Supabase con permisos de escritura sobre `profiles`.
+ * @param userId - ID del usuario autenticado que debe existir en `profiles`.
+ * @param email - Email opcional para persistir en el perfil base al crearlo.
+ * @returns Estado de la operación con `success`, `created` y posible `error`.
+ */
+export async function asegurarPerfilBase(
+  supabase: SupabaseClient,
+  userId: string,
+  email?: string | null,
+) {
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: userId,
+        email: email ?? null,
+      },
+      {
+        onConflict: "id",
+        ignoreDuplicates: true,
+      },
+    );
+
+  if (error) {
+    console.error("Error al asegurar perfil base del usuario:", error);
+    return { success: false, created: false, error };
+  }
+
+  return { success: true, created: true, error: null };
+}

@@ -3,6 +3,8 @@
 import { ZodError, z } from "zod"
 
 import { crearReporteWorkflow, mutationErrorMessage } from "@/lib/use-cases/reportes"
+import { isAnonymousUser } from "@/lib/authz/anonymous"
+import { asegurarPerfilBase } from "@/database/queries/profiles"
 import { REPORT_IMAGE_MAX_BYTES, isAcceptedReportImageType } from "@/lib/media/report-images"
 import { createAdminClient } from "@/utils/supabase/admin"
 import { createClient } from "@/utils/supabase/server"
@@ -16,6 +18,12 @@ const createReportSchema = z.object({
   lon: z.coerce.number().min(-180, "Seleccioná una ubicación en el mapa.").max(180, "Seleccioná una ubicación en el mapa."),
 })
 
+/**
+ * Obtiene la imagen opcional del formulario y valida formato/tamaño permitidos.
+ *
+ * @param formData - Datos del formulario enviados desde la UI.
+ * @returns El archivo de imagen listo para procesar o `null` si no se adjuntó imagen.
+ */
 function getOptionalImage(formData: FormData) {
   const image = formData.get("image")
 
@@ -34,6 +42,15 @@ function getOptionalImage(formData: FormData) {
   return image
 }
 
+/**
+ * Crea un reporte validando sesión activa y soporte para flujo anónimo.
+ *
+ * Si el usuario actual es anónimo, primero asegura un perfil base en `public.profiles`
+ * para cumplir las claves foráneas de `reportes.usuario_id`.
+ *
+ * @param formData - Datos del formulario de creación de reporte.
+ * @returns Resultado de mutación con `success`, `data` o `error`.
+ */
 export async function crearReporteAction(formData: FormData) {
   try {
     const sessionClient = await createClient()
@@ -55,6 +72,18 @@ export async function crearReporteAction(formData: FormData) {
     })
 
     const adminClient = createAdminClient()
+    const anonymous = isAnonymousUser(user)
+
+    if (anonymous) {
+      const perfilBaseResult = await asegurarPerfilBase(adminClient, user.id, user.email ?? null)
+
+      if (!perfilBaseResult.success) {
+        return {
+          success: false as const,
+          error: "No pudimos preparar tu perfil temporal para crear el reporte. Probá nuevamente.",
+        }
+      }
+    }
 
     return await crearReporteWorkflow(adminClient, {
       usuarioId: user.id,
@@ -65,6 +94,7 @@ export async function crearReporteAction(formData: FormData) {
       lat: parsedInput.lat,
       lon: parsedInput.lon,
       image: getOptionalImage(formData),
+      isAnonymous: anonymous,
     })
   } catch (error) {
     if (error instanceof ZodError) {
