@@ -28,3 +28,17 @@ next-env.d.ts
 
 # agent artifacts
 .atl/
+
+# AI tooling config
+.agents/
+.claude/
+.codex/
+.copilot/
+.cursor/
+.gemini/
+AGENTS.md
+CLAUDE.md
+opencode.json
+
+# local secrets
+env.local
