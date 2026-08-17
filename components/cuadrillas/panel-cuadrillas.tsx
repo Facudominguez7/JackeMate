@@ -256,7 +256,13 @@ export function PanelCuadrillas({
     <>
       <Tabs defaultValue="operacion" className="w-full">
         <TabsList>
-          <TabsTrigger value="operacion">Operación</TabsTrigger>
+          <TabsTrigger value="operacion">Asignar</TabsTrigger>
+          <TabsTrigger value="intervenciones">
+            Intervenciones en curso
+            {asignaciones.length > 0 && (
+              <span className="ml-1.5 text-muted-foreground">({asignaciones.length})</span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
         </TabsList>
 
@@ -372,35 +378,56 @@ export function PanelCuadrillas({
             </CardContent>
           </Card>
 
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold tracking-tight">Intervenciones en curso</h2>
-            <p className="text-xs text-muted-foreground md:text-sm">
-              Para reasignar, elegí primero la cuadrilla destino en el selector de arriba.
-            </p>
-          </div>
+        </TabsContent>
 
+        <TabsContent value="intervenciones" className="mt-6 space-y-6 md:mt-8 md:space-y-8">
           {asignaciones.length === 0 ? (
             <p className="text-sm text-muted-foreground">No hay intervenciones abiertas.</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {asignaciones.map((asignacion) => (
-                <TarjetaAsignacion
-                  key={asignacion.id}
-                  asignacion={asignacion}
-                  acciones={accionesPorAsignacion[asignacion.id] ?? []}
-                  enviando={enviando}
-                  observacion={observacionDe(asignacion.id)}
-                  onObservacionChange={(valor) =>
-                    setObservacionPorAsignacion((previo) => ({ ...previo, [asignacion.id]: valor }))
-                  }
-                  observacionPublica={esPublicaDe(asignacion.id)}
-                  onObservacionPublicaChange={(publica) =>
-                    setPublicaPorAsignacion((previo) => ({ ...previo, [asignacion.id]: publica }))
-                  }
-                  onSolicitarAccion={(accion) => solicitarAccion(asignacion, accion)}
-                />
-              ))}
-            </div>
+            <>
+              {/*
+                El selector de cuadrilla destino vive tambien acá: la accion "Reasignar" de cada
+                tarjeta lee esta seleccion, y dejarla solo en la pestaña de asignacion volveria
+                la reasignacion imposible de completar sin cambiar de pestaña.
+              */}
+              <Card>
+                <CardContent className="space-y-2 pt-6">
+                  <Label>Cuadrilla destino (para reasignar)</Label>
+                  <div className="max-w-md">
+                    <SelectorCuadrilla
+                      cuadrillas={cuadrillasActivas}
+                      valor={cuadrillaParaAsignar}
+                      onCambio={setCuadrillaParaAsignar}
+                      deshabilitado={enviando}
+                      ocupadas={cuadrillasOcupadas}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Elegí acá la cuadrilla que va a tomar el trabajo antes de usar &quot;Reasignar&quot;.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {asignaciones.map((asignacion) => (
+                  <TarjetaAsignacion
+                    key={asignacion.id}
+                    asignacion={asignacion}
+                    acciones={accionesPorAsignacion[asignacion.id] ?? []}
+                    enviando={enviando}
+                    observacion={observacionDe(asignacion.id)}
+                    onObservacionChange={(valor) =>
+                      setObservacionPorAsignacion((previo) => ({ ...previo, [asignacion.id]: valor }))
+                    }
+                    observacionPublica={esPublicaDe(asignacion.id)}
+                    onObservacionPublicaChange={(publica) =>
+                      setPublicaPorAsignacion((previo) => ({ ...previo, [asignacion.id]: publica }))
+                    }
+                    onSolicitarAccion={(accion) => solicitarAccion(asignacion, accion)}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </TabsContent>
 
