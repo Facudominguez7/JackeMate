@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { canCreateReports, puedeOperarCuadrillas } from '@/lib/authz/roles'
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -50,22 +52,32 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Verificar permisos para crear reportes (solo Admin y Ciudadano)
-  if (user && request.nextUrl.pathname.startsWith('/reportes/nuevo')) {
+  // Verificar permisos de rol para crear reportes y para operar cuadrillas.
+  // Se comparte una única lectura de `profiles` entre ambas guardas.
+  const rutaCrearReporte = request.nextUrl.pathname.startsWith('/reportes/nuevo')
+  const rutaCuadrillas = request.nextUrl.pathname.startsWith('/dashboard/cuadrillas')
+
+  if (user && (rutaCrearReporte || rutaCuadrillas)) {
     const { data: profileData } = await supabase
       .from('profiles')
       .select('rol_id')
       .eq('id', user.id)
       .single()
 
-    const rolId = profileData?.rol_id
-    // Solo Admin (1) y Ciudadano (2) pueden crear reportes
-    const puedeCrear = rolId === 1 || rolId === 2
+    // Si falla la lectura del perfil, rolId queda null y ambas guardas deniegan (fail-closed).
+    const rolId = profileData?.rol_id ?? null
 
-    if (!puedeCrear) {
+    if (rutaCrearReporte && !canCreateReports(rolId)) {
       // Usuario autenticado pero sin permisos -> redirigir al mapa
       const url = request.nextUrl.clone()
       url.pathname = '/mapa'
+      return NextResponse.redirect(url)
+    }
+
+    if (rutaCuadrillas && !puedeOperarCuadrillas(rolId)) {
+      // Usuario autenticado pero sin permisos para operar cuadrillas -> redirigir al dashboard
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
   }

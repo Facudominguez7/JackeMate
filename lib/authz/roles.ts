@@ -1,6 +1,13 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 
-import { DASHBOARD_ROLE_IDS, REPORT_CREATOR_ROLE_IDS, ROLE_IDS, type RoleId } from "./catalog";
+import {
+  CREW_MANAGEMENT_ROLE_IDS,
+  CREW_OPERATION_ROLE_IDS,
+  DASHBOARD_ROLE_IDS,
+  REPORT_CREATOR_ROLE_IDS,
+  ROLE_IDS,
+  type RoleId,
+} from "./catalog";
 
 type RoleRelation =
   | {
@@ -29,9 +36,15 @@ function getRoleName(roles: RoleRelation) {
   return roles?.nombre ?? null;
 }
 
+/**
+ * Normaliza un `rol_id` crudo de la base de datos a un `RoleId` válido del catálogo.
+ * Valida por pertenencia a `ROLE_IDS` (no por literales enumerados a mano) para que
+ * un rol nuevo agregado al catálogo funcione acá sin tocar esta función de nuevo.
+ */
 function toRoleId(roleId: number | null | undefined): RoleId | null {
-  if (roleId === ROLE_IDS.ADMIN || roleId === ROLE_IDS.CIUDADANO || roleId === ROLE_IDS.INTERESADO) {
-    return roleId;
+  const idsValidos = Object.values(ROLE_IDS) as number[];
+  if (idsValidos.includes(roleId as number)) {
+    return roleId as RoleId;
   }
 
   return null;
@@ -70,4 +83,19 @@ export function canViewDashboard(roleId: number | null | undefined) {
 
 export function isAdminRole(roleId: number | null | undefined) {
   return roleId === ROLE_IDS.ADMIN;
+}
+
+/** Indica si el rol puede administrar el catálogo de cuadrillas (alta, edición, activación). */
+export function puedeGestionarCuadrillas(roleId: number | null | undefined) {
+  return CREW_MANAGEMENT_ROLE_IDS.includes(roleId as (typeof CREW_MANAGEMENT_ROLE_IDS)[number]);
+}
+
+/** Indica si el rol puede operar cuadrillas: asignar reportes, observar y cerrar intervenciones. */
+export function puedeOperarCuadrillas(roleId: number | null | undefined) {
+  return CREW_OPERATION_ROLE_IDS.includes(roleId as (typeof CREW_OPERATION_ROLE_IDS)[number]);
+}
+
+/** Indica si el rol es exactamente OPERADOR municipal. */
+export function esRolOperador(roleId: number | null | undefined) {
+  return roleId === ROLE_IDS.OPERADOR;
 }
