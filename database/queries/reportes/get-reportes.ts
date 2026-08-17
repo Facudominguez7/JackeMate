@@ -10,11 +10,13 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { getPublicProfilesByIds, indexPublicProfilesById } from "@/database/queries/profiles"
+import { obtenerEstadoOperativoPublicoPorReporte } from "@/database/queries/cuadrillas"
 import {
   isMissingReportImageColumnsError,
   resolveReportImageRows,
   type ReportImageRow,
 } from "@/lib/media/report-images"
+import type { EstadoOperativo } from "@/lib/authz/catalog"
 import type { ReportCardData } from "@/components/lista-reportes-client"
 
 export type ReporteDB = {
@@ -58,6 +60,8 @@ export type ReportMapItem = {
   author: string
   createdAt: string
   image?: string
+  estadoOperativo?: EstadoOperativo | null
+  cuadrillaNombre?: string | null
 }
 
 export type DashboardUserReport = {
@@ -323,11 +327,43 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
   return { data: resolvedData, error, count, hasMore }
 }
 
+/**
+ * Adjunta el estado operativo público a una lista ya mapeada, con una única consulta por lote.
+ * Sigue el mismo patrón de segunda-consulta-y-fusión que ya usa `getPublicProfilesByIds`.
+ *
+ * Degrada en silencio: si la vista pública falla, devuelve la lista de entrada sin modificar,
+ * con los campos operativos en null. Nunca lanza — un fallo acá no puede romper el mapa ni el
+ * listado de reportes.
+ */
+async function adjuntarEstadoOperativo<T extends { id: number }>(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  items: T[],
+): Promise<Array<T & { estadoOperativo: EstadoOperativo | null; cuadrillaNombre: string | null }>> {
+  if (items.length === 0) {
+    return []
+  }
+
+  const estadosPorReporte = await obtenerEstadoOperativoPublicoPorReporte(
+    supabase,
+    items.map((item) => item.id),
+  )
+
+  return items.map((item) => {
+    const estado = estadosPorReporte.get(item.id)
+    return {
+      ...item,
+      estadoOperativo: (estado?.estadoOperativo as EstadoOperativo | undefined) ?? null,
+      cuadrillaNombre: estado?.cuadrillaNombre ?? null,
+    }
+  })
+}
+
 export async function getReportCardData(filtros: FiltrosReportes = {}) {
   const { data, error, count, hasMore } = await getReportes(filtros)
+  const supabase = await createClient()
 
   return {
-    data: (data ?? []).map(mapReportToCardData),
+    data: await adjuntarEstadoOperativo(supabase, (data ?? []).map(mapReportToCardData)),
     error,
     count,
     hasMore,
@@ -339,11 +375,14 @@ export async function getReportMapData(filtros: FiltrosReportes = {}) {
     ...filtros,
     soloConCoordenadas: true,
   })
+  const supabase = await createClient()
+
+  const mapItems = (data ?? [])
+    .map(mapReportToMapItem)
+    .filter((report): report is ReportMapItem => report !== null)
 
   return {
-    data: (data ?? [])
-      .map(mapReportToMapItem)
-      .filter((report): report is ReportMapItem => report !== null),
+    data: await adjuntarEstadoOperativo(supabase, mapItems),
     error,
   }
 }

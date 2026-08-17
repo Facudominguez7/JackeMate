@@ -37,6 +37,7 @@ import {
   Clock,
   Shield,
   Settings,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,6 +70,9 @@ import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, g
 import { PUNTOS } from "@/database/queries/puntos";
 import { REPORT_STATE_IDS } from "@/lib/authz/catalog";
 import { getNameFromRelation, getUserInitials, getUsernameFromRelation } from "@/lib/identity/display";
+import { ChipEstadoOperativo } from "@/components/cuadrillas/chip-estado-operativo";
+import { LineaTiempoOperativa } from "@/components/cuadrillas/linea-tiempo-operativa";
+import type { AccionOperativa } from "@/lib/use-cases/cuadrillas";
 import {
   cambiarEstadoAdminAction,
   crearComentarioAction,
@@ -76,9 +80,18 @@ import {
   eliminarComentarioPropioAction,
   eliminarReporteAdminAction,
   eliminarReportePropioAction,
+  obtenerGestionOperativaAction,
   votarNoExisteAction,
   votarReparadoAction,
+  type GestionOperativaDetalle,
 } from "./actions";
+import {
+  asignarCuadrillaAction,
+  cerrarReporteConCuadrillaAction,
+  finalizarIntervencionAction,
+  reasignarCuadrillaAction,
+  registrarObservacionAction,
+} from "@/app/dashboard/cuadrillas/actions";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -96,6 +109,17 @@ const MiniMap = dynamic(() => import("@/components/mini-map").then((m) => m.Mini
 type HistorialEstadoItem = {
   created_at: string;
   estado_nuevo_id: number | null;
+};
+
+/** Etiquetas en español para el diálogo de confirmación de cada acción operativa. */
+const ETIQUETAS_ACCION_OPERATIVA: Record<AccionOperativa, string> = {
+  asignar: "¿Asignar cuadrilla a este reporte?",
+  reasignar: "¿Reasignar este reporte a otra cuadrilla?",
+  finalizar_trabajo: "¿Marcar el trabajo como finalizado?",
+  cancelar: "¿Cancelar esta intervención?",
+  observar: "¿Registrar esta observación?",
+  cerrar_reparado: "¿Confirmar el reporte como reparado?",
+  cerrar_rechazado: "¿Confirmar el reporte como rechazado?",
 };
 
 /**
@@ -129,6 +153,14 @@ export default function ReporteDetallePage({
   const [estadoSeleccionado, setEstadoSeleccionado] = useState("");
   const [comentarioEstado, setComentarioEstado] = useState("");
   const [isChangingEstado, setIsChangingEstado] = useState(false);
+
+  // Estados para la Gestión Operativa (cuadrillas)
+  const [gestionOperativa, setGestionOperativa] = useState<GestionOperativaDetalle | null>(null);
+  const [cuadrillaSeleccionada, setCuadrillaSeleccionada] = useState("");
+  const [observacionOperativa, setObservacionOperativa] = useState("");
+  const [isProcesandoOperativa, setIsProcesandoOperativa] = useState(false);
+  const [accionOperativaPendiente, setAccionOperativaPendiente] = useState<AccionOperativa | null>(null);
+  const [showAccionOperativaDialog, setShowAccionOperativaDialog] = useState(false);
 
   // Estados para controlar los AlertDialogs
   const [showDeleteReporteDialog, setShowDeleteReporteDialog] = useState(false);
@@ -183,6 +215,11 @@ export default function ReporteDetallePage({
           setVotosReparadoCount(data.votos.reparado.count);
           setHasVoted(data.votos.noExiste.hasVoted);
           setHasVotedReparado(data.votos.reparado.hasVoted);
+
+          const gestionResult = await obtenerGestionOperativaAction(data.id, data.estado_id);
+          if (gestionResult.success) {
+            setGestionOperativa(gestionResult.data);
+          }
         }
 
         // Obtener comentarios
@@ -560,6 +597,112 @@ export default function ReporteDetallePage({
     } finally {
       setAdminComentarioToDelete(null);
       setShowAdminDeleteCommentDialog(false);
+    }
+  };
+
+  // ===== FUNCIONES DE GESTIÓN OPERATIVA (CUADRILLAS) =====
+
+  /** Vuelve a pedir los datos de gestión operativa al servidor tras una mutación exitosa. */
+  const recargarGestionOperativa = async () => {
+    if (!reporte) return;
+    const gestionResult = await obtenerGestionOperativaAction(reporte.id, reporte.estado_id);
+    if (gestionResult.success) {
+      setGestionOperativa(gestionResult.data);
+    }
+  };
+
+  const handleAccionOperativa = (accion: AccionOperativa) => {
+    if ((accion === "asignar" || accion === "reasignar") && !cuadrillaSeleccionada) {
+      toast.error("Elegí una cuadrilla antes de continuar");
+      return;
+    }
+    if (accion === "observar" && !observacionOperativa.trim()) {
+      toast.error("Escribí una observación antes de continuar");
+      return;
+    }
+    setAccionOperativaPendiente(accion);
+    setShowAccionOperativaDialog(true);
+  };
+
+  const confirmAccionOperativa = async () => {
+    if (!reporte || !accionOperativaPendiente) return;
+
+    setIsProcesandoOperativa(true);
+    try {
+      const asignacionAbierta = gestionOperativa?.asignacionAbierta;
+      let result: { success: boolean; error?: string } = { success: false, error: "Acción no reconocida" };
+
+      switch (accionOperativaPendiente) {
+        case "asignar":
+        case "reasignar":
+          result = await (accionOperativaPendiente === "asignar" ? asignarCuadrillaAction : reasignarCuadrillaAction)({
+            reporteId: reporte.id,
+            cuadrillaId: Number(cuadrillaSeleccionada),
+          });
+          break;
+        case "finalizar_trabajo":
+          if (!asignacionAbierta) return;
+          result = await finalizarIntervencionAction({
+            asignacionId: asignacionAbierta.id,
+            motivoCierre: "trabajo_finalizado",
+          });
+          break;
+        case "cancelar":
+          if (!asignacionAbierta) return;
+          result = await finalizarIntervencionAction({
+            asignacionId: asignacionAbierta.id,
+            motivoCierre: "cancelada",
+          });
+          break;
+        case "observar":
+          if (!asignacionAbierta) return;
+          result = await registrarObservacionAction({
+            asignacionId: asignacionAbierta.id,
+            observacion: observacionOperativa.trim(),
+          });
+          break;
+        case "cerrar_reparado":
+          result = await cerrarReporteConCuadrillaAction({
+            reporteId: reporte.id,
+            nuevoEstadoId: REPORT_STATE_IDS.REPARADO,
+          });
+          break;
+        case "cerrar_rechazado":
+          result = await cerrarReporteConCuadrillaAction({
+            reporteId: reporte.id,
+            nuevoEstadoId: REPORT_STATE_IDS.RECHAZADO,
+          });
+          break;
+      }
+
+      if (!result.success) {
+        toast.error("Error al procesar la acción operativa", {
+          description: result.error || "Por favor, intenta nuevamente",
+        });
+        return;
+      }
+
+      toast.success("Acción registrada correctamente");
+      setCuadrillaSeleccionada("");
+      setObservacionOperativa("");
+
+      // El cierre administrativo cambia el estado del reporte (afecta puntos, badges y el
+      // panel de admin), así que recargamos toda la página como ya hace "Cambiar Estado".
+      if (accionOperativaPendiente === "cerrar_reparado" || accionOperativaPendiente === "cerrar_rechazado") {
+        setTimeout(() => window.location.reload(), 1000);
+        return;
+      }
+
+      await recargarGestionOperativa();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al procesar la acción operativa", {
+        description: "Por favor, intenta nuevamente",
+      });
+    } finally {
+      setIsProcesandoOperativa(false);
+      setShowAccionOperativaDialog(false);
+      setAccionOperativaPendiente(null);
     }
   };
 
@@ -977,6 +1120,144 @@ export default function ReporteDetallePage({
                 </CardContent>
               </Card>
             )}
+
+            {/* Gestión Operativa (cuadrillas) - visible según lo que el rol pueda ver */}
+            {gestionOperativa &&
+              (gestionOperativa.puedeOperar ||
+                gestionOperativa.estadoOperativo !== null ||
+                gestionOperativa.eventos.length > 0) && (
+                <Card>
+                  <CardHeader className="pb-3 md:pb-4 lg:pb-6">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-muted-foreground md:w-6 md:h-6" />
+                      <CardTitle className="text-base md:text-lg lg:text-xl">Gestión operativa</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs md:text-sm">
+                      {gestionOperativa.puedeOperar
+                        ? "Cuadrilla asignada y acciones disponibles sobre este reporte"
+                        : "Seguimiento de la cuadrilla asignada a este reporte"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-0">
+                    <div>
+                      {gestionOperativa.estadoOperativo ? (
+                        <ChipEstadoOperativo
+                          estadoOperativo={gestionOperativa.estadoOperativo}
+                          cuadrillaNombre={gestionOperativa.cuadrillaNombre}
+                        />
+                      ) : (
+                        gestionOperativa.puedeOperar && (
+                          <p className="text-sm text-muted-foreground">Sin cuadrilla asignada</p>
+                        )
+                      )}
+                    </div>
+
+                    {gestionOperativa.puedeOperar && (
+                      <div className="space-y-3">
+                        {(gestionOperativa.acciones.includes("asignar") ||
+                          gestionOperativa.acciones.includes("reasignar")) && (
+                          <div className="space-y-2">
+                            <label className="text-xs md:text-sm font-medium text-foreground">
+                              {gestionOperativa.acciones.includes("reasignar") ? "Reasignar cuadrilla" : "Asignar cuadrilla"}
+                            </label>
+                            <Select value={cuadrillaSeleccionada} onValueChange={setCuadrillaSeleccionada}>
+                              <SelectTrigger className="w-full text-xs md:text-sm">
+                                <SelectValue placeholder="Seleccionar cuadrilla..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {gestionOperativa.cuadrillasActivas.map((cuadrilla) => (
+                                  <SelectItem key={cuadrilla.id} value={cuadrilla.id.toString()}>
+                                    {cuadrilla.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              onClick={() =>
+                                handleAccionOperativa(gestionOperativa.acciones.includes("reasignar") ? "reasignar" : "asignar")
+                              }
+                              disabled={!cuadrillaSeleccionada || isProcesandoOperativa}
+                              size="sm"
+                              className="w-full text-xs md:text-sm"
+                            >
+                              {gestionOperativa.acciones.includes("reasignar") ? "Reasignar" : "Asignar"}
+                            </Button>
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-2">
+                          {gestionOperativa.acciones.includes("finalizar_trabajo") && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleAccionOperativa("finalizar_trabajo")}
+                              disabled={isProcesandoOperativa}
+                            >
+                              Finalizar trabajo
+                            </Button>
+                          )}
+                          {gestionOperativa.acciones.includes("cancelar") && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleAccionOperativa("cancelar")}
+                              disabled={isProcesandoOperativa}
+                            >
+                              Cancelar intervención
+                            </Button>
+                          )}
+                          {gestionOperativa.acciones.includes("cerrar_reparado") && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleAccionOperativa("cerrar_reparado")}
+                              disabled={isProcesandoOperativa}
+                            >
+                              Confirmar reparado
+                            </Button>
+                          )}
+                          {gestionOperativa.acciones.includes("cerrar_rechazado") && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleAccionOperativa("cerrar_rechazado")}
+                              disabled={isProcesandoOperativa}
+                            >
+                              Confirmar rechazado
+                            </Button>
+                          )}
+                        </div>
+
+                        {gestionOperativa.acciones.includes("observar") && (
+                          <div className="space-y-2">
+                            <Textarea
+                              placeholder="Registrar una observación sobre la intervención..."
+                              value={observacionOperativa}
+                              onChange={(e) => setObservacionOperativa(e.target.value)}
+                              className="min-h-[60px] text-xs md:text-sm resize-none"
+                              disabled={isProcesandoOperativa}
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full text-xs md:text-sm"
+                              onClick={() => handleAccionOperativa("observar")}
+                              disabled={!observacionOperativa.trim() || isProcesandoOperativa}
+                            >
+                              Registrar observación
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="pt-2">
+                      <LineaTiempoOperativa
+                        eventos={gestionOperativa.eventos}
+                        mostrarInternas={gestionOperativa.puedeOperar}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             {currentUser && !isReporteCerrado && (
               <Card className="hidden lg:block">
@@ -1439,6 +1720,45 @@ export default function ReporteDetallePage({
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Eliminar (Admin)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog - Gestión Operativa: confirmar acción sobre cuadrillas */}
+      <AlertDialog open={showAccionOperativaDialog} onOpenChange={setShowAccionOperativaDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {accionOperativaPendiente ? ETIQUETAS_ACCION_OPERATIVA[accionOperativaPendiente] : ""}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Esta acción quedará registrada en la línea de tiempo del reporte.</p>
+                {(accionOperativaPendiente === "asignar" || accionOperativaPendiente === "reasignar") && (
+                  <div className="bg-muted p-4 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Cuadrilla:{" "}
+                      <span className="font-semibold text-foreground">
+                        {gestionOperativa?.cuadrillasActivas.find(
+                          (c) => c.id.toString() === cuadrillaSeleccionada,
+                        )?.nombre ?? "—"}
+                      </span>
+                    </p>
+                  </div>
+                )}
+                {accionOperativaPendiente === "observar" && (
+                  <div className="bg-muted p-4 rounded-lg max-h-40 overflow-y-auto">
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{observacionOperativa}</p>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcesandoOperativa}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmAccionOperativa} disabled={isProcesandoOperativa}>
+              {isProcesandoOperativa ? "Procesando..." : "Confirmar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

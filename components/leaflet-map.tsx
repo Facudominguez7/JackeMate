@@ -20,6 +20,7 @@ import {
 import L from "leaflet"
 import "leaflet.markercluster"
 import { getPriorityColor, getStatusColor, getCategoryColor } from "@/components/report-card"
+import { ETIQUETAS_ESTADO_OPERATIVO, type EstadoOperativo } from "@/lib/authz/catalog"
 
 /**
  * Interfaz que representa un reporte para mostrar en el mapa
@@ -36,6 +37,29 @@ interface Report {
   author: string
   createdAt: string
   image?: string
+  estadoOperativo?: EstadoOperativo | null
+  cuadrillaNombre?: string | null
+}
+
+/**
+ * Colores del popup (HTML plano) por estado operativo, calcados de las variantes de
+ * `ChipEstadoOperativo` (`components/cuadrillas/chip-estado-operativo.tsx`).
+ *
+ * ponytail: el popup de Leaflet se arma como string HTML (no JSX), así que no se puede
+ * renderizar `ChipEstadoOperativo` directamente acá; esta tabla duplica su mapeo de colores.
+ * Si `ChipEstadoOperativo` cambia de paleta, actualizar también esta tabla.
+ */
+const ESTILO_ESTADO_OPERATIVO_POPUP: Record<EstadoOperativo, { border: string; bg: string; color: string }> = {
+  en_progreso: {
+    border: "var(--semantic-admin-border)",
+    bg: "var(--semantic-admin-soft)",
+    color: "var(--semantic-admin)",
+  },
+  cerrada: {
+    border: "var(--border)",
+    bg: "transparent",
+    color: "var(--foreground)",
+  },
 }
 
 /**
@@ -43,6 +67,11 @@ interface Report {
  */
 export interface LeafletMapProps {
   reports: Report[]
+  /**
+   * Modo selección: si se pasa, al hacer click en un marcador se avisa qué reporte se eligió
+   * (además de abrirse el popup habitual). Omitirlo deja el mapa en su comportamiento actual.
+   */
+  onSeleccionarReporte?: (reporteId: number) => void
 }
 
 /**
@@ -55,23 +84,49 @@ export interface LeafletMapProps {
  */
 function FitBounds({ reports }: { reports: Report[] }) {
   const map = useMap()
-  
+
   useEffect(() => {
-    if (!map || reports.length === 0) return
-    
-    // Crear límites geográficos basados en las coordenadas de los reportes
-    const bounds = L.latLngBounds(reports.map((r) => [r.coordinates[0], r.coordinates[1]] as [number, number]))
-    
-    // Si hay un solo reporte, centrar con zoom fijo
-    if (bounds.isValid() && bounds.getNorthEast().equals(bounds.getSouthWest())) {
-      map.setView(bounds.getCenter(), 14)
-    } 
-    // Si hay múltiples reportes, ajustar zoom para mostrar todos
-    else if (bounds.isValid()) {
+    if (!map) return
+
+    /**
+     * Leaflet mide el contenedor una sola vez, al inicializarse. Si en ese momento el layout
+     * todavía no terminó (mapa dentro de una pestaña, de un contenedor con alto por CSS, o
+     * cargado dinámicamente), mide mal: los tiles no llenan el alto y `fitBounds` calcula
+     * contra un tamaño incorrecto y termina mostrando el mundo entero.
+     *
+     * `invalidateSize()` lo obliga a volver a medir. Se llama antes de ajustar los límites.
+     */
+    const ajustarVista = () => {
+      map.invalidateSize()
+
+      if (reports.length === 0) return
+
+      const bounds = L.latLngBounds(reports.map((r) => [r.coordinates[0], r.coordinates[1]] as [number, number]))
+      if (!bounds.isValid()) return
+
+      // Un solo reporte: no hay área que encuadrar, así que se centra con zoom fijo.
+      if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
+        map.setView(bounds.getCenter(), 15)
+        return
+      }
+
       map.fitBounds(bounds.pad(0.1))
     }
+
+    // En el próximo frame el contenedor ya terminó de maquetarse.
+    const frame = requestAnimationFrame(ajustarVista)
+
+    // Y si el contenedor cambia de tamaño después (cambio de pestaña, responsive, zoom del
+    // navegador), Leaflet necesita que se lo avisen: no lo detecta solo.
+    const observador = new ResizeObserver(() => map.invalidateSize())
+    observador.observe(map.getContainer())
+
+    return () => {
+      cancelAnimationFrame(frame)
+      observador.disconnect()
+    }
   }, [map, reports])
-  
+
   return null
 }
 
@@ -132,6 +187,27 @@ const createPopupContent = (
   const safeStatus = escapeHtml(report.status)
   const safeAuthor = escapeHtml(report.author)
   const safeImage = report.image ? escapeHtml(report.image) : null
+
+  const estiloEstadoOperativo = report.estadoOperativo
+    ? ESTILO_ESTADO_OPERATIVO_POPUP[report.estadoOperativo]
+    : null
+  const chipEstadoOperativo = estiloEstadoOperativo
+    ? `
+        <span style="
+          background-color: ${estiloEstadoOperativo.bg};
+          color: ${estiloEstadoOperativo.color};
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          border: 1px solid ${estiloEstadoOperativo.border};
+        ">
+          ${escapeHtml(ETIQUETAS_ESTADO_OPERATIVO[report.estadoOperativo as EstadoOperativo])}${
+            report.cuadrillaNombre ? ` · ${escapeHtml(report.cuadrillaNombre)}` : ""
+          }
+        </span>
+      `
+    : ""
 
   return `
     <div style="min-width: 250px;">
@@ -194,6 +270,7 @@ const createPopupContent = (
         ">
           ${safePriority}
         </span>
+        ${chipEstadoOperativo}
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted-foreground);">
@@ -213,18 +290,20 @@ const createPopupContent = (
  * @param getPriorityColor - Devuelve el color (hex) asociado a la prioridad, usado para estilizar el contenido del popup
  * @param getCategoryColor - Devuelve el color (hex) usado para categorías en el contenido del popup
  */
-function MarkerClusterGroup({ 
-  reports, 
-  getIcon, 
+function MarkerClusterGroup({
+  reports,
+  getIcon,
   getStatusColor,
   getPriorityColor,
-  getCategoryColor
-}: { 
+  getCategoryColor,
+  onSeleccionarReporte
+}: {
   reports: Report[]
-  getIcon: (priority: string) => L.DivIcon
+  getIcon: (priority: string, conCuadrilla?: boolean) => L.DivIcon
   getStatusColor: (status: string) => string
   getPriorityColor: (priority: string) => string
   getCategoryColor: () => string
+  onSeleccionarReporte?: (reporteId: number) => void
 }) {
   const map = useMap()
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null)
@@ -261,7 +340,7 @@ function MarkerClusterGroup({
     // Agregar marcadores al cluster
     reports.forEach((report) => {
       const marker = L.marker([report.coordinates[0], report.coordinates[1]], {
-        icon: getIcon(report.priority),
+        icon: getIcon(report.priority, Boolean(report.estadoOperativo)),
       })
 
       // Crear contenido del popup de forma segura
@@ -272,7 +351,13 @@ function MarkerClusterGroup({
         getCategoryColor()
       )
       marker.bindPopup(popupContent, { maxWidth: 300 })
-      
+
+      // Modo selección (opcional): además de abrir el popup, el click avisa qué reporte se
+      // eligió. Sin este callback el mapa se comporta exactamente como siempre.
+      if (onSeleccionarReporte) {
+        marker.on("click", () => onSeleccionarReporte(report.id))
+      }
+
       clusterGroup.addLayer(marker)
     })
 
@@ -285,7 +370,7 @@ function MarkerClusterGroup({
         clusterGroupRef.current = null
       }
     }
-  }, [map, reports, getIcon, getStatusColor, getPriorityColor, getCategoryColor])
+  }, [map, reports, getIcon, getStatusColor, getPriorityColor, getCategoryColor, onSeleccionarReporte])
 
   return null
 }
@@ -299,7 +384,7 @@ function MarkerClusterGroup({
  * @param reports - Lista de objetos `Report` que se mostrarán como marcadores en el mapa
  * @returns El elemento React que contiene el mapa Leaflet con clustering, ajuste automático de vista y popups por reporte
  */
-export default function LeafletMap({ reports }: LeafletMapProps) {
+export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMapProps) {
   const [mapKey, setMapKey] = useState(0)
 
   // Re-renderizar el mapa solo al montar el componente
@@ -317,40 +402,64 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
      * @param color - Color hex del marcador
      * @returns Icono de Leaflet personalizado
      */
-    const mk = (color: string) =>
+    const mk = (color: string, conCuadrilla = false) =>
       L.divIcon({
         className: "custom-marker",
         html: `
-          <div style="
-            background-color: ${color};
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 3px solid var(--map-marker-stroke);
-            box-shadow: var(--elevation-soft);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">
+          <div style="position: relative; width: 24px; height: 24px;">
             <div style="
-              width: 8px;
-              height: 8px;
-              background-color: var(--map-marker-foreground);
+              background-color: ${color};
+              width: 24px;
+              height: 24px;
               border-radius: 50%;
-            "></div>
+              border: 3px solid var(--map-marker-stroke);
+              box-shadow: var(--elevation-soft);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              ${conCuadrilla ? "opacity: 0.5;" : ""}
+            ">
+              <div style="
+                width: 8px;
+                height: 8px;
+                background-color: var(--map-marker-foreground);
+                border-radius: 50%;
+              "></div>
+            </div>
+            ${
+              conCuadrilla
+                ? `<div title="Con cuadrilla asignada" style="
+                     position: absolute;
+                     top: -3px;
+                     right: -3px;
+                     width: 12px;
+                     height: 12px;
+                     border-radius: 50%;
+                     background-color: var(--semantic-admin);
+                     border: 2px solid var(--map-marker-stroke);
+                   "></div>`
+                : ""
+            }
           </div>
         `,
         iconSize: [24, 24],
         iconAnchor: [12, 12],
       })
-    
-    // Mapeo de prioridades a colores (usando los mismos colores que report-card.tsx)
-    return new Map<string, L.DivIcon>([
-      ["Alta", mk(getPriorityColor("Alta"))],
-      ["Media", mk(getPriorityColor("Media"))],
-      ["Baja", mk(getPriorityColor("Baja"))],
-      ["default", mk("var(--map-heat-neutral)")],
-    ])
+
+    // Mapeo de prioridades a colores (usando los mismos colores que report-card.tsx).
+    // Cada prioridad tiene dos variantes: sin cuadrilla (normal) y con cuadrilla asignada
+    // (atenuada y con un punto de aviso), para que el operador distinga de un vistazo qué
+    // reportes ya están cubiertos sin tener que abrir cada popup.
+    const clave = (prioridad: string, conCuadrilla: boolean) => `${prioridad}|${conCuadrilla ? "asignado" : "libre"}`
+
+    const mapa = new Map<string, L.DivIcon>()
+    for (const prioridad of ["Alta", "Media", "Baja", "default"]) {
+      const color = prioridad === "default" ? "var(--map-heat-neutral)" : getPriorityColor(prioridad)
+      mapa.set(clave(prioridad, false), mk(color, false))
+      mapa.set(clave(prioridad, true), mk(color, true))
+    }
+
+    return mapa
   }, [])
 
   /**
@@ -359,10 +468,13 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
    * @param priority - Nombre de la prioridad
    * @returns Icono de Leaflet correspondiente
    */
-  const getIcon = (priority: string) => {
+  const getIcon = (priority: string, conCuadrilla = false) => {
     // Normalizar el nombre de la prioridad para búsqueda case-insensitive
     const normalized = priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase()
-    return iconsByPriority.get(normalized) ?? iconsByPriority.get("default")!
+    const sufijo = conCuadrilla ? "asignado" : "libre"
+    return (
+      iconsByPriority.get(`${normalized}|${sufijo}`) ?? iconsByPriority.get(`default|${sufijo}`)!
+    )
   }
 
   return (
@@ -384,12 +496,13 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
       <FitBounds reports={reports} />
 
       {/* Componente de clustering que agrupa marcadores cercanos */}
-      <MarkerClusterGroup 
-        reports={reports} 
-        getIcon={getIcon} 
+      <MarkerClusterGroup
+        reports={reports}
+        getIcon={getIcon}
         getStatusColor={getStatusColor}
         getPriorityColor={getPriorityColor}
         getCategoryColor={getCategoryColor}
+        onSeleccionarReporte={onSeleccionarReporte}
       />
     </RLMapContainer>
   )

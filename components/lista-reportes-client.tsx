@@ -12,6 +12,7 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ReportCard } from "@/components/report-card"
 import { Loader2 } from "lucide-react"
+import type { EstadoOperativo } from "@/lib/authz/catalog"
 
 export type ReportCardData = {
     id: number
@@ -24,6 +25,8 @@ export type ReportCardData = {
     author: string
     createdAt: string
     image: string | null
+    estadoOperativo?: EstadoOperativo | null
+    cuadrillaNombre?: string | null
 }
 
 type ListaReportesClientProps = {
@@ -114,6 +117,8 @@ export function ListaReportesClient({
                             imageUrl={report.image}
                             createdAt={report.createdAt}
                             autor={report.author}
+                            estadoOperativo={report.estadoOperativo}
+                            cuadrillaNombre={report.cuadrillaNombre}
                         />
                     ))}
                 </div>

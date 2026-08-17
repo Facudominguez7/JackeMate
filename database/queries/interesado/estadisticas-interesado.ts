@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { contarReportesEnProgreso } from "@/database/queries/cuadrillas";
 
 /**
  * Tipo de datos para estadísticas por categoría
@@ -209,8 +210,15 @@ export async function getZonasConMasReportes(
  * - `totalReportes`: número total de reportes no eliminados.
  * - `reportesResueltos`: número de reportes con `estado_id = 2`.
  * - `reportesPendientes`: número de reportes con `estado_id = 1`.
- * - `reportesEnProgreso`: número de reportes con estados distintos de Pendiente/Reparado/Rechazado.
- * - `tasaResolucion`: porcentaje entero de reportes resueltos respecto del total (0–100).
+ * - `reportesEnProgreso`: número de reportes con una asignación de cuadrilla actualmente
+ *   `en_progreso`, según la vista pública `reportes_estado_operativo_publico`
+ *   (`contarReportesEnProgreso`).
+ *
+ * IMPORTANTE: `reportesPendientes` y `reportesEnProgreso` NO son categorías disjuntas y no
+ * deben sumarse como si lo fueran. `estado_id` (administrativo) y el estado operativo de
+ * cuadrillas son ejes independientes: un reporte con una cuadrilla trabajando activamente
+ * sigue teniendo `estado_id = 1` (Pendiente) hasta que un admin lo confirma como Reparado o
+ * Rechazado. Por eso un mismo reporte puede contarse en ambos números a la vez.
  */
 export async function getEstadisticasInteresado(supabase: SupabaseClient) {
   try {
@@ -232,11 +240,7 @@ export async function getEstadisticasInteresado(supabase: SupabaseClient) {
       .eq("estado_id", 1)
       .is("deleted_at", null);
 
-    const { count: reportesEnProgreso } = await supabase
-      .from("reportes")
-      .select("*", { count: "exact", head: true })
-      .not("estado_id", "in", "(1,2,3)")
-      .is("deleted_at", null);
+    const reportesEnProgreso = await contarReportesEnProgreso(supabase);
 
     // Calcular tasa de resolución
     const tasaResolucion =
