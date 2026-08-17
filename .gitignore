@@ -28,6 +28,7 @@ next-env.d.ts
 
 # agent artifacts
 .atl/
+.codegraph/
 
 # AI tooling config
 .agents/
@@ -36,6 +37,7 @@ next-env.d.ts
 .copilot/
 .cursor/
 .gemini/
+.mcp.json
 AGENTS.md
 CLAUDE.md
 opencode.json
