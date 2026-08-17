@@ -14,17 +14,12 @@ import {
   votarReparadoWorkflow,
 } from "@/lib/use-cases/reportes"
 import {
-  calcularAccionesDisponibles,
   obtenerLineaTiempoWorkflow,
-  type AccionOperativa,
   type EventoLineaTiempo,
 } from "@/lib/use-cases/cuadrillas"
 import {
-  listarCuadrillas,
   obtenerAsignacionAbierta,
   obtenerEstadoOperativoPublicoPorReporte,
-  type AsignacionCuadrilla,
-  type Cuadrilla,
 } from "@/database/queries/cuadrillas"
 import type { EstadoOperativo } from "@/lib/authz/catalog"
 import { getUserRoleContext, puedeOperarCuadrillas } from "@/lib/authz/roles"
@@ -36,16 +31,16 @@ const commentIdSchema = z.coerce.number().int().positive()
 const commentSchema = z.string().trim().min(1).max(1000)
 const stateIdSchema = z.coerce.number().int().positive()
 
-/** Datos de gestión operativa (cuadrillas) que el detalle de un reporte necesita renderizar. */
+/**
+ * Datos de seguimiento de cuadrilla (solo lectura) que el detalle de un reporte necesita
+ * renderizar. La gestión operativa (asignar, reasignar, cerrar, etc.) vive exclusivamente en
+ * `/dashboard/cuadrillas`; esta página nunca recibe campos internos como `asignacionAbierta`.
+ */
 export type GestionOperativaDetalle = {
   puedeOperar: boolean
   estadoOperativo: EstadoOperativo | null
   cuadrillaNombre: string | null
-  /** Solo viaja completa (con `asignadaPor`, etc.) cuando `puedeOperar` es `true`. */
-  asignacionAbierta: AsignacionCuadrilla | null
   eventos: EventoLineaTiempo[]
-  acciones: AccionOperativa[]
-  cuadrillasActivas: Cuadrilla[]
 }
 
 export async function votarNoExisteAction(reporteId: number) {
@@ -195,23 +190,24 @@ export async function cambiarEstadoAdminAction(reporteId: number, nuevoEstadoId:
 }
 
 /**
- * Carga los datos de gestión operativa (cuadrillas) de un reporte para el detalle: estado
- * operativo actual, línea de tiempo combinada y acciones disponibles según el rol del usuario.
+ * Carga los datos de seguimiento de cuadrilla (solo lectura) de un reporte para el detalle:
+ * estado operativo actual y línea de tiempo combinada. La gestión operativa (asignar, cerrar,
+ * etc.) vive exclusivamente en `/dashboard/cuadrillas`.
  *
  * Server action obligatoria acá porque `obtenerLineaTiempoWorkflow` es `server-only` (elige,
  * del lado del servidor, entre las tablas base o la vista pública según el rol) y la página de
  * detalle es un componente cliente.
  *
- * Defensa en profundidad: para quien NO puede operar cuadrillas, `asignacionAbierta` viaja
- * siempre en `null` y el resumen (`estadoOperativo`/`cuadrillaNombre`) sale de la vista pública
+ * Defensa en profundidad: para quien NO puede operar cuadrillas, el resumen
+ * (`estadoOperativo`/`cuadrillaNombre`) sale siempre de la vista pública
  * `reportes_estado_operativo_publico`, nunca de la tabla base — así el componente nunca puede
  * filtrar por accidente `asignadaPor` u observaciones internas a un ciudadano, aunque tenga un
- * bug.
+ * bug. Para quien sí puede operar, el mismo resumen sale de la asignación abierta (tabla base),
+ * pero esa asignación completa nunca se envía al cliente.
  */
-export async function obtenerGestionOperativaAction(reporteId: number, estadoReporteId: number) {
+export async function obtenerGestionOperativaAction(reporteId: number) {
   try {
     const parsedReportId = reportIdSchema.parse(reporteId)
-    const parsedEstadoId = stateIdSchema.parse(estadoReporteId)
     const supabase = await createClient()
     const {
       data: { user },
@@ -227,27 +223,16 @@ export async function obtenerGestionOperativaAction(reporteId: number, estadoRep
     const admin = createAdminClient()
 
     if (puedeOperar) {
-      const [{ data: asignacionAbierta }, eventos, { data: cuadrillasActivas }] = await Promise.all([
+      const [{ data: asignacionAbierta }, eventos] = await Promise.all([
         obtenerAsignacionAbierta(admin, parsedReportId),
         obtenerLineaTiempoWorkflow(admin, parsedReportId, roleId),
-        listarCuadrillas(admin, true),
       ])
-
-      const acciones = calcularAccionesDisponibles({
-        roleId,
-        estadoReporteId: parsedEstadoId,
-        reporteEliminado: false,
-        asignacionAbierta,
-      })
 
       const detalle: GestionOperativaDetalle = {
         puedeOperar,
         estadoOperativo: asignacionAbierta?.estadoOperativo ?? null,
         cuadrillaNombre: asignacionAbierta?.cuadrillaNombre ?? null,
-        asignacionAbierta,
         eventos,
-        acciones,
-        cuadrillasActivas,
       }
 
       return { success: true as const, data: detalle }
@@ -259,21 +244,11 @@ export async function obtenerGestionOperativaAction(reporteId: number, estadoRep
     ])
     const resumenPublico = estadoOperativoPorReporte.get(parsedReportId) ?? null
 
-    const acciones = calcularAccionesDisponibles({
-      roleId,
-      estadoReporteId: parsedEstadoId,
-      reporteEliminado: false,
-      asignacionAbierta: null,
-    })
-
     const detalle: GestionOperativaDetalle = {
       puedeOperar,
       estadoOperativo: (resumenPublico?.estadoOperativo as EstadoOperativo | undefined) ?? null,
       cuadrillaNombre: resumenPublico?.cuadrillaNombre ?? null,
-      asignacionAbierta: null,
       eventos,
-      acciones,
-      cuadrillasActivas: [],
     }
 
     return { success: true as const, data: detalle }
