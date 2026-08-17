@@ -41,9 +41,6 @@ export type DatosCuadrillaInput = z.infer<typeof esquemaCuadrilla>
 /** Estados operativos válidos que puede tomar una asignación de cuadrilla. */
 export const esquemaEstadoOperativo = z.enum(["en_progreso", "cerrada"])
 
-/** Motivos de cierre que puede registrar la cuadrilla/operador (nunca el cierre administrativo). */
-export const esquemaMotivoCierreOperativo = z.enum(["trabajo_finalizado", "cancelada"])
-
 /**
  * Estado administrativo final de un reporte al confirmarlo desde el flujo de cuadrillas.
  * Deliberadamente más estricto que el esquema genérico de `app/reportes/[id]/actions.ts`: el
@@ -87,15 +84,14 @@ export const esquemaReasignarCuadrilla = esquemaAsignarCuadrilla
 
 export type DatosReasignarCuadrilla = z.infer<typeof esquemaReasignarCuadrilla>
 
-/** Datos para finalizar una intervención de cuadrilla (trabajo finalizado o cancelación). */
-export const esquemaFinalizarIntervencion = z.object({
+/** Datos para cancelar una intervención de cuadrilla: el reporte vuelve a quedar sin cuadrilla. */
+export const esquemaCancelarIntervencion = z.object({
   asignacionId: esquemaIdAsignacion,
-  motivoCierre: esquemaMotivoCierreOperativo,
   observacion: esquemaObservacionOpcional,
   observacionPublica: z.boolean().default(false),
 })
 
-export type DatosFinalizarIntervencion = z.infer<typeof esquemaFinalizarIntervencion>
+export type DatosCancelarIntervencion = z.infer<typeof esquemaCancelarIntervencion>
 
 /** Datos para registrar una observación libre sobre una asignación abierta. */
 export const esquemaRegistrarObservacion = z.object({
@@ -106,7 +102,7 @@ export const esquemaRegistrarObservacion = z.object({
 
 export type DatosRegistrarObservacion = z.infer<typeof esquemaRegistrarObservacion>
 
-/** Datos para confirmar el cierre administrativo (Reparado/Rechazado) de un reporte con cuadrilla. */
+/** Datos para cerrar un reporte con cuadrilla (Reparado/Rechazado). */
 export const esquemaCerrarReporteConCuadrilla = z.object({
   reporteId: esquemaIdReporte,
   nuevoEstadoId: esquemaEstadoAdministrativo,

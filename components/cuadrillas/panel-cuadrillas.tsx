@@ -11,7 +11,6 @@ import { FormularioCuadrilla } from "@/components/cuadrillas/formulario-cuadrill
 import { SelectorCuadrilla } from "@/components/cuadrillas/selector-cuadrilla"
 import { TarjetaAsignacion } from "@/components/cuadrillas/tarjeta-asignacion"
 import { TarjetaCuadrilla } from "@/components/cuadrillas/tarjeta-cuadrilla"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -22,18 +21,13 @@ import {
   asignarCuadrillaAction,
   actualizarCuadrillaAction,
   cambiarActivacionCuadrillaAction,
+  cancelarIntervencionAction,
   cerrarReporteConCuadrillaAction,
   crearCuadrillaAction,
-  finalizarIntervencionAction,
   reasignarCuadrillaAction,
   registrarObservacionAction,
 } from "@/app/dashboard/cuadrillas/actions"
-import type {
-  AsignacionAbiertaConReporte,
-  ColaCierreAdministrativoItem,
-  Cuadrilla,
-  ReporteAsignable,
-} from "@/database/queries/cuadrillas"
+import type { AsignacionAbiertaConReporte, Cuadrilla, ReporteAsignable } from "@/database/queries/cuadrillas"
 import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
 import type { AccionOperativa } from "@/lib/use-cases/cuadrillas"
 
@@ -60,8 +54,6 @@ type PanelCuadrillasProps = {
   reportesEnMapa: ReportMapItem[]
   /** Cuadrillas que ya están trabajando en un reporte, para deshabilitarlas en el selector. */
   cuadrillasOcupadas: Record<number, { reporteId: number; reporteTitulo: string }>
-  colaCierre: ColaCierreAdministrativoItem[]
-  accionesSinAsignacion: AccionOperativa[]
   puedeGestionarCatalogo: boolean
 }
 
@@ -76,8 +68,7 @@ type ConfirmacionPendiente = {
 }
 
 /**
- * Panel operativo de cuadrillas: catálogo, asignaciones en curso y cola de cierre
- * administrativo.
+ * Panel operativo de cuadrillas: catálogo y asignaciones en curso.
  *
  * No evalúa permisos por su cuenta. Cada acción se renderiza únicamente si aparece en el
  * arreglo `AccionOperativa[]` que el servidor calculó con `calcularAccionesDisponibles`, y los
@@ -92,8 +83,6 @@ export function PanelCuadrillas({
   reportesAsignables,
   reportesEnMapa,
   cuadrillasOcupadas,
-  colaCierre,
-  accionesSinAsignacion,
   puedeGestionarCatalogo,
 }: PanelCuadrillasProps) {
   const [enviando, iniciarTransicion] = useTransition()
@@ -173,23 +162,40 @@ export function PanelCuadrillas({
       return
     }
 
-    if (accion === "finalizar_trabajo" || accion === "cancelar") {
-      const esCancelar = accion === "cancelar"
+    if (accion === "cancelar") {
+      pedirConfirmacion({
+        titulo: "Cancelar intervención",
+        descripcion: `Se cancela la intervención de ${nombre} sobre "${asignacion.reporteTitulo}". El reporte vuelve a quedar sin cuadrilla.`,
+        textoConfirmar: "Cancelar intervención",
+        destructivo: true,
+        mensajeExito: "Intervención cancelada",
+        ejecutar: () =>
+          cancelarIntervencionAction({
+            asignacionId: asignacion.id,
+            observacion: observacion.trim() || "Intervención cancelada.",
+            observacionPublica,
+          }),
+      })
+      return
+    }
+
+    if (accion === "cerrar_reparado" || accion === "cerrar_rechazado") {
+      const esReparado = accion === "cerrar_reparado"
+      const nuevoEstadoId = esReparado ? 2 : 3
 
       pedirConfirmacion({
-        titulo: esCancelar ? "Cancelar intervención" : "Finalizar trabajo",
-        descripcion: esCancelar
-          ? `Se cancela la intervención de ${nombre} sobre "${asignacion.reporteTitulo}". El reporte vuelve a quedar sin cuadrilla.`
-          : `${nombre} informa que finalizó el trabajo sobre "${asignacion.reporteTitulo}". Un administrador tiene que confirmar el cierre del reporte.`,
-        textoConfirmar: esCancelar ? "Cancelar intervención" : "Finalizar trabajo",
-        destructivo: esCancelar,
-        mensajeExito: esCancelar ? "Intervención cancelada" : "Trabajo finalizado",
+        titulo: esReparado ? "Marcar reparado" : "Rechazar reporte",
+        descripcion: `"${asignacion.reporteTitulo}" se cierra como ${
+          esReparado ? "reparado" : "rechazado"
+        }. Esta acción ajusta los puntos del autor del reporte y le envía un correo.`,
+        textoConfirmar: esReparado ? "Marcar reparado" : "Rechazar",
+        destructivo: !esReparado,
+        mensajeExito: esReparado ? "Reporte cerrado como reparado" : "Reporte rechazado",
         ejecutar: () =>
-          finalizarIntervencionAction({
-            asignacionId: asignacion.id,
-            motivoCierre: esCancelar ? "cancelada" : "trabajo_finalizado",
-            observacion: observacion.trim() || (esCancelar ? "Intervención cancelada." : "Trabajo finalizado."),
-            observacionPublica,
+          cerrarReporteConCuadrillaAction({
+            reporteId: asignacion.reporteId,
+            nuevoEstadoId,
+            comentario: observacion.trim() || undefined,
           }),
       })
       return
@@ -246,32 +252,12 @@ export function PanelCuadrillas({
     })
   }
 
-  /** Cierra el reporte como Reparado o Rechazado. Solo se ofrece si el servidor habilitó la acción. */
-  function cerrarReporte(item: ColaCierreAdministrativoItem, nuevoEstadoId: 2 | 3) {
-    const esReparado = nuevoEstadoId === 2
-
-    pedirConfirmacion({
-      titulo: esReparado ? "Confirmar reparación" : "Rechazar reporte",
-      descripcion: `"${item.reporteTitulo}" se cierra como ${
-        esReparado ? "reparado" : "rechazado"
-      }. Esta acción ajusta los puntos del autor y le envía un correo.`,
-      textoConfirmar: esReparado ? "Confirmar reparación" : "Rechazar",
-      destructivo: !esReparado,
-      mensajeExito: esReparado ? "Reporte cerrado como reparado" : "Reporte rechazado",
-      ejecutar: () => cerrarReporteConCuadrillaAction({ reporteId: item.reporteId, nuevoEstadoId }),
-    })
-  }
-
-  const puedeCerrarReportes =
-    accionesSinAsignacion.includes("cerrar_reparado") || accionesSinAsignacion.includes("cerrar_rechazado")
-
   return (
     <>
       <Tabs defaultValue="operacion" className="w-full">
         <TabsList>
           <TabsTrigger value="operacion">Operación</TabsTrigger>
           <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
-          <TabsTrigger value="cierre">Cola de cierre</TabsTrigger>
         </TabsList>
 
         <TabsContent value="operacion" className="mt-6 space-y-6 md:mt-8 md:space-y-8">
@@ -480,53 +466,6 @@ export function PanelCuadrillas({
                     })
                   }
                 />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="cierre" className="mt-6 space-y-6 md:mt-8 md:space-y-8">
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold tracking-tight">Pendientes de confirmación</h2>
-            <p className="text-xs text-muted-foreground md:text-sm">
-              La cuadrilla informó que terminó el trabajo. Un administrador confirma el cierre del reporte.
-            </p>
-          </div>
-
-          {colaCierre.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay trabajos esperando confirmación.</p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {colaCierre.map((item) => (
-                <Card key={item.asignacionId}>
-                  <CardContent className="space-y-3 pt-6">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">#{item.reporteId}</Badge>
-                      {item.cuadrillaNombre && <Badge variant="admin">{item.cuadrillaNombre}</Badge>}
-                    </div>
-                    <p className="text-sm font-medium">{item.reporteTitulo}</p>
-
-                    {puedeCerrarReportes ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button size="sm" onClick={() => cerrarReporte(item, 2)} disabled={enviando}>
-                          Confirmar reparación
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => cerrarReporte(item, 3)}
-                          disabled={enviando}
-                        >
-                          Rechazar
-                        </Button>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        El cierre del reporte lo confirma un administrador.
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
               ))}
             </div>
           )}

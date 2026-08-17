@@ -20,41 +20,13 @@ type StatusNotificationParams = {
   comentario?: string | null;
 };
 
-type OperationalMilestoneParams = {
+type CrewAssignedEmailParams = {
   ownerEmail: string;
   ownerUsername: string | null;
   reporteId: number;
   reporteTitulo: string;
-  hito: "cuadrilla_asignada" | "trabajo_finalizado";
   cuadrillaNombre: string | null;
   detalle?: string | null;
-};
-
-type ConfiguracionHitoOperativo = {
-  accentColor: string;
-  subjectEmoji: string;
-  subjectText: string;
-  body: string;
-};
-
-/**
- * Configuración visual y de copy de cada hito operativo notificable. El tipado `Record`
- * exhaustivo sobre `OperationalMilestoneParams["hito"]` hace que `tsc` falle si se agrega un
- * hito nuevo sin su configuración correspondiente.
- */
-const OPERATIONAL_MILESTONE_CONFIG: Record<OperationalMilestoneParams["hito"], ConfiguracionHitoOperativo> = {
-  cuadrilla_asignada: {
-    accentColor: "#2563eb",
-    subjectEmoji: "🚧",
-    subjectText: "Se asignó una cuadrilla a tu reporte",
-    body: "Una cuadrilla municipal fue asignada a tu reporte y va a empezar a trabajar en él.",
-  },
-  trabajo_finalizado: {
-    accentColor: "#16a34a",
-    subjectEmoji: "🛠️",
-    subjectText: "La cuadrilla finalizó el trabajo en tu reporte",
-    body: "La cuadrilla informó que el trabajo quedó finalizado. Un administrador va a confirmar el cierre del reporte.",
-  },
 };
 
 function getResendClient() {
@@ -257,21 +229,20 @@ export async function sendStatusNotificationEmail({
 }
 
 /**
- * Envía el email de un hito operativo de cuadrillas (asignación de cuadrilla o finalización
- * de trabajo) al propietario del reporte. Mismo esqueleto HTML que el resto de los emails de
- * este módulo; nunca modifica `sendStatusNotificationEmail` ni `sendCommentNotificationEmail`.
+ * Envía el email de asignación de cuadrilla al propietario del reporte. Mismo esqueleto HTML
+ * que el resto de los emails de este módulo; nunca modifica `sendStatusNotificationEmail` ni
+ * `sendCommentNotificationEmail`.
  */
-export async function sendOperationalMilestoneEmail({
+export async function sendCrewAssignedEmail({
   ownerEmail,
   ownerUsername,
   reporteId,
   reporteTitulo,
-  hito,
   cuadrillaNombre,
   detalle,
-}: OperationalMilestoneParams) {
+}: CrewAssignedEmailParams) {
   const resend = getResendClient();
-  const config = OPERATIONAL_MILESTONE_CONFIG[hito];
+  const accentColor = "#2563eb";
   const safeOwnerUsername = escapeHtml(ownerUsername || "Usuario");
   const safeReportTitle = escapeHtml(reporteTitulo);
   const safeCuadrillaNombre = cuadrillaNombre ? escapeHtml(cuadrillaNombre) : null;
@@ -280,17 +251,17 @@ export async function sendOperationalMilestoneEmail({
   return resend.emails.send({
     from: "JackeMate <team@notificaciones.octavioduarte.com.ar>",
     to: [ownerEmail],
-    subject: `${config.subjectEmoji} ${config.subjectText} "${reporteTitulo}"`,
+    subject: `🚧 Se asignó una cuadrilla a tu reporte "${reporteTitulo}"`,
     html: `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${config.subjectText}</title>
+          <title>Se asignó una cuadrilla a tu reporte</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-          <div style="background: linear-gradient(135deg, ${config.accentColor} 0%, ${config.accentColor} 100%); padding: 35px 30px; border-radius: 12px 12px 0 0; text-align: center; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
+          <div style="background: linear-gradient(135deg, ${accentColor} 0%, ${accentColor} 100%); padding: 35px 30px; border-radius: 12px 12px 0 0; text-align: center; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
             <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">JackeMate</h1>
             <p style="color: rgba(255,255,255,0.95); margin: 10px 0 0 0; font-size: 14px; font-weight: 500;">Sistema de Reportes Ciudadanos</p>
           </div>
@@ -299,15 +270,15 @@ export async function sendOperationalMilestoneEmail({
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 22px; font-weight: 600;">¡Hola ${safeOwnerUsername}! 👋</h2>
 
             <p style="font-size: 16px; color: #404040; line-height: 1.6; margin: 20px 0;">
-              ${config.body}
+              Una cuadrilla municipal fue asignada a tu reporte y va a empezar a trabajar en él.
             </p>
 
-            <div style="background: #f8fafc; padding: 24px; border-left: 5px solid ${config.accentColor}; margin: 25px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);">
-              <h3 style="margin-top: 0; color: ${config.accentColor}; font-size: 18px; font-weight: 600; margin-bottom: 15px;">${safeReportTitle}</h3>
+            <div style="background: #f8fafc; padding: 24px; border-left: 5px solid ${accentColor}; margin: 25px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);">
+              <h3 style="margin-top: 0; color: ${accentColor}; font-size: 18px; font-weight: 600; margin-bottom: 15px;">${safeReportTitle}</h3>
               ${safeCuadrillaNombre ? `
                 <div style="background: white; padding: 18px; border-radius: 6px; border: 1px solid #e5e7eb; margin-top: 15px;">
                   <p style="margin: 0 0 8px 0; color: #666; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Cuadrilla</p>
-                  <p style="margin: 0; color: ${config.accentColor}; font-size: 16px; font-weight: 700;">${safeCuadrillaNombre}</p>
+                  <p style="margin: 0; color: ${accentColor}; font-size: 16px; font-weight: 700;">${safeCuadrillaNombre}</p>
                 </div>
               ` : ""}
               ${safeDetalle ? `
@@ -320,7 +291,7 @@ export async function sendOperationalMilestoneEmail({
 
             <div style="text-align: center; margin: 35px 0;">
               <a href="${getAppUrl()}/reportes/${reporteId}"
-                 style="display: inline-block; background: linear-gradient(135deg, ${config.accentColor} 0%, ${config.accentColor} 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
+                 style="display: inline-block; background: linear-gradient(135deg, ${accentColor} 0%, ${accentColor} 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s ease;">
                 Ver Reporte Completo
               </a>
             </div>

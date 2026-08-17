@@ -18,11 +18,11 @@ import {
   type ObservacionCuadrilla,
 } from "@/database/queries/cuadrillas"
 import { ESTADOS_OPERATIVOS, ETIQUETAS_MOTIVO_CIERRE, REPORT_STATE_IDS } from "@/lib/authz/catalog"
-import { cambiarEstadoAdminWorkflow, isDuplicateRowError } from "@/lib/use-cases/reportes/detail-mutations"
-import { sendOperationalMilestoneEmail } from "@/lib/notifications/report-notifications"
+import { applyReportStateChange, getReportContext } from "@/lib/use-cases/reportes/detail-mutations"
+import { sendCrewAssignedEmail } from "@/lib/notifications/report-notifications"
 
-import { type AccionOperativa, calcularAccionesDisponibles } from "./acciones-disponibles"
-import { asegurarAdministrador, asegurarOperadorDeCuadrillas, type ResultadoAccion } from "./guardias"
+import { calcularAccionesDisponibles } from "./acciones-disponibles"
+import { asegurarOperadorDeCuadrillas, type ResultadoAccion } from "./guardias"
 
 type PropietarioReporte = { username: string | null; email: string | null }
 
@@ -115,28 +115,23 @@ async function leerCuadrillaActiva(supabase: SupabaseClient, cuadrillaId: number
   return { success: true, data }
 }
 
-/** Envía, sin romper el flujo si falla, el email de un hito operativo al propietario del reporte (si tiene email). */
-async function notificarHitoOperativo(
-  contexto: ContextoReporte,
-  hito: "cuadrilla_asignada" | "trabajo_finalizado",
-  cuadrillaNombre: string | null,
-) {
+/** Envía, sin romper el flujo si falla, el email de asignación de cuadrilla al propietario del reporte (si tiene email). */
+async function notificarCuadrillaAsignada(contexto: ContextoReporte, cuadrillaNombre: string | null) {
   if (!contexto.usuarioId || !contexto.propietario?.email) {
     return
   }
 
   try {
-    await sendOperationalMilestoneEmail({
+    await sendCrewAssignedEmail({
       ownerEmail: contexto.propietario.email,
       ownerUsername: contexto.propietario.username,
       reporteId: contexto.id,
       reporteTitulo: contexto.titulo,
-      hito,
       cuadrillaNombre,
       detalle: null,
     })
   } catch (notificationError) {
-    console.error(`Error al enviar notificación de hito operativo (${hito}):`, notificationError)
+    console.error("Error al enviar notificación de asignación de cuadrilla:", notificationError)
   }
 }
 
@@ -225,7 +220,7 @@ export async function asignarCuadrillaWorkflow(
   }
 
   if (esPrimeraAsignacion) {
-    await notificarHitoOperativo(contextoResultado.data, "cuadrilla_asignada", cuadrillaResultado.data.nombre)
+    await notificarCuadrillaAsignada(contextoResultado.data, cuadrillaResultado.data.nombre)
   }
 
   return { success: true, data: asignacion }
@@ -295,18 +290,14 @@ export async function registrarObservacionWorkflow(
 }
 
 /**
- * Cierra la intervención de una cuadrilla (motivo `trabajo_finalizado` o `cancelada`). NO
- * toca `reportes.estado_id`: ese cambio queda exclusivamente a cargo del admin vía
- * `cerrarReporteConCuadrillaWorkflow`. Solo notifica `trabajo_finalizado` la primera vez que
- * el reporte alcanza ese motivo de cierre (evita duplicar el email en reintentos o si hubo
- * reasignaciones previas que también finalizaron trabajo).
+ * Cancela la intervención de una cuadrilla (motivo `cancelada`). NO toca `reportes.estado_id`:
+ * el reporte simplemente vuelve a quedar sin cuadrilla, disponible para una nueva asignación.
  */
-export async function finalizarIntervencionWorkflow(
+export async function cancelarIntervencionWorkflow(
   supabase: SupabaseClient,
   actorUserId: string,
   datos: {
     asignacionId: number
-    motivoCierre: "trabajo_finalizado" | "cancelada"
     observacion?: string
     observacionPublica?: boolean
   },
@@ -333,7 +324,6 @@ export async function finalizarIntervencionWorkflow(
     return validacion
   }
 
-  const accionSolicitada: AccionOperativa = datos.motivoCierre === "trabajo_finalizado" ? "finalizar_trabajo" : "cancelar"
   const accionesDisponibles = calcularAccionesDisponibles({
     roleId: guardia.data,
     estadoReporteId: contextoResultado.data.estadoId,
@@ -341,14 +331,11 @@ export async function finalizarIntervencionWorkflow(
     asignacionAbierta: asignacionActual,
   })
 
-  if (!accionesDisponibles.includes(accionSolicitada)) {
+  if (!accionesDisponibles.includes("cancelar")) {
     return { success: false, error: "Esa acción ya no está disponible para esta asignación." }
   }
 
-  const { data: asignacionesPrevias } = await listarAsignacionesDeReporte(supabase, asignacionActual.reporteId)
-  const yaHuboFinalizacionPrevia = asignacionesPrevias.some((item) => item.motivoCierre === "trabajo_finalizado")
-
-  const cierre = await cerrarAsignacion(supabase, datos.asignacionId, datos.motivoCierre)
+  const cierre = await cerrarAsignacion(supabase, datos.asignacionId, "cancelada")
 
   if (cierre.error) {
     return { success: false, error: "No pudimos cerrar la intervención de la cuadrilla." }
@@ -361,7 +348,7 @@ export async function finalizarIntervencionWorkflow(
       return { success: false, error: "No pudimos encontrar la asignación de cuadrilla." }
     }
 
-    if (releida.data.estadoOperativo === "cerrada" && releida.data.motivoCierre === datos.motivoCierre) {
+    if (releida.data.estadoOperativo === "cerrada" && releida.data.motivoCierre === "cancelada") {
       return { success: true, data: { asignacion: releida.data, cambio: false } }
     }
 
@@ -376,17 +363,13 @@ export async function finalizarIntervencionWorkflow(
   const { error: observacionError } = await insertarObservacion(supabase, {
     asignacionId: asignacion.id,
     autorId: actorUserId,
-    contenido: datos.observacion?.trim() || ETIQUETAS_MOTIVO_CIERRE[datos.motivoCierre],
+    contenido: datos.observacion?.trim() || ETIQUETAS_MOTIVO_CIERRE.cancelada,
     observacionPublica: datos.observacionPublica ?? false,
     estadoOperativoResultante: ESTADOS_OPERATIVOS.CERRADA,
   })
 
   if (observacionError) {
     console.error("No pudimos registrar la observación de cierre de intervención:", observacionError)
-  }
-
-  if (datos.motivoCierre === "trabajo_finalizado" && !yaHuboFinalizacionPrevia) {
-    await notificarHitoOperativo(contextoResultado.data, "trabajo_finalizado", asignacionActual.cuadrillaNombre)
   }
 
   return { success: true, data: { asignacion, cambio: true } }
@@ -542,16 +525,17 @@ export async function reasignarCuadrillaWorkflow(
 }
 
 /**
- * Confirma el cierre administrativo de un reporte que tenía (o tiene) cuadrilla asignada,
- * marcándolo "Reparado" o "Rechazado". Exclusivo de ADMIN.
+ * Cierra un reporte con cuadrilla (o sin ella) marcándolo "Reparado" o "Rechazado". El
+ * operador es quien sabe que el trabajo terminó (se entera por radio o teléfono, nunca usa
+ * el sistema la cuadrilla en sí), así que ADMIN y OPERADOR pueden ejecutar este cierre.
  *
- * Delega el cambio de estado del reporte ENTERAMENTE al workflow admin ya existente y
- * probado (`cambiarEstadoAdminWorkflow` en `detail-mutations.ts`): así los puntos, el
- * `historial_estados` y el email de cambio de estado del reporte salen por ese único camino,
- * sin reimplementarlos acá.
+ * Reutiliza la MISMA composición que `cambiarEstadoAdminWorkflow` en `detail-mutations.ts`
+ * (`getReportContext` + `applyReportStateChange`), solo que con la guarda de operador de
+ * cuadrillas en lugar de la de administrador: los puntos, el `historial_estados` y el email
+ * de cambio de estado del reporte salen por ese único camino, sin reimplementarlos acá.
  *
  * Solo después de confirmar ese éxito cierra la asignación de cuadrilla abierta (si la hay)
- * con el motivo administrativo correspondiente. El orden es cierre-de-reporte-y-después-
+ * con el motivo resolutivo correspondiente. El orden es cierre-de-reporte-y-después-
  * cierre-de-asignación, nunca al revés: en el orden inverso, un reintento tras un fallo de
  * red podría emitir los puntos y el email del reporte dos veces, mientras que cerrar la
  * asignación es una operación idempotente y de bajo riesgo (0 filas = "no tenía asignación
@@ -566,17 +550,22 @@ export async function cerrarReporteConCuadrillaWorkflow(
     comentario?: string
   },
 ): Promise<ResultadoAccion<{ estadoId: number; asignacionCerrada: boolean }>> {
-  const guardia = await asegurarAdministrador(supabase, actorUserId)
+  const guardia = await asegurarOperadorDeCuadrillas(supabase, actorUserId)
   if (!guardia.success) {
     return guardia
   }
 
-  const cambioEstado = await cambiarEstadoAdminWorkflow(
+  const reporteResultado = await getReportContext(supabase, datos.reporteId)
+  if (!reporteResultado.success) {
+    return reporteResultado
+  }
+
+  const cambioEstado = await applyReportStateChange(
     supabase,
-    datos.reporteId,
+    reporteResultado.data,
     datos.nuevoEstadoId,
     actorUserId,
-    datos.comentario,
+    datos.comentario?.trim() || "Cierre registrado por operador de cuadrillas",
   )
 
   if (!cambioEstado.success) {
@@ -588,7 +577,7 @@ export async function cerrarReporteConCuadrillaWorkflow(
 
   if (cierre.error) {
     console.error(
-      "No pudimos cerrar la asignación de cuadrilla tras el cierre administrativo del reporte:",
+      "No pudimos cerrar la asignación de cuadrilla tras el cierre del reporte:",
       cierre.error,
     )
   }

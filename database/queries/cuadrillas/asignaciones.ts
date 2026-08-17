@@ -32,16 +32,6 @@ type AsignacionRow = {
   cuadrilla: NombreRelation
 }
 
-/** Ítem de la cola de cierre administrativo: trabajo finalizado por la cuadrilla, pendiente de confirmación de un admin. */
-export type ColaCierreAdministrativoItem = {
-  asignacionId: number
-  reporteId: number
-  reporteTitulo: string
-  cuadrillaId: number
-  cuadrillaNombre: string | null
-  cerradaAt: string | null
-}
-
 const ASIGNACION_COLUMNS =
   "id, reporte_id, cuadrilla_id, asignada_por, estado_operativo, motivo_cierre, created_at, updated_at, cerrada_at, cuadrilla:cuadrillas(nombre)"
 
@@ -326,68 +316,6 @@ export async function cerrarAsignacionAbiertaDeReporte(
   }
 
   return { data: { id: data.id, cuadrillaId: data.cuadrilla_id }, error: null }
-}
-
-/**
- * Lista la cola de cierre administrativo: asignaciones que la cuadrilla ya cerró como
- * `trabajo_finalizado` pero cuyo reporte sigue Pendiente (`estado_id = 1`), a la espera de
- * que un administrador confirme "Reparado" o "Rechazado".
- */
-export async function listarColaCierreAdministrativo(
-  supabase: SupabaseClient,
-  limite = 50,
-): Promise<{ data: ColaCierreAdministrativoItem[]; error: PostgrestError | null }> {
-  const { data, error } = await supabase
-    .from("asignaciones_cuadrilla")
-    .select(
-      `
-        id,
-        reporte_id,
-        cuadrilla_id,
-        cerrada_at,
-        cuadrilla:cuadrillas(nombre),
-        reporte:reportes!inner(id, titulo, estado_id)
-      `,
-    )
-    .eq("estado_operativo", "cerrada")
-    .eq("motivo_cierre", "trabajo_finalizado")
-    .eq("reporte.estado_id", 1)
-    .order("cerrada_at", { ascending: true })
-    .limit(limite)
-
-  if (error) {
-    console.error("Error al listar la cola de cierre administrativo:", error)
-    return { data: [], error }
-  }
-
-  type FilaCola = {
-    id: number
-    reporte_id: number
-    cuadrilla_id: number
-    cerrada_at: string | null
-    cuadrilla: NombreRelation
-    reporte: { titulo: string } | { titulo: string }[] | null
-  }
-
-  function getTituloRelacionado(relacion: FilaCola["reporte"]) {
-    if (Array.isArray(relacion)) {
-      return relacion[0]?.titulo ?? ""
-    }
-
-    return relacion?.titulo ?? ""
-  }
-
-  return {
-    data: ((data ?? []) as FilaCola[]).map((row) => ({
-      asignacionId: row.id,
-      reporteId: row.reporte_id,
-      reporteTitulo: getTituloRelacionado(row.reporte),
-      cuadrillaId: row.cuadrilla_id,
-      cuadrillaNombre: getNombreRelacionado(row.cuadrilla),
-      cerradaAt: row.cerrada_at,
-    })),
-    error: null,
-  }
 }
 
 /** Asignación abierta enriquecida con los datos del reporte y el username de quien la creó, para el panel de operación. */

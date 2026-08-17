@@ -190,7 +190,7 @@ async function cleanupReportImages(
   }
 }
 
-async function getReportContext(
+export async function getReportContext(
   supabase: SupabaseClient,
   reporteId: number,
 ): Promise<MutationResult<ReportContext>> {
@@ -229,7 +229,7 @@ async function ensureAdmin(supabase: SupabaseClient, userId: string): Promise<Mu
   return { success: true, data: true }
 }
 
-async function applyReportStateChange(
+export async function applyReportStateChange(
   supabase: SupabaseClient,
   report: ReportContext,
   nextStateId: number,

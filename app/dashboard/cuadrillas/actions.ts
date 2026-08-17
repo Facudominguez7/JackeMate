@@ -7,9 +7,9 @@ import {
   actualizarCuadrillaWorkflow,
   asignarCuadrillaWorkflow,
   cambiarActivacionCuadrillaWorkflow,
+  cancelarIntervencionWorkflow,
   cerrarReporteConCuadrillaWorkflow,
   crearCuadrillaWorkflow,
-  finalizarIntervencionWorkflow,
   reasignarCuadrillaWorkflow,
   registrarObservacionWorkflow,
 } from "@/lib/use-cases/cuadrillas"
@@ -19,9 +19,9 @@ import { createClient } from "@/utils/supabase/server"
 
 import {
   esquemaAsignarCuadrilla,
+  esquemaCancelarIntervencion,
   esquemaCerrarReporteConCuadrilla,
   esquemaCuadrilla,
-  esquemaFinalizarIntervencion,
   esquemaIdCuadrilla,
   esquemaReasignarCuadrilla,
   esquemaRegistrarObservacion,
@@ -221,12 +221,12 @@ export async function reasignarCuadrillaAction(datos: unknown) {
 }
 
 /**
- * Finaliza la intervención de una cuadrilla (trabajo finalizado o cancelación). Requiere
+ * Cancela la intervención de una cuadrilla: el reporte vuelve a quedar sin cuadrilla. Requiere
  * sesión y permisos de operación de cuadrillas.
  */
-export async function finalizarIntervencionAction(datos: unknown) {
+export async function cancelarIntervencionAction(datos: unknown) {
   try {
-    const parsedDatos = esquemaFinalizarIntervencion.safeParse(datos)
+    const parsedDatos = esquemaCancelarIntervencion.safeParse(datos)
     if (!parsedDatos.success) {
       return { success: false as const, error: primerMensajeZod(parsedDatos.error) }
     }
@@ -240,7 +240,7 @@ export async function finalizarIntervencionAction(datos: unknown) {
       return { success: false as const, error: "Tenés que iniciar sesión para gestionar cuadrillas." }
     }
 
-    const resultado = await finalizarIntervencionWorkflow(createAdminClient(), user.id, parsedDatos.data)
+    const resultado = await cancelarIntervencionWorkflow(createAdminClient(), user.id, parsedDatos.data)
 
     if (resultado.success) {
       revalidarRutasDeReporte(resultado.data.asignacion.reporteId)
@@ -250,7 +250,7 @@ export async function finalizarIntervencionAction(datos: unknown) {
   } catch (error) {
     return {
       success: false as const,
-      error: mutationErrorMessage(error, "No pudimos finalizar la intervención de la cuadrilla."),
+      error: mutationErrorMessage(error, "No pudimos cancelar la intervención de la cuadrilla."),
     }
   }
 }
@@ -288,9 +288,9 @@ export async function registrarObservacionAction(datos: unknown) {
 }
 
 /**
- * Confirma el cierre administrativo (Reparado/Rechazado) de un reporte con cuadrilla.
- * Exclusiva de ADMIN (verificado en el workflow). Delega enteramente en
- * `cerrarReporteConCuadrillaWorkflow` el cambio de estado del reporte, sus puntos y su email.
+ * Cierra un reporte con cuadrilla (Reparado/Rechazado). Disponible para ADMIN y OPERADOR
+ * (verificado en el workflow). Delega enteramente en `cerrarReporteConCuadrillaWorkflow` el
+ * cambio de estado del reporte, sus puntos y su email.
  */
 export async function cerrarReporteConCuadrillaAction(datos: unknown) {
   try {

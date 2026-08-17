@@ -13,13 +13,20 @@ import type { AccionOperativa } from "@/lib/use-cases/cuadrillas"
 
 const ETIQUETA_BOTON: Partial<Record<AccionOperativa, string>> = {
   reasignar: "Reasignar",
-  finalizar_trabajo: "Finalizar trabajo",
   cancelar: "Cancelar",
   observar: "Registrar observación",
+  cerrar_reparado: "Marcar reparado",
+  cerrar_rechazado: "Rechazar",
 }
 
 /** Orden fijo en el que se muestran los botones de acción disponibles sobre una asignación. */
-const ORDEN_ACCIONES: AccionOperativa[] = ["finalizar_trabajo", "observar", "reasignar", "cancelar"]
+const ORDEN_ACCIONES: AccionOperativa[] = [
+  "cerrar_reparado",
+  "cerrar_rechazado",
+  "observar",
+  "reasignar",
+  "cancelar",
+]
 
 type TarjetaAsignacionProps = {
   asignacion: AsignacionAbiertaConReporte
@@ -109,7 +116,7 @@ export function TarjetaAsignacion({
             <Button
               key={accion}
               size="sm"
-              variant={accion === "cancelar" ? "destructive" : "outline"}
+              variant={accion === "cancelar" || accion === "cerrar_rechazado" ? "destructive" : "outline"}
               disabled={enviando}
               onClick={() => onSolicitarAccion(accion)}
             >

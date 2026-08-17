@@ -55,25 +55,24 @@ export const ESTADOS_OPERATIVOS = {
 export type EstadoOperativo =
   (typeof ESTADOS_OPERATIVOS)[keyof typeof ESTADOS_OPERATIVOS];
 
-/** Motivos de cierre que puede registrar la cuadrilla/operador y que nunca modifican `reportes.estado_id`. */
+/** Motivos de cierre que solo cierran la intervención de la cuadrilla, sin tocar `reportes.estado_id`. */
 export const MOTIVOS_CIERRE_OPERATIVOS = [
-  "trabajo_finalizado",
   "cancelada",
   "reasignada",
 ] as const;
 
 export type MotivoCierreOperativo = (typeof MOTIVOS_CIERRE_OPERATIVOS)[number];
 
-/** Motivos de cierre reservados a ADMIN: confirman el estado administrativo final del reporte. */
-export const MOTIVOS_CIERRE_ADMINISTRATIVOS = [
+/** Motivos de cierre que resuelven el reporte (`reportes.estado_id`): pueden aplicarlos ADMIN y OPERADOR. */
+export const MOTIVOS_CIERRE_RESOLUTIVOS = [
   "reparado",
   "rechazado",
 ] as const;
 
-export type MotivoCierreAdministrativo =
-  (typeof MOTIVOS_CIERRE_ADMINISTRATIVOS)[number];
+export type MotivoCierreResolutivo =
+  (typeof MOTIVOS_CIERRE_RESOLUTIVOS)[number];
 
-export type MotivoCierre = MotivoCierreOperativo | MotivoCierreAdministrativo;
+export type MotivoCierre = MotivoCierreOperativo | MotivoCierreResolutivo;
 
 /**
  * Etiquetas en español para cada estado operativo. El tipado `Record` exhaustivo
@@ -89,7 +88,6 @@ export const ETIQUETAS_ESTADO_OPERATIVO: Record<EstadoOperativo, string> = {
  * hace que `tsc` falle si se agrega un motivo nuevo sin su etiqueta correspondiente.
  */
 export const ETIQUETAS_MOTIVO_CIERRE: Record<MotivoCierre, string> = {
-  trabajo_finalizado: "Trabajo finalizado",
   cancelada: "Intervención cancelada",
   reasignada: "Reasignada a otra cuadrilla",
   reparado: "Confirmado como reparado",
