@@ -20,6 +20,7 @@ import {
 import L from "leaflet"
 import "leaflet.markercluster"
 import { getPriorityColor, getStatusColor, getCategoryColor } from "@/components/report-card"
+import { useMounted } from "@/hooks/use-mounted"
 
 /**
  * Interfaz que representa un reporte para mostrar en el mapa
@@ -300,12 +301,9 @@ function MarkerClusterGroup({
  * @returns El elemento React que contiene el mapa Leaflet con clustering, ajuste automático de vista y popups por reporte
  */
 export default function LeafletMap({ reports }: LeafletMapProps) {
-  const [mapKey, setMapKey] = useState(0)
-
-  // Re-renderizar el mapa solo al montar el componente
-  useEffect(() => {
-    setMapKey(Date.now())
-  }, [])
+  const mounted = useMounted()
+  // Forzar remount del mapa después de la hidratación: la key cambia de 0 a 1
+  const mapKey = mounted ? 1 : 0
 
   /**
    * Genera iconos personalizados para los marcadores según la prioridad

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState, useTransition } from "react"
+import { useCallback, useState, useTransition } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { Layers3, List, Map, MapPin, SlidersHorizontal, UserPlus, X } from "lucide-react"
@@ -13,6 +13,8 @@ import { FiltrosReportes } from "@/components/filtros-reportes"
 import { LoadingLogo } from "@/components/loading-logo"
 import { getCategoryColor, getPriorityColor, getStatusColor } from "@/components/report-card"
 import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
+import { useMounted } from "@/hooks/use-mounted"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 const MapContainer = dynamic(() => import("@/components/map-container").then((m) => m.MapContainer), {
   ssr: false,
@@ -33,20 +35,15 @@ type MapaClientProps = {
 }
 
 export function MapaClient({ reportes, categorias, estados, prioridades, error, isAuthenticated }: MapaClientProps) {
-  const [showSidebar, setShowSidebar] = useState(false)
+  const mounted = useMounted()
+  const isDesktop = useMediaQuery("(min-width: 1024px)")
+  // null = seguir el viewport; boolean = el usuario eligió mostrar/ocultar
+  const [sidebarOverride, setSidebarOverride] = useState<boolean | null>(null)
+  const showSidebar = sidebarOverride ?? isDesktop
   const [showFilters, setShowFilters] = useState(false)
-  const [mapKey, setMapKey] = useState(0)
+  // Forzar remount del mapa después de la hidratación: la key cambia de 0 a 1
+  const mapKey = mounted ? 1 : 0
   const [isPending, startTransition] = useTransition()
-
-  useEffect(() => {
-    const syncLayout = () => setShowSidebar(window.innerWidth >= 1024)
-
-    syncLayout()
-    setMapKey(Date.now())
-    window.addEventListener("resize", syncLayout)
-
-    return () => window.removeEventListener("resize", syncLayout)
-  }, [])
 
   const handleFilterApplied = useCallback(() => {
     setShowFilters(false)
@@ -103,7 +100,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error, 
                 {showFilters ? "Ocultar filtros" : "Mostrar filtros"}
               </span>
             </Button>
-            <Button size="lg" variant="outline" className="justify-between" onClick={() => setShowSidebar((prev) => !prev)}>
+            <Button size="lg" variant="outline" className="justify-between" onClick={() => setSidebarOverride(!showSidebar)}>
               <span className="flex items-center gap-2">
                 <Layers3 className="size-4" />
                 {showSidebar ? "Ocultar panel" : "Mostrar panel"}
@@ -141,7 +138,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error, 
                 <button
                   type="button"
                   className="absolute inset-0 z-20 bg-black/35 lg:hidden"
-                  onClick={() => setShowSidebar(false)}
+                  onClick={() => setSidebarOverride(false)}
                   aria-label="Cerrar panel lateral"
                 />
 
@@ -151,7 +148,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error, 
                       <p className="page-kicker">Panel lateral</p>
                       <h2 className="mt-1 text-lg font-semibold tracking-tight">Reportes visibles</h2>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setShowSidebar(false)}>
+                    <Button variant="ghost" size="icon" onClick={() => setSidebarOverride(false)}>
                       <X className="size-4" />
                     </Button>
                   </div>
