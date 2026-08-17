@@ -120,7 +120,7 @@ function toErrorMessage(error: unknown, fallback: string) {
   return fallback
 }
 
-function isDuplicateRowError(error: { code?: string } | null | undefined) {
+export function isDuplicateRowError(error: { code?: string } | null | undefined) {
   return error?.code === "23505"
 }
 
