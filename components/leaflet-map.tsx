@@ -1,30 +1,18 @@
 /**
- * Componente de mapa interactivo con Leaflet
- * 
- * Renderiza un mapa usando React-Leaflet con:
- * - Marcadores personalizados por prioridad
- * - Clustering automático para marcadores cercanos (evita superposición)
- * - Popups con información detallada de cada reporte
- * - Ajuste automático de zoom para mostrar todos los reportes
- * - Tiles de OpenStreetMap
+ * Interactive map component powered by Leaflet.
+ *
+ * Uses an imperative Leaflet setup to avoid container reuse issues during
+ * refreshes and re-renders while preserving clustering and popup behavior.
  */
 
 "use client"
 
-import { useEffect, useMemo, useRef, useCallback, useState } from "react"
-import {
-  MapContainer as RLMapContainer,
-  TileLayer,
-  useMap,
-} from "react-leaflet"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import L from "leaflet"
 import "leaflet.markercluster"
-import { getPriorityColor, getStatusColor, getCategoryColor } from "@/components/report-card"
-import { useMounted } from "@/hooks/use-mounted"
 
-/**
- * Interfaz que representa un reporte para mostrar en el mapa
- */
+import { getCategoryColor, getPriorityColor, getStatusColor } from "@/components/report-card"
+
 interface Report {
   id: number
   title: string
@@ -39,50 +27,18 @@ interface Report {
   image?: string
 }
 
-/**
- * Props del componente LeafletMap
- */
 export interface LeafletMapProps {
   reports: Report[]
 }
 
-/**
- * Ajusta la vista del mapa para que todos los reportes sean visibles.
- *
- * Centra el mapa con un zoom fijo cuando sólo hay un reporte; si hay varios,
- * ajusta los límites del mapa para mostrar todos los reportes con un padding del 10%.
- *
- * @param reports - Array de reportes cuya propiedad `coordinates` ([lat, lng]) se usa para calcular los límites del mapa
- */
-function FitBounds({ reports }: { reports: Report[] }) {
-  const map = useMap()
-  
-  useEffect(() => {
-    if (!map || reports.length === 0) return
-    
-    // Crear límites geográficos basados en las coordenadas de los reportes
-    const bounds = L.latLngBounds(reports.map((r) => [r.coordinates[0], r.coordinates[1]] as [number, number]))
-    
-    // Si hay un solo reporte, centrar con zoom fijo
-    if (bounds.isValid() && bounds.getNorthEast().equals(bounds.getSouthWest())) {
-      map.setView(bounds.getCenter(), 14)
-    } 
-    // Si hay múltiples reportes, ajustar zoom para mostrar todos
-    else if (bounds.isValid()) {
-      map.fitBounds(bounds.pad(0.1))
-    }
-  }, [map, reports])
-  
-  return null
-}
+type LeafletContainer = HTMLDivElement & { _leaflet_id?: number }
 
-/**
- * Crea el HTML del ícono del cluster de forma segura
- * Evita inyección de HTML al usar solo valores numéricos y constantes
- */
+const DEFAULT_CENTER: L.LatLngTuple = [-27.3676, -55.8961]
+const DEFAULT_ZOOM = 13
+
 const createClusterIconHTML = (count: number): string => {
   const size = count > 10 ? 50 : count > 5 ? 40 : 30
-  const color = count > 10 ? 'var(--map-heat-high)' : count > 5 ? 'var(--map-heat-medium)' : 'var(--map-heat-low)'
+  const color = count > 10 ? "var(--map-heat-high)" : count > 5 ? "var(--map-heat-medium)" : "var(--map-heat-low)"
   const fontSize = count > 10 ? 16 : count > 5 ? 14 : 12
 
   return `
@@ -105,20 +61,130 @@ const createClusterIconHTML = (count: number): string => {
   `
 }
 
-/**
- * Sanitiza texto para prevenir XSS
- * Escapa caracteres HTML peligrosos
- */
 const escapeHtml = (text: string): string => {
-  const div = document.createElement('div')
+  const div = document.createElement("div")
   div.textContent = text
   return div.innerHTML
 }
 
-/**
- * Crea el contenido HTML del popup de forma segura
- * Sanitiza todos los datos del usuario
- */
+const createLucideIconMarkup = (innerMarkup: string): string => `
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    style="display:block;flex-shrink:0"
+    aria-hidden="true"
+  >
+    ${innerMarkup}
+  </svg>
+`
+
+const popupIcons = {
+  location: createLucideIconMarkup('<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" />'),
+  status: createLucideIconMarkup('<circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="1" />'),
+  category: createLucideIconMarkup('<path d="M12.586 2.586a2 2 0 0 1 2.828 0l6 6a2 2 0 0 1 0 2.828l-8 8a2 2 0 0 1-1.414.586H6a2 2 0 0 1-2-2v-6a2 2 0 0 1 .586-1.414z" /><circle cx="7.5" cy="7.5" r=".5" fill="currentColor" stroke="none" />'),
+  priority: createLucideIconMarkup('<path d="M4 22V4" /><path d="M4 4h11l-1 5 1 5H4" />'),
+  author: createLucideIconMarkup('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />'),
+  date: createLucideIconMarkup('<path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" />'),
+} as const
+
+type PopupChipTone = {
+  background: string
+  border: string
+  text: string
+}
+
+const getStatusTone = (status: string): PopupChipTone => {
+  switch (status) {
+    case "Reparado":
+      return {
+        background: "var(--semantic-success-soft)",
+        border: "var(--semantic-success-border)",
+        text: "var(--semantic-success)",
+      }
+    case "Pendiente":
+      return {
+        background: "var(--semantic-warning-soft)",
+        border: "var(--semantic-warning-border)",
+        text: "var(--semantic-warning)",
+      }
+    case "Rechazado":
+      return {
+        background: "var(--semantic-danger-soft)",
+        border: "var(--semantic-danger-border)",
+        text: "var(--semantic-danger)",
+      }
+    default:
+      return {
+        background: "var(--surface-subtle)",
+        border: "var(--border)",
+        text: "var(--muted-foreground)",
+      }
+  }
+}
+
+const getPriorityTone = (priority: string): PopupChipTone => {
+  switch (priority) {
+    case "Alta":
+      return {
+        background: "var(--semantic-danger-soft)",
+        border: "var(--semantic-danger-border)",
+        text: "var(--semantic-danger)",
+      }
+    case "Media":
+      return {
+        background: "var(--semantic-warning-soft)",
+        border: "var(--semantic-warning-border)",
+        text: "var(--semantic-warning)",
+      }
+    case "Baja":
+      return {
+        background: "var(--priority-low-soft)",
+        border: "var(--priority-low-border)",
+        text: "var(--priority-low)",
+      }
+    default:
+      return {
+        background: "var(--surface-subtle)",
+        border: "var(--border)",
+        text: "var(--muted-foreground)",
+      }
+  }
+}
+
+const getCategoryTone = (): PopupChipTone => ({
+  background: "var(--semantic-info-soft)",
+  border: "var(--semantic-info-border)",
+  text: "var(--semantic-info)",
+})
+
+const createPopupChip = (label: string, tone: PopupChipTone, iconMarkup: string): string => `
+  <span style="
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    min-height:26px;
+    padding:0 9px;
+    border-radius:999px;
+    border:1px solid ${tone.border};
+    background:${tone.background};
+    color:${tone.text};
+    font-size:11px;
+    font-weight:600;
+    line-height:1;
+    white-space:nowrap;
+  ">
+    <span style="display:inline-flex;align-items:center;justify-content:center;">${iconMarkup}</span>
+    <span>${label}</span>
+  </span>
+`
+
 const createPopupContent = (
   report: Report,
   statusColor: string,
@@ -133,188 +199,69 @@ const createPopupContent = (
   const safeStatus = escapeHtml(report.status)
   const safeAuthor = escapeHtml(report.author)
   const safeImage = report.image ? escapeHtml(report.image) : null
+  const safeDate = escapeHtml(new Date(report.createdAt).toLocaleDateString("es-AR"))
+  const truncatedDescription =
+    safeDescription.length > 110 ? `${safeDescription.substring(0, 110)}...` : safeDescription
+
+  const statusTone = getStatusTone(report.status)
+  const categoryTone = getCategoryTone()
+  const priorityTone = getPriorityTone(report.priority)
 
   return `
-    <div style="min-width: 250px;">
-      <div style="margin-bottom: 8px;">
-        <h3 style="margin: 0; margin-bottom: 4px; font-size: 16px; font-weight: 600; color: var(--foreground);">
-          <a href="/reportes/${report.id}" style="color: var(--primary); text-decoration: none;">
+    <div style="min-width:250px;max-width:270px;color:var(--foreground);font-size:13px;line-height:1.45;">
+      <div style="margin-bottom:10px;">
+        <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;line-height:1.3;color:var(--foreground);">
+          <a href="/reportes/${report.id}" style="color:var(--foreground);text-decoration:none;">
             ${safeTitle}
           </a>
         </h3>
-        <p style="margin: 0; font-size: 12px; color: var(--muted-foreground); display: flex; align-items: center; gap: 4px;">
-          <span>📍</span> ${safeLocation}
+        <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground);">
+          <span style="display:inline-flex;color:var(--primary);">${popupIcons.location}</span>
+          <span>${safeLocation}</span>
         </p>
       </div>
 
       ${safeImage ? `
-        <div style="margin-bottom: 8px;">
+        <div style="margin-bottom:10px;overflow:hidden;border-radius:10px;">
           <img
             src="${safeImage}"
             alt="${safeTitle}"
-            style="width: 100%; height: 120px; object-fit: cover; border-radius: 6px;"
+            style="display:block;width:100%;height:124px;object-fit:cover;"
           />
         </div>
-      ` : ''}
+      ` : ""}
 
-      <p style="margin: 0; margin-bottom: 8px; font-size: 14px; color: var(--foreground); line-height: 1.4;">
-        ${safeDescription.length > 100 ? `${safeDescription.substring(0, 100)}...` : safeDescription}
+      <p style="margin:0 0 10px;font-size:13px;color:var(--foreground);line-height:1.5;">
+        ${truncatedDescription}
       </p>
 
-      <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
-        <span style="
-          background-color: ${statusColor}15;
-          color: ${statusColor};
-          padding: 2px 8px;
-          border-radius: 12px;
-          font-size: 11px;
-          font-weight: 500;
-          border: 1px solid ${statusColor}40;
-        ">
-          ${safeStatus}
-        </span>
-        <span style="
-          background-color: ${categoryColor}15;
-          color: ${categoryColor};
-          padding: 2px 8px;
-          border-radius: 12px;
-          font-size: 11px;
-          font-weight: 500;
-          border: 1px solid ${categoryColor}40;
-        ">
-          ${safeCategory}
-        </span>
-        <span style="
-          background-color: ${priorityColor}15;
-          color: ${priorityColor};
-          padding: 2px 8px;
-          border-radius: 12px;
-          font-size: 11px;
-          font-weight: 500;
-          border: 1px solid ${priorityColor}40;
-        ">
-          ${safePriority}
-        </span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+        ${createPopupChip(safeStatus, statusTone, popupIcons.status)}
+        ${createPopupChip(safeCategory, categoryTone, popupIcons.category)}
+        ${createPopupChip(safePriority, priorityTone, popupIcons.priority)}
       </div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted-foreground);">
-        <span>👤 ${safeAuthor}</span>
-        <span>📅 ${new Date(report.createdAt).toLocaleDateString("es-AR")}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--muted-foreground);">
+        <span style="display:inline-flex;align-items:center;gap:6px;min-width:0;">
+          <span style="display:inline-flex;">${popupIcons.author}</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeAuthor}</span>
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;">
+          <span style="display:inline-flex;">${popupIcons.date}</span>
+          <span>${safeDate}</span>
+        </span>
       </div>
     </div>
   `
 }
 
-/**
- * Renderiza en el mapa un grupo de clusters que contiene un marcador por cada reporte y enlaza sus popups sanitizados.
- *
- * @param reports - Array de reportes a representar como marcadores
- * @param getIcon - Devuelve el `L.DivIcon` correspondiente a la prioridad proporcionada
- * @param getStatusColor - Devuelve el color (hex) asociado al estado, usado para estilizar el contenido del popup
- * @param getPriorityColor - Devuelve el color (hex) asociado a la prioridad, usado para estilizar el contenido del popup
- * @param getCategoryColor - Devuelve el color (hex) usado para categorías en el contenido del popup
- */
-function MarkerClusterGroup({ 
-  reports, 
-  getIcon, 
-  getStatusColor,
-  getPriorityColor,
-  getCategoryColor
-}: { 
-  reports: Report[]
-  getIcon: (priority: string) => L.DivIcon
-  getStatusColor: (status: string) => string
-  getPriorityColor: (priority: string) => string
-  getCategoryColor: () => string
-}) {
-  const map = useMap()
+export default function LeafletMap({ reports }: LeafletMapProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<L.Map | null>(null)
+  const tileLayerRef = useRef<L.TileLayer | null>(null)
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null)
 
-  useEffect(() => {
-    if (!map) return
-
-    // Limpiar cluster anterior si existe
-    if (clusterGroupRef.current) {
-      map.removeLayer(clusterGroupRef.current)
-    }
-
-    // Crear grupo de clusters con configuración personalizada
-    const clusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 80,
-      animate: true,
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: true,
-      disableClusteringAtZoom: 18,
-      iconCreateFunction: (cluster) => {
-        const count = cluster.getChildCount()
-        const size = count > 10 ? 50 : count > 5 ? 40 : 30
-
-        return L.divIcon({
-          html: createClusterIconHTML(count),
-          className: 'custom-cluster-icon',
-          iconSize: L.point(size, size),
-        })
-      },
-    })
-
-    clusterGroupRef.current = clusterGroup
-
-    // Agregar marcadores al cluster
-    reports.forEach((report) => {
-      const marker = L.marker([report.coordinates[0], report.coordinates[1]], {
-        icon: getIcon(report.priority),
-      })
-
-      // Crear contenido del popup de forma segura
-      const popupContent = createPopupContent(
-        report, 
-        getStatusColor(report.status),
-        getPriorityColor(report.priority),
-        getCategoryColor()
-      )
-      marker.bindPopup(popupContent, { maxWidth: 300 })
-      
-      clusterGroup.addLayer(marker)
-    })
-
-    map.addLayer(clusterGroup)
-
-    // Cleanup: remover el cluster group al desmontar
-    return () => {
-      if (clusterGroupRef.current && map) {
-        map.removeLayer(clusterGroupRef.current)
-        clusterGroupRef.current = null
-      }
-    }
-  }, [map, reports, getIcon, getStatusColor, getPriorityColor, getCategoryColor])
-
-  return null
-}
-
-/**
- * Renderiza un mapa Leaflet con marcadores agrupados que representan los reportes.
- *
- * Ajusta automáticamente la vista para incluir todos los reportes, utiliza tiles de OpenStreetMap,
- * colorea marcadores según prioridad y muestra popups sanitizados con los detalles de cada reporte.
- *
- * @param reports - Lista de objetos `Report` que se mostrarán como marcadores en el mapa
- * @returns El elemento React que contiene el mapa Leaflet con clustering, ajuste automático de vista y popups por reporte
- */
-export default function LeafletMap({ reports }: LeafletMapProps) {
-  const mounted = useMounted()
-  // Forzar remount del mapa después de la hidratación: la key cambia de 0 a 1
-  const mapKey = mounted ? 1 : 0
-
-  /**
-   * Genera iconos personalizados para los marcadores según la prioridad
-   * Usa useMemo para evitar recrear los iconos en cada render
-   */
   const iconsByPriority = useMemo(() => {
-    /**
-     * Función auxiliar para crear un icono personalizado
-     * @param color - Color hex del marcador
-     * @returns Icono de Leaflet personalizado
-     */
     const mk = (color: string) =>
       L.divIcon({
         className: "custom-marker",
@@ -341,8 +288,7 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
         iconSize: [24, 24],
         iconAnchor: [12, 12],
       })
-    
-    // Mapeo de prioridades a colores (usando los mismos colores que report-card.tsx)
+
     return new Map<string, L.DivIcon>([
       ["Alta", mk(getPriorityColor("Alta"))],
       ["Media", mk(getPriorityColor("Media"))],
@@ -351,44 +297,127 @@ export default function LeafletMap({ reports }: LeafletMapProps) {
     ])
   }, [])
 
-  /**
-   * Obtiene el icono correcto según la prioridad
-   * Normaliza el nombre de la prioridad para manejar mayúsculas/minúsculas
-   * @param priority - Nombre de la prioridad
-   * @returns Icono de Leaflet correspondiente
-   */
-  const getIcon = (priority: string) => {
-    // Normalizar el nombre de la prioridad para búsqueda case-insensitive
-    const normalized = priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase()
-    return iconsByPriority.get(normalized) ?? iconsByPriority.get("default")!
-  }
-
-  return (
-    <RLMapContainer 
-      key={mapKey}
-      center={[-27.3676, -55.8961]} 
-      zoom={13} 
-      className="w-full h-full" 
-      style={{ zIndex: 0 }}
-      scrollWheelZoom={true}
-    >
-      {/* Capa de tiles de OpenStreetMap */}
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-
-      {/* Componente para ajustar el zoom automáticamente */}
-      <FitBounds reports={reports} />
-
-      {/* Componente de clustering que agrupa marcadores cercanos */}
-      <MarkerClusterGroup 
-        reports={reports} 
-        getIcon={getIcon} 
-        getStatusColor={getStatusColor}
-        getPriorityColor={getPriorityColor}
-        getCategoryColor={getCategoryColor}
-      />
-    </RLMapContainer>
+  const getIcon = useCallback(
+    (priority: string) => {
+      const normalized = priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase()
+      return iconsByPriority.get(normalized) ?? iconsByPriority.get("default")!
+    },
+    [iconsByPriority]
   )
+
+  useEffect(() => {
+    const container = containerRef.current as LeafletContainer | null
+
+    if (!container || mapRef.current) {
+      return
+    }
+
+    // Leaflet stores an internal container id; clear it before re-initializing
+    // so strict-mode remounts and fast refresh do not reuse a stale instance.
+    if (container._leaflet_id) {
+      delete container._leaflet_id
+    }
+
+    container.innerHTML = ""
+
+    const map = L.map(container, {
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM,
+      scrollWheelZoom: true,
+      zoomControl: true,
+    })
+
+    const tileLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    })
+
+    const clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 80,
+      animate: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      disableClusteringAtZoom: 18,
+      iconCreateFunction: (cluster) => {
+        const count = cluster.getChildCount()
+        const size = count > 10 ? 50 : count > 5 ? 40 : 30
+
+        return L.divIcon({
+          html: createClusterIconHTML(count),
+          className: "custom-cluster-icon",
+          iconSize: L.point(size, size),
+        })
+      },
+    })
+
+    tileLayer.addTo(map)
+    clusterGroup.addTo(map)
+
+    mapRef.current = map
+    tileLayerRef.current = tileLayer
+    clusterGroupRef.current = clusterGroup
+
+    return () => {
+      clusterGroupRef.current?.clearLayers()
+      clusterGroupRef.current = null
+      tileLayerRef.current = null
+
+      map.remove()
+      mapRef.current = null
+
+      if (container._leaflet_id) {
+        delete container._leaflet_id
+      }
+
+      container.innerHTML = ""
+    }
+  }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    const clusterGroup = clusterGroupRef.current
+
+    if (!map || !clusterGroup) {
+      return
+    }
+
+    clusterGroup.clearLayers()
+
+    for (const report of reports) {
+      const marker = L.marker([report.coordinates[0], report.coordinates[1]], {
+        icon: getIcon(report.priority),
+      })
+
+      const popupContent = createPopupContent(
+        report,
+        getStatusColor(report.status),
+        getPriorityColor(report.priority),
+        getCategoryColor()
+      )
+
+      marker.bindPopup(popupContent, { maxWidth: 300 })
+      clusterGroup.addLayer(marker)
+    }
+
+    if (reports.length === 0) {
+      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM)
+      return
+    }
+
+    const bounds = L.latLngBounds(
+      reports.map((report) => [report.coordinates[0], report.coordinates[1]] as L.LatLngTuple)
+    )
+
+    if (!bounds.isValid()) {
+      return
+    }
+
+    if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
+      map.setView(bounds.getCenter(), 14)
+      return
+    }
+
+    map.fitBounds(bounds.pad(0.1))
+  }, [getIcon, reports])
+
+  return <div ref={containerRef} className="h-full w-full" style={{ zIndex: 0 }} />
 }

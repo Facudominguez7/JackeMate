@@ -39,14 +39,16 @@ export async function updateSession(request: NextRequest) {
 
   // Define which paths require authentication
   // /reportes y /mapa son públicas para que usuarios anónimos puedan ver reportes
-  // /reportes/nuevo sigue protegida porque crear reportes requiere sesión + rol permitido
+  // /reportes/nuevo y el detalle de reporte requieren sesión
   const protectedPaths = ['/dashboard', '/reportes/nuevo']
-  const isProtected = protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p))
+  const isReportDetail = /^\/reportes\/[^/]+$/.test(request.nextUrl.pathname)
+  const isProtected = protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p)) || isReportDetail
 
   if (!user && isProtected) {
     // no user and trying to access a protected route -> redirect to login
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
+    url.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
     return NextResponse.redirect(url)
   }
 

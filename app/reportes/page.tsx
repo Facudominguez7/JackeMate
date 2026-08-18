@@ -41,7 +41,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
 
   return (
     <div className="page-shell">
-      <div className="page-container page-stack">
+      <div className="page-container page-stack max-w-5xl">
         <section className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <span className="section-eyebrow">Reportes</span>
@@ -49,7 +49,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
             {activeFilters > 0 && <Badge variant="secondary">{activeFilters} filtros activos</Badge>}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 lg:w-auto lg:grid-cols-[repeat(2,minmax(0,auto))]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:w-auto lg:grid-cols-[repeat(2,minmax(0,auto))]">
             <Button size="lg" className="justify-between" asChild>
               <Link href="/reportes/nuevo">
                 <span className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
           <section className="section-stack">
             <div>
               <span className="section-eyebrow">Listado</span>
-              <h2 className="section-title mt-3">Incidentes visibles para toda la comunidad</h2>
+              <h2 className="section-title mt-3">Incidentes visibles</h2>
             </div>
             <ListaReportesClient initialReports={reports} initialHasMore={hasMore ?? false} />
           </section>

@@ -140,8 +140,8 @@ export function ReportCard({
 }: ReportCardProps) {
   return (
     <Link key={id} href={`/reportes/${id}`} className="block h-full w-full min-w-0">
-      <Card className="h-full w-full min-w-0 overflow-hidden transition-colors hover:border-foreground/20">
-        <div className="aspect-[4/3] overflow-hidden bg-[var(--surface-subtle)]">
+      <Card className="h-full w-full min-w-0 overflow-hidden rounded-[1.5rem] transition-colors hover:border-foreground/20">
+        <div className="aspect-[16/10] overflow-hidden bg-[var(--surface-subtle)]">
           <img
             src={imageUrl || "/placeholder.svg"}
             alt={titulo}
@@ -150,7 +150,7 @@ export function ReportCard({
           />
         </div>
 
-        <CardContent className="flex h-full min-w-0 flex-col gap-4 pt-5">
+        <CardContent className="flex h-full min-w-0 flex-col gap-3 pt-4">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Badge variant={getPriorityVariant(prioridad)} className="gap-1">
               {getPriorityIcon(prioridad)}
@@ -167,10 +167,10 @@ export function ReportCard({
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold tracking-tight text-foreground line-clamp-2">
+            <h3 className="text-base font-semibold tracking-tight text-foreground line-clamp-2">
               {titulo}
             </h3>
-            <p className="text-sm leading-6 text-muted-foreground line-clamp-3">
+            <p className="text-sm leading-6 text-muted-foreground line-clamp-2">
               {descripcion || "Sin descripción adicional."}
             </p>
           </div>

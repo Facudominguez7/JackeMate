@@ -104,7 +104,7 @@ export function ListaReportesClient({
     return (
         <>
             {reports.length > 0 && (
-                <div className="grid grid-cols-1 gap-5 min-w-0 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 min-w-0 md:grid-cols-2">
                     {reports.map((report) => (
                         <ReportCard
                             key={report.id}

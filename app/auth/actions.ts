@@ -10,6 +10,16 @@ export type AuthFormState = {
   message?: string
 }
 
+const getSafeNextPath = (formData: FormData) => {
+  const next = formData.get('next')
+
+  if (typeof next !== 'string' || !next.startsWith('/') || next.startsWith('//')) {
+    return '/mapa'
+  }
+
+  return next
+}
+
 export async function login(_prevState: AuthFormState | void, formData: FormData): Promise<AuthFormState> {
   const supabase = await createClient()
 
@@ -28,7 +38,7 @@ export async function login(_prevState: AuthFormState | void, formData: FormData
   }
 
   revalidatePath("/", "layout")
-  redirect("/")
+  redirect(getSafeNextPath(formData))
   // Unreachable, but satisfies return type for TypeScript
   return {}
 }
@@ -89,7 +99,7 @@ export async function signup(_prevState: AuthFormState | void, formData: FormDat
 
   // If a session is returned (confirmation disabled), log in and redirect.
   revalidatePath('/', 'layout')
-  redirect('/')
+  redirect(getSafeNextPath(formData))
   return {}
 }
 

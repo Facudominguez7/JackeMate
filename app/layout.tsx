@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" data-scroll-behavior="smooth">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <a
           href="#main-content"
@@ -39,7 +39,7 @@ export default function RootLayout({
           Saltar al contenido
         </a>
         <Header />
-        <main id="main-content">{children}</main>
+        <main id="main-content" className="app-main">{children}</main>
         <Toaster richColors position="top-center" />
       </body>
     </html>

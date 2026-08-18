@@ -6,8 +6,10 @@ import { Filter, Search, SlidersHorizontal, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DrawerDescription, DrawerTitle } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 type FiltrosReportesProps = {
   categorias?: { id: number; nombre: string }[]
@@ -16,6 +18,80 @@ type FiltrosReportesProps = {
   onFilterApplied?: () => void
   externalIsPending?: boolean
   externalStartTransition?: TransitionStartFunction
+  variant?: "default" | "sheet"
+  titleId?: string
+  onApply?: () => void
+  deferUpdates?: boolean
+}
+
+const EMPTY_FILTERS = {
+  search: "",
+  categoria: "all",
+  estado: "all",
+  prioridad: "all",
+} as const
+
+type FilterChipOptionProps = {
+  label: string
+  selected: boolean
+  onSelect: () => void
+  disabled?: boolean
+}
+
+function FilterChipOption({ label, selected, onSelect, disabled = false }: FilterChipOptionProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={disabled}
+      aria-pressed={selected}
+      className={cn(
+        "inline-flex min-h-10 items-center justify-center rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+        selected
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-[var(--surface-subtle)] text-foreground hover:border-primary/25 hover:bg-primary/5"
+      )}
+    >
+      {label}
+    </button>
+  )
+}
+
+type SheetFilterGroupProps = {
+  label: string
+  allLabel: string
+  options: { id: number; nombre: string }[]
+  value: string
+  onChange: (value: string) => void
+  disabled?: boolean
+}
+
+function SheetFilterGroup({ label, allLabel, options, value, onChange, disabled = false }: SheetFilterGroupProps) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</h4>
+        {value !== "all" && <span className="text-xs font-medium text-muted-foreground">1 seleccionado</span>}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <FilterChipOption label={allLabel} selected={value === "all"} onSelect={() => onChange("all")} disabled={disabled} />
+        {options.map((option) => {
+          const optionValue = option.nombre.toLowerCase()
+
+          return (
+            <FilterChipOption
+              key={option.id}
+              label={option.nombre}
+              selected={value === optionValue}
+              onSelect={() => onChange(optionValue)}
+              disabled={disabled}
+            />
+          )
+        })}
+      </div>
+    </section>
+  )
 }
 
 export function FiltrosReportes({
@@ -25,6 +101,10 @@ export function FiltrosReportes({
   onFilterApplied,
   externalIsPending,
   externalStartTransition,
+  variant = "default",
+  titleId,
+  onApply,
+  deferUpdates,
 }: FiltrosReportesProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -32,6 +112,12 @@ export function FiltrosReportes({
   const [internalIsPending, internalStartTransition] = useTransition()
   const [showFilters, setShowFilters] = useState(true)
   const [searchInput, setSearchInput] = useState(() => searchParams.get("search") ?? "")
+  const [draftFilters, setDraftFilters] = useState(() => ({
+    search: searchParams.get("search") ?? EMPTY_FILTERS.search,
+    categoria: searchParams.get("categoria") ?? EMPTY_FILTERS.categoria,
+    estado: searchParams.get("estado") ?? EMPTY_FILTERS.estado,
+    prioridad: searchParams.get("prioridad") ?? EMPTY_FILTERS.prioridad,
+  }))
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const isTypingRef = useRef(false)
@@ -39,11 +125,23 @@ export function FiltrosReportes({
 
   const isPending = externalIsPending ?? internalIsPending
   const startTransition = externalStartTransition ?? internalStartTransition
+  const isSheet = variant === "sheet"
+  const shouldDeferUpdates = deferUpdates ?? isSheet
 
   const searchValue = searchParams.get("search") ?? ""
   const categoriaValue = searchParams.get("categoria") ?? "all"
   const estadoValue = searchParams.get("estado") ?? "all"
   const prioridadValue = searchParams.get("prioridad") ?? "all"
+  const hasAppliedFilters = searchValue !== "" || categoriaValue !== "all" || estadoValue !== "all" || prioridadValue !== "all"
+  const hasDraftFilters =
+    draftFilters.search !== EMPTY_FILTERS.search ||
+    draftFilters.categoria !== EMPTY_FILTERS.categoria ||
+    draftFilters.estado !== EMPTY_FILTERS.estado ||
+    draftFilters.prioridad !== EMPTY_FILTERS.prioridad
+  const currentSearchValue = shouldDeferUpdates ? draftFilters.search : searchValue
+  const currentCategoriaValue = shouldDeferUpdates ? draftFilters.categoria : categoriaValue
+  const currentEstadoValue = shouldDeferUpdates ? draftFilters.estado : estadoValue
+  const currentPrioridadValue = shouldDeferUpdates ? draftFilters.prioridad : prioridadValue
 
   useEffect(() => {
     if (!isTypingRef.current) {
@@ -51,8 +149,26 @@ export function FiltrosReportes({
     }
   }, [searchValue])
 
+  const applyParams = useCallback(
+    (params: URLSearchParams, onComplete?: () => void) => {
+      const queryString = params.toString()
+      const href = queryString ? `${pathname}?${queryString}` : pathname
+
+      startTransition(() => {
+        router.replace(href)
+        onComplete?.()
+      })
+    },
+    [pathname, router, startTransition]
+  )
+
   const actualizarFiltros = useCallback(
     (key: string, value: string, silent = false) => {
+      if (shouldDeferUpdates) {
+        setDraftFilters((prev) => ({ ...prev, [key]: value }))
+        return
+      }
+
       const params = new URLSearchParams(searchParams.toString())
 
       if (value && value !== "all" && value !== "") {
@@ -61,7 +177,7 @@ export function FiltrosReportes({
         params.delete(key)
       }
 
-      const navigate = () => router.replace(`${pathname}?${params.toString()}`)
+      const navigate = () => router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname)
 
       if (silent || key === "search") {
         navigate()
@@ -73,13 +189,18 @@ export function FiltrosReportes({
         setTimeout(() => onFilterApplied(), 150)
       }
     },
-    [onFilterApplied, pathname, router, searchParams, startTransition]
+    [onFilterApplied, pathname, router, searchParams, shouldDeferUpdates, startTransition]
   )
 
   const handleSearchChange = useCallback(
     (value: string) => {
       isTypingRef.current = true
       setSearchInput(value)
+
+      if (shouldDeferUpdates) {
+        setDraftFilters((prev) => ({ ...prev, search: value }))
+        return
+      }
 
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
 
@@ -92,13 +213,13 @@ export function FiltrosReportes({
           if (value) params.set("search", value)
           else params.delete("search")
 
-          router.replace(`${pathname}?${params.toString()}`)
+          router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname)
         } else {
           isTypingRef.current = false
         }
       }, 300)
     },
-    [pathname, router]
+    [pathname, router, shouldDeferUpdates]
   )
 
   useEffect(() => {
@@ -111,57 +232,109 @@ export function FiltrosReportes({
     isTypingRef.current = false
     lastSearchValueRef.current = ""
     setSearchInput("")
+    setDraftFilters({ ...EMPTY_FILTERS })
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
 
-    startTransition(() => {
-      router.replace(pathname)
-    })
-  }, [pathname, router, startTransition])
+    if (shouldDeferUpdates && !hasAppliedFilters) {
+      return
+    }
 
-  const hayFiltrosActivos =
-    searchValue !== "" || categoriaValue !== "all" || estadoValue !== "all" || prioridadValue !== "all"
+    applyParams(new URLSearchParams(), onFilterApplied)
+  }, [applyParams, hasAppliedFilters, onFilterApplied, shouldDeferUpdates])
 
-  const contadorFiltros = [searchValue !== "", categoriaValue !== "all", estadoValue !== "all", prioridadValue !== "all"].filter(Boolean).length
+  const aplicarFiltros = useCallback(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    isTypingRef.current = false
+    lastSearchValueRef.current = draftFilters.search
+
+    const params = new URLSearchParams(searchParams.toString())
+    const entries = Object.entries(draftFilters)
+
+    for (const [key, value] of entries) {
+      if (value && value !== "all") params.set(key, value)
+      else params.delete(key)
+    }
+
+    applyParams(params, onApply)
+  }, [applyParams, draftFilters, onApply, searchParams])
+
+  const hayFiltrosActivos = shouldDeferUpdates ? hasAppliedFilters || hasDraftFilters : hasAppliedFilters
+
+  const contadorFiltros = [
+    currentSearchValue !== "",
+    currentCategoriaValue !== "all",
+    currentEstadoValue !== "all",
+    currentPrioridadValue !== "all",
+  ].filter(Boolean).length
 
   return (
-    <div className="rounded-[var(--radius-xl)] border border-border bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4 md:px-6">
+    <div className={isSheet ? "bg-background text-foreground" : "rounded-[var(--radius-xl)] border border-border bg-card"}>
+      <div className={cn("border-b border-border", isSheet ? "px-3 pb-3" : "px-4 py-4 md:px-6")}>
+        <div className={cn("flex justify-between gap-3", isSheet ? "items-start" : "flex-wrap items-center")}>
         <div className="flex items-center gap-3">
-          <div className="inline-flex size-10 items-center justify-center rounded-2xl border border-border bg-[var(--surface-subtle)] text-foreground">
-            <SlidersHorizontal className="size-4" />
-          </div>
+          {!isSheet && <div className="inline-flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <SlidersHorizontal className="size-4" aria-hidden="true" />
+          </div>}
           <div>
-            <h3 className="text-sm font-semibold tracking-tight md:text-base">Filtrar reportes</h3>
-            <p className="text-xs text-muted-foreground md:text-sm">Buscá por texto, categoría, estado o prioridad.</p>
+            {isSheet ? (
+              <DrawerTitle className="text-sm font-semibold tracking-tight md:text-base">Filtros</DrawerTitle>
+            ) : (
+              <h3 id={titleId} className="text-sm font-semibold tracking-tight md:text-base">Filtrar reportes</h3>
+            )}
+            {isSheet ? (
+              <DrawerDescription className="text-xs text-muted-foreground md:text-sm">
+                Filtrá reportes por categoría, estado o prioridad.
+              </DrawerDescription>
+            ) : (
+              <p className="text-xs text-muted-foreground md:text-sm">Buscá por texto, categoría, estado o prioridad.</p>
+            )}
           </div>
-          {contadorFiltros > 0 && <Badge variant="secondary">{contadorFiltros} activos</Badge>}
+          {!isSheet && contadorFiltros > 0 && (
+            <Badge variant="secondary">
+              {contadorFiltros} activos
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
-          {hayFiltrosActivos && (
+          {isSheet && hayFiltrosActivos && (
             <Button variant="ghost" size="sm" onClick={limpiarFiltros} disabled={isPending}>
-              <X className="size-4" />
+              <X className="size-4" aria-hidden="true" />
               Limpiar
             </Button>
           )}
 
-          <Button variant="outline" size="sm" className="md:hidden" onClick={() => setShowFilters((prev) => !prev)}>
-            <Filter className="size-4" />
+          {!isSheet && hayFiltrosActivos && (
+            <Button variant="ghost" size="sm" onClick={limpiarFiltros} disabled={isPending}>
+              <X className="size-4" aria-hidden="true" />
+              Limpiar
+            </Button>
+          )}
+
+          {!isSheet && <Button variant="outline" size="sm" className="md:hidden" onClick={() => setShowFilters((prev) => !prev)}>
+            <Filter className="size-4" aria-hidden="true" />
             {showFilters ? "Ocultar" : "Mostrar"}
-          </Button>
+          </Button>}
         </div>
+        </div>
+
+        {isSheet && contadorFiltros > 0 && (
+          <p className="pt-2 text-xs font-medium text-muted-foreground">
+            {contadorFiltros} {contadorFiltros === 1 ? "filtro activo" : "filtros activos"}
+          </p>
+        )}
       </div>
 
-      <div className={`${showFilters ? "block" : "hidden"} p-4 md:block md:p-6`}>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_repeat(3,minmax(0,1fr))]">
-          <div className="space-y-2">
+      <div className={`${showFilters || isSheet ? "block" : "hidden"} ${isSheet ? "space-y-5 py-2" : "p-4 md:block md:p-6"}`}>
+        <div className={isSheet ? "space-y-5 px-3 pb-24" : "grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_repeat(3,minmax(0,1fr))]"}>
+          <div className="space-y-2.5">
             <label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Buscar</label>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Título, descripción o referencia"
-                className="pl-10 pr-10"
+                className="pl-10 pr-12"
                 value={searchInput}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 disabled={isPending}
@@ -173,70 +346,115 @@ export function FiltrosReportes({
                     isTypingRef.current = false
                     lastSearchValueRef.current = ""
                     setSearchInput("")
+                    if (shouldDeferUpdates) {
+                      setDraftFilters((prev) => ({ ...prev, search: "" }))
+                      return
+                    }
                     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
                     const params = new URLSearchParams(window.location.search)
                     params.delete("search")
-                    router.replace(`${pathname}?${params.toString()}`)
+                    router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname)
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  className="absolute right-1 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label="Limpiar búsqueda"
                 >
-                  <X className="size-4" />
+                  <X className="size-4" aria-hidden="true" />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Categoría</label>
-            <Select value={categoriaValue} onValueChange={(value) => actualizarFiltros("categoria", value)} disabled={isPending}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Todas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las categorías</SelectItem>
-                {categorias.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.nombre.toLowerCase()}>
-                    {cat.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isSheet ? (
+            <>
+              <SheetFilterGroup
+                label="Categoría"
+                allLabel="Todas"
+                options={categorias}
+                value={currentCategoriaValue}
+                onChange={(value) => actualizarFiltros("categoria", value)}
+                disabled={isPending}
+              />
+              <SheetFilterGroup
+                label="Estado"
+                allLabel="Todos"
+                options={estados}
+                value={currentEstadoValue}
+                onChange={(value) => actualizarFiltros("estado", value)}
+                disabled={isPending}
+              />
+              <SheetFilterGroup
+                label="Prioridad"
+                allLabel="Todas"
+                options={prioridades}
+                value={currentPrioridadValue}
+                onChange={(value) => actualizarFiltros("prioridad", value)}
+                disabled={isPending}
+              />
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Categoría</label>
+                <Select value={currentCategoriaValue} onValueChange={(value) => actualizarFiltros("categoria", value)} disabled={isPending}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    {categorias.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.nombre.toLowerCase()}>
+                        {cat.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Estado</label>
-            <Select value={estadoValue} onValueChange={(value) => actualizarFiltros("estado", value)} disabled={isPending}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                {estados.map((item) => (
-                  <SelectItem key={item.id} value={item.nombre.toLowerCase()}>
-                    {item.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Estado</label>
+                <Select value={currentEstadoValue} onValueChange={(value) => actualizarFiltros("estado", value)} disabled={isPending}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    {estados.map((item) => (
+                      <SelectItem key={item.id} value={item.nombre.toLowerCase()}>
+                        {item.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Prioridad</label>
-            <Select value={prioridadValue} onValueChange={(value) => actualizarFiltros("prioridad", value)} disabled={isPending}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Todas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las prioridades</SelectItem>
-                {prioridades.map((item) => (
-                  <SelectItem key={item.id} value={item.nombre.toLowerCase()}>
-                    {item.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Prioridad</label>
+                <Select value={currentPrioridadValue} onValueChange={(value) => actualizarFiltros("prioridad", value)} disabled={isPending}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las prioridades</SelectItem>
+                    {prioridades.map((item) => (
+                      <SelectItem key={item.id} value={item.nombre.toLowerCase()}>
+                        {item.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
         </div>
+
+        {isSheet && (
+          <div className="sticky bottom-0 z-10 mt-1 border-t border-border bg-background px-3 pb-[calc(max(env(safe-area-inset-bottom),1rem))] pt-3 shadow-[0_-10px_30px_rgba(15,23,42,0.12)]">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-5 -translate-y-full bg-gradient-to-t from-background via-background/90 to-transparent" aria-hidden="true" />
+            <Button type="button" onClick={aplicarFiltros} disabled={isPending} className="min-h-12 w-full bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary focus-visible:ring-offset-background">
+              Aplicar filtros
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
