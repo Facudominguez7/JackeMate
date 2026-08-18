@@ -57,7 +57,7 @@ export function HeaderClient({ user }: HeaderClientProps) {
     <>
       {!isAppRoute && (
         <header className="sticky top-0 z-40 bg-[var(--secondary)] text-[var(--secondary-foreground)]">
-          <div className="mx-auto flex min-h-[4.25rem] w-full max-w-5xl items-center justify-center px-4 py-3 sm:px-6 lg:px-8">
+          <div className="mx-auto flex min-h-[2.75rem] w-full max-w-5xl items-center justify-center px-4 py-1.5 sm:px-6 lg:px-8">
             <h1 className="text-base font-semibold tracking-tight text-[var(--secondary-foreground)]">
               {getRouteTitle(pathname)}
             </h1>

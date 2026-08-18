@@ -26,7 +26,7 @@ export default function AuthPage() {
   const nextPath = searchParams.get("next") ?? "/mapa"
 
   return (
-    <div className="flex min-h-[calc(100dvh-4.25rem)] items-center justify-center bg-input px-4 pt-6 pb-[calc(5.75rem+env(safe-area-inset-bottom))]">
+    <div className="flex min-h-[calc(100dvh-2.75rem)] items-center justify-center bg-input px-4 pt-6 pb-[calc(5.75rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto w-full max-w-md">
         <Card>
           <CardHeader className="pb-4">
