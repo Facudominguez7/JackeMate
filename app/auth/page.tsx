@@ -30,7 +30,7 @@ export default function AuthPage() {
       <div className="mx-auto w-full max-w-md">
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-2xl">Tu cuenta JackeMate</CardTitle>
+            <CardTitle className="text-xl">Tu cuenta JackeMate</CardTitle>
             <CardDescription>Necesitás loguearte o registrarte para visualizar o crear reportes.</CardDescription>
           </CardHeader>
           <CardContent>
