@@ -56,16 +56,16 @@ export function HeaderClient({ user }: HeaderClientProps) {
   return (
     <>
       {!isAppRoute && (
-        <header className="sticky top-0 z-40 bg-[var(--map-chrome-bg)] text-[var(--map-chrome-fg)]">
+        <header className="sticky top-0 z-40 bg-[var(--secondary)] text-[var(--secondary-foreground)]">
           <div className="mx-auto flex min-h-[4.25rem] w-full max-w-5xl items-center justify-center px-4 py-3 sm:px-6 lg:px-8">
-            <h1 className="text-base font-semibold tracking-tight text-[var(--map-chrome-fg)]">
+            <h1 className="text-base font-semibold tracking-tight text-[var(--secondary-foreground)]">
               {getRouteTitle(pathname)}
             </h1>
           </div>
         </header>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/10 bg-black px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 text-white shadow-xl">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-secondary-foreground/10 bg-secondary px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 text-secondary-foreground shadow-xl">
         {bottomItems.map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
 
@@ -74,8 +74,8 @@ export function HeaderClient({ user }: HeaderClientProps) {
               key={label}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-2 text-[0.68rem] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-                active ? "text-primary" : "text-white/70 hover:text-white"
+              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-2 text-[0.68rem] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-secondary ${
+                active ? "text-primary" : "text-secondary-foreground/70 hover:text-secondary-foreground"
               }`}
             >
               <Icon className="size-5" aria-hidden="true" />

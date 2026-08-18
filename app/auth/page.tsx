@@ -36,8 +36,8 @@ export default function AuthPage() {
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login" className="data-[state=active]:bg-[var(--map-chrome-bg)] data-[state=active]:text-[var(--map-chrome-fg)] data-[state=active]:border-[var(--map-chrome-bg)]">Ingresar</TabsTrigger>
-                <TabsTrigger value="register" className="data-[state=active]:bg-[var(--map-chrome-bg)] data-[state=active]:text-[var(--map-chrome-fg)] data-[state=active]:border-[var(--map-chrome-bg)]">Registrarme</TabsTrigger>
+                <TabsTrigger value="login" className="data-[state=active]:bg-[var(--secondary)] data-[state=active]:text-[var(--secondary-foreground)] data-[state=active]:border-[var(--secondary)]">Ingresar</TabsTrigger>
+                <TabsTrigger value="register" className="data-[state=active]:bg-[var(--secondary)] data-[state=active]:text-[var(--secondary-foreground)] data-[state=active]:border-[var(--secondary)]">Registrarme</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login" className="space-y-5 pt-2">

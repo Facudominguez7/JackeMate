@@ -63,7 +63,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
 
   const mapActionLinkClassName = cn(
     buttonVariants({ size: "sm" }),
-    "min-h-11 rounded-full bg-[var(--map-chrome-bg)] px-4 text-sm font-semibold text-[var(--map-chrome-fg)] shadow-lg hover:bg-[var(--map-chrome-bg)]/90 focus-visible:ring-primary focus-visible:ring-offset-[var(--map-chrome-bg)]"
+    "min-h-11 rounded-full bg-[var(--secondary)] px-4 text-sm font-semibold text-[var(--secondary-foreground)] shadow-lg hover:bg-[var(--secondary)]/90 focus-visible:ring-primary focus-visible:ring-offset-[var(--secondary)]"
   )
 
   return (
@@ -88,7 +88,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
             type="button"
             size="icon"
             variant="outline"
-            className="pointer-events-auto size-[3.25rem] rounded-full border-[var(--map-chrome-fg)]/10 bg-[var(--map-chrome-bg)] text-[var(--map-chrome-fg)] shadow-lg hover:bg-[var(--map-chrome-bg)]/90 hover:text-[var(--map-chrome-fg)] focus-visible:ring-primary focus-visible:ring-offset-[var(--map-chrome-bg)]"
+            className="pointer-events-auto size-[3.25rem] rounded-full border-[var(--secondary-foreground)]/10 bg-[var(--secondary)] text-[var(--secondary-foreground)] shadow-lg hover:bg-[var(--secondary)]/90 hover:text-[var(--secondary-foreground)] focus-visible:ring-primary focus-visible:ring-offset-[var(--secondary)]"
             onClick={(e) => {
               e.currentTarget.blur()
               setShowFilters((prev) => !prev)
@@ -101,7 +101,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
           {activeFilters > 0 && !showFilters && (
             <button
               type="button"
-              className="pointer-events-auto mt-1 inline-flex min-h-9 max-w-[11rem] items-center gap-1.5 rounded-full border border-[var(--map-chrome-fg)]/10 bg-[var(--map-chrome-bg)]/90 px-3 text-left text-[11px] font-semibold leading-none text-[var(--map-chrome-fg)] shadow-lg backdrop-blur transition-colors hover:bg-[var(--map-chrome-bg)]"
+              className="pointer-events-auto mt-1 inline-flex min-h-9 max-w-[11rem] items-center gap-1.5 rounded-full border border-[var(--secondary-foreground)]/10 bg-[var(--secondary)]/90 px-3 text-left text-[11px] font-semibold leading-none text-[var(--secondary-foreground)] shadow-lg backdrop-blur transition-colors hover:bg-[var(--secondary)]"
               onClick={() => setShowFilters(true)}
               aria-label={`Abrir filtros, ${activeFiltersLabel}`}
             >

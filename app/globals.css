@@ -5,8 +5,6 @@
 @import "leaflet.markercluster/dist/MarkerCluster.css";
 @import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
   --background: oklch(0.988 0.008 155);
   --foreground: oklch(0.19 0.01 95);
@@ -17,7 +15,8 @@
 
   --primary: oklch(0.57 0.12 157);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.34 0.04 157);
+  --secondary: oklch(0 0 0);
+  --secondary-foreground: oklch(1 0 0);
 
   --muted: oklch(0.965 0.012 157);
   --muted-foreground: oklch(0.45 0.028 157);
@@ -87,60 +86,8 @@
   --map-marker-stroke: var(--card);
   --map-marker-foreground: var(--card);
 
-  --map-chrome-bg: oklch(0 0 0);
-  --map-chrome-fg: oklch(1 0 0);
-  --map-chrome-overlay: oklch(0 0 0);
-
   --elevation-soft: 0 10px 30px color-mix(in oklab, var(--foreground) 12%, transparent);
 
-}
-
-.dark {
-  --background: oklch(0.18 0.008 95);
-  --foreground: oklch(0.97 0.002 95);
-  --card: oklch(0.22 0.008 95);
-  --card-foreground: oklch(0.97 0.002 95);
-  --popover: oklch(0.22 0.008 95);
-  --popover-foreground: oklch(0.97 0.002 95);
-
-  --primary: oklch(0.66 0.11 157);
-  --primary-foreground: oklch(0.18 0.008 95);
-  --secondary: oklch(0.38 0.05 157);
-
-  --muted: oklch(0.24 0.02 157);
-  --muted-foreground: oklch(0.8 0.02 157);
-  --accent: oklch(0.3 0.04 157);
-  --accent-foreground: oklch(0.96 0.002 157);
-  --destructive: oklch(0.64 0.18 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.34 0.02 157);
-  --input: oklch(0.27 0.02 157);
-  --ring: oklch(0.72 0.08 230);
-
-  --surface-subtle: oklch(0.22 0.018 157);
-  --surface-strong: oklch(0.26 0.026 157);
-
-  --semantic-info-soft: oklch(0.27 0.03 240);
-  --semantic-info-border: oklch(0.4 0.04 240);
-  --semantic-success-soft: oklch(0.27 0.03 157);
-  --semantic-success-border: oklch(0.39 0.04 157);
-  --semantic-warning-soft: oklch(0.28 0.03 90);
-  --semantic-warning-border: oklch(0.42 0.04 90);
-  --semantic-danger-soft: oklch(0.27 0.03 25);
-  --semantic-danger-border: oklch(0.41 0.04 25);
-  --semantic-admin-soft: oklch(0.27 0.03 285);
-  --semantic-admin-border: oklch(0.41 0.04 285);
-
-  --rank-gold-soft: oklch(0.31 0.05 86);
-  --rank-gold-border: oklch(0.45 0.07 86);
-  --rank-silver-soft: oklch(0.3 0.01 250);
-  --rank-silver-border: oklch(0.42 0.012 250);
-  --rank-bronze-soft: oklch(0.3 0.03 55);
-  --rank-bronze-border: oklch(0.43 0.05 55);
-
-  --priority-low: oklch(0.74 0.01 95);
-  --priority-low-soft: oklch(0.25 0.004 95);
-  --priority-low-border: oklch(0.36 0.006 95);
 }
 
 @theme inline {
@@ -156,6 +103,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
