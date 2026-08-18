@@ -87,8 +87,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
           <Button
             type="button"
             size="icon"
-            variant="outline"
-            className="pointer-events-auto size-[3.25rem] rounded-full border-[var(--secondary-foreground)]/10 bg-[var(--secondary)] text-[var(--secondary-foreground)] shadow-lg hover:bg-[var(--secondary)]/90 hover:text-[var(--secondary-foreground)] focus-visible:ring-primary focus-visible:ring-offset-[var(--secondary)]"
+            className="pointer-events-auto size-[3.25rem] rounded-full border border-[var(--secondary-foreground)]/10 bg-[var(--secondary)] text-[var(--secondary-foreground)] shadow-lg hover:bg-[var(--secondary)]/90 hover:text-[var(--secondary-foreground)] focus-visible:ring-primary focus-visible:ring-offset-[var(--secondary)]"
             onClick={(e) => {
               e.currentTarget.blur()
               setShowFilters((prev) => !prev)
