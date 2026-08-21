@@ -38,7 +38,7 @@ type FilterChipOptionProps = {
   disabled?: boolean
 }
 
-function FilterChipOption({ label, selected, onSelect, disabled = false }: FilterChipOptionProps) {
+export function FilterChipOption({ label, selected, onSelect, disabled = false }: FilterChipOptionProps) {
   return (
     <button
       type="button"
@@ -46,10 +46,10 @@ function FilterChipOption({ label, selected, onSelect, disabled = false }: Filte
       disabled={disabled}
       aria-pressed={selected}
       className={cn(
-        "inline-flex min-h-10 items-center justify-center rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex min-h-9 items-center justify-center rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
         selected
           ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-[var(--surface-subtle)] text-foreground hover:border-primary/25 hover:bg-primary/5"
+           : "border-secondary bg-secondary text-secondary-foreground hover:bg-secondary/90"
       )}
     >
       {label}

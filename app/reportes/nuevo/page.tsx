@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Camera, ArrowLeft, Send } from "lucide-react"
+import { MapPin, Camera, Send } from "lucide-react"
 import Link from "next/link"
 import { PUNTOS } from "@/database/queries/puntos"
 import { LoadingLogo } from "@/components/loading-logo"
@@ -37,6 +37,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { useMounted } from "@/hooks/use-mounted"
 import dynamic from "next/dynamic"
 import { crearReporteAction } from "./actions"
+import { getCategoryIcon, getPriorityIcon } from "@/components/report-card"
 
 // Cargar el mapa dinámicamente solo en el cliente
 const LocationPickerMap = dynamic(
@@ -44,7 +45,7 @@ const LocationPickerMap = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="w-full h-[400px] bg-muted rounded-lg flex items-center justify-center">
+      <div className="w-full h-[400px] bg-muted rounded-[var(--radius)] flex items-center justify-center">
         <p className="text-sm text-muted-foreground">Cargando mapa...</p>
       </div>
     )
@@ -362,15 +363,6 @@ export default function NuevoReportePage() {
   return (
     <div className="page-shell">
       <div className="page-container max-w-5xl space-y-6 py-6 md:space-y-8 md:py-8 lg:space-y-10 lg:py-10">
-        <div>
-          <Button variant="outline" asChild>
-            <Link href="/reportes">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver a reportes
-            </Link>
-          </Button>
-        </div>
-
         <Card>
           <CardHeader>
             <CardTitle>Información del Problema</CardTitle>
@@ -419,50 +411,54 @@ export default function NuevoReportePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 w-full">
                   <Label>Categoría *</Label>
-                  <div className="w-full">
-                    <Select
-                      disabled={loading}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
-                    >
+                  <Select
+                    disabled={loading}
+                    value={formData.category}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                  >
                     <SelectTrigger className="w-full">
-                        <SelectValue placeholder={categorias.length > 0 ? "Selecciona una categoría" : "Cargando categorías..."} />
-                      </SelectTrigger>
-                      <SelectContent className="w-full">
-                        {categorias.map((categoria) => (
-                          <SelectItem key={categoria.id} value={categoria.id.toString()}>
+                      <SelectValue placeholder={categorias.length > 0 ? "Selecciona una categoría" : "Cargando categorías..."} />
+                    </SelectTrigger>
+                    <SelectContent className="w-full">
+                      {categorias.map((categoria) => (
+                        <SelectItem key={categoria.id} value={categoria.id.toString()}>
+                          <span className="inline-flex items-center gap-2">
+                            {getCategoryIcon(categoria.nombre, "size-4")}
                             {categoria.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formData.category === "" && (
-                      <p className="text-xs text-destructive">Seleccioná una categoría.</p>
-                    )}
-                  </div>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.category === "" && (
+                    <p className="text-xs font-medium text-destructive">Seleccioná una categoría.</p>
+                  )}
                 </div>
 
                 <div className="space-y-2 w-full">
                   <Label>Prioridad *</Label>
-                  <div className="w-full">
-                    <Select
-                      disabled={loading}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, priority: value }))}
-                    >
+                  <Select
+                    disabled={loading}
+                    value={formData.priority}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, priority: value }))}
+                  >
                     <SelectTrigger className="w-full">
-                        <SelectValue placeholder={prioridades.length > 0 ? "Nivel de urgencia" : "Cargando prioridades..."} />
-                      </SelectTrigger>
-                      <SelectContent className="w-full">
-                        {prioridades.map((prioridad) => (
-                          <SelectItem key={prioridad.id} value={prioridad.id.toString()}>
+                      <SelectValue placeholder={prioridades.length > 0 ? "Nivel de urgencia" : "Cargando prioridades..."} />
+                    </SelectTrigger>
+                    <SelectContent className="w-full">
+                      {prioridades.map((prioridad) => (
+                        <SelectItem key={prioridad.id} value={prioridad.id.toString()}>
+                          <span className="inline-flex items-center gap-2">
+                            {getPriorityIcon(prioridad.nombre, "size-4")}
                             {prioridad.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formData.priority === "" && (
-                      <p className="text-xs text-destructive">Seleccioná una prioridad.</p>
-                    )}
-                  </div>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.priority === "" && (
+                    <p className="text-xs font-medium text-destructive">Seleccioná una prioridad.</p>
+                  )}
                 </div>
               </div>
 
@@ -520,9 +516,9 @@ export default function NuevoReportePage() {
               {/* Image Upload */}
               <div className="space-y-4">
                 <Label>Fotografía</Label>
-                <div className="rounded-[var(--radius-lg)] border border-dashed border-border bg-[var(--surface-subtle)] p-6 text-center">
+                <div className="rounded-[var(--radius)] border border-dashed border-border bg-card p-6 text-center">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-card">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius)] border border-border bg-card">
                       <Camera className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
@@ -562,7 +558,7 @@ export default function NuevoReportePage() {
                         <img
                           src={URL.createObjectURL(image) || "/placeholder.svg"}
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
+                          className="w-full h-24 object-cover rounded-[var(--radius)]"
                         />
                         <Button
                           type="button"
@@ -589,7 +585,13 @@ export default function NuevoReportePage() {
                   <Send className="w-4 h-4 mr-2" />
                   {isSubmitting ? "Enviando..." : canSubmitReport ? "Enviar Reporte" : "Faltan datos"}
                 </Button>
-                <Button type="button" variant="outline" asChild disabled={loading || isSubmitting}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="flex-1 border border-border bg-secondary text-secondary-foreground hover:bg-secondary/90 hover:text-secondary-foreground"
+                  asChild
+                  disabled={loading || isSubmitting}
+                >
                   <Link href="/reportes">Cancelar</Link>
                 </Button>
               </div>
@@ -612,7 +614,7 @@ export default function NuevoReportePage() {
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>Estás por crear un nuevo reporte con la siguiente información:</p>
-                <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
+                <div className="bg-muted p-4 rounded-[var(--radius)] space-y-2 text-sm">
                   <div>
                     <span className="font-semibold">Título:</span> {formData.title}
                   </div>
