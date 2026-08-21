@@ -35,12 +35,13 @@ export function ReportCompactCard({
       <Card className="overflow-hidden border-border bg-card shadow-[var(--card-shadow)] transition-colors hover:border-primary/25">
         <CardContent>
           <div className="flex items-start gap-3">
-            <div className="size-20 flex-none overflow-hidden rounded-[var(--radius)] bg-[var(--surface-subtle)] md:size-24">
+            <div className="size-20 flex-none overflow-hidden rounded-md bg-surface-subtle md:size-24">
               <Image
                 src={image || "/placeholder.svg"}
                 alt={title}
                 width={96}
                 height={96}
+                sizes="(min-width: 768px) 96px, 80px"
                 className="h-full w-full object-cover"
               />
             </div>

@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-pill)] text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
@@ -13,12 +13,14 @@ const buttonVariants = cva(
           "bg-primary text-primary-foreground hover:bg-primary/90",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/92",
+        filter:
+          "border border-border bg-card text-foreground hover:bg-surface-subtle aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90",
         outline:
-          "border border-primary/20 bg-[var(--accent)] text-[var(--accent-foreground)] hover:border-primary/35 hover:bg-primary/14",
+          "border border-primary/20 bg-accent text-accent-foreground hover:border-primary/35 hover:bg-primary/14",
         secondary:
-          "bg-[var(--surface-strong)] text-[var(--accent-foreground)] hover:bg-[var(--accent)]",
+          "bg-surface-strong text-accent-foreground hover:bg-accent",
         ghost:
-          "text-foreground hover:bg-[var(--accent)]",
+          "text-foreground hover:bg-accent",
         link: "h-auto rounded-none px-0 text-primary underline-offset-4 hover:text-primary/80 hover:underline",
       },
       size: {

@@ -26,7 +26,7 @@ import Link from "next/link"
 import { PUNTOS } from "@/database/queries/puntos"
 import { LoadingLogo } from "@/components/loading-logo"
 import { REPORT_IMAGE_ACCEPT_ATTR } from "@/lib/media/report-images"
-import { optimizeReportImage } from "@/lib/media/optimize-report-image"
+import { createReportImageThumbnail, optimizeReportImage } from "@/lib/media/optimize-report-image"
 import { toast } from "sonner"
 import { 
   getCategorias, 
@@ -39,13 +39,36 @@ import dynamic from "next/dynamic"
 import { crearReporteAction } from "./actions"
 import { getCategoryIcon, getPriorityIcon } from "@/components/report-card"
 
+const getPriorityTone = (priority: string) => {
+  const normalizedPriority = priority
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  if (normalizedPriority.includes("alta") || normalizedPriority.includes("high")) {
+    return "high" as const
+  }
+
+  if (normalizedPriority.includes("media") || normalizedPriority.includes("medium")) {
+    return "medium" as const
+  }
+
+  return "low" as const
+}
+
+const priorityToneClasses = {
+  high: "bg-priority-high text-card",
+  medium: "bg-priority-medium text-foreground",
+  low: "bg-priority-low text-card",
+} as const
+
 // Cargar el mapa dinámicamente solo en el cliente
 const LocationPickerMap = dynamic(
   () => import("@/components/location-picker-map").then(mod => mod.LocationPickerMap),
   { 
     ssr: false,
     loading: () => (
-      <div className="w-full h-[400px] bg-muted rounded-[var(--radius)] flex items-center justify-center">
+      <div className="w-full h-[400px] bg-muted rounded-md flex items-center justify-center">
         <p className="text-sm text-muted-foreground">Cargando mapa...</p>
       </div>
     )
@@ -70,6 +93,7 @@ export default function NuevoReportePage() {
     category: "",
     priority: "",
     images: [] as File[],
+    imageThumbnail: null as File | null,
     lat: null as number | null,
     lon: null as number | null,
   })
@@ -170,10 +194,12 @@ export default function NuevoReportePage() {
 
     try {
       const optimizedImage = await optimizeReportImage(selectedFile)
+      const thumbnailImage = await createReportImageThumbnail(optimizedImage.file)
 
       setFormData((prev) => ({
         ...prev,
         images: [optimizedImage.file],
+        imageThumbnail: thumbnailImage,
       }))
 
     } catch (error) {
@@ -186,6 +212,7 @@ export default function NuevoReportePage() {
       setFormData((prev) => ({
         ...prev,
         images: [],
+        imageThumbnail: null,
       }))
     } finally {
       e.target.value = ""
@@ -197,6 +224,7 @@ export default function NuevoReportePage() {
     setFormData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
+      imageThumbnail: index === 0 ? null : prev.imageThumbnail,
     }))
   }
 
@@ -257,6 +285,10 @@ export default function NuevoReportePage() {
 
       if (formData.images[0]) {
         payload.set("image", formData.images[0])
+      }
+
+      if (formData.imageThumbnail) {
+        payload.set("imageThumbnail", formData.imageThumbnail)
       }
 
       const result = await crearReporteAction(payload)
@@ -436,26 +468,40 @@ export default function NuevoReportePage() {
                 </div>
 
                 <div className="space-y-2 w-full">
-                  <Label>Prioridad *</Label>
-                  <Select
-                    disabled={loading}
-                    value={formData.priority}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, priority: value }))}
+                  <Label id="priority-label">Prioridad *</Label>
+                  <div
+                    role="group"
+                    aria-labelledby="priority-label"
+                    aria-busy={loading}
+                    className="flex w-full flex-row overflow-hidden rounded-full border border-border bg-card"
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={prioridades.length > 0 ? "Nivel de urgencia" : "Cargando prioridades..."} />
-                    </SelectTrigger>
-                    <SelectContent className="w-full">
-                      {prioridades.map((prioridad) => (
-                        <SelectItem key={prioridad.id} value={prioridad.id.toString()}>
-                          <span className="inline-flex items-center gap-2">
+                    {prioridades.length > 0 ? (
+                      prioridades.map((prioridad, index) => {
+                        const tone = getPriorityTone(prioridad.nombre)
+                        const isSelected = formData.priority === prioridad.id.toString()
+
+                        return (
+                          <button
+                            key={prioridad.id}
+                            type="button"
+                            disabled={loading}
+                            aria-pressed={isSelected}
+                            onClick={() => setFormData((prev) => ({ ...prev, priority: prioridad.id.toString() }))}
+                            className={`flex min-h-11 min-w-0 flex-1 basis-0 items-center justify-center gap-1.5 whitespace-nowrap border-border px-2 py-2 text-xs font-semibold transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:gap-2 sm:px-3 sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
+                              index > 0 ? "border-l" : ""
+                            } ${isSelected ? priorityToneClasses[tone] : "bg-card text-card-foreground hover:bg-background"}`}
+                          >
                             {getPriorityIcon(prioridad.nombre, "size-4")}
                             {prioridad.nombre}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                          </button>
+                        )
+                      })
+                    ) : (
+                      <span className="flex min-h-11 w-full items-center justify-center px-3 py-2 text-sm text-muted-foreground">
+                        Cargando prioridades...
+                      </span>
+                    )}
+                  </div>
                   {formData.priority === "" && (
                     <p className="text-xs font-medium text-destructive">Seleccioná una prioridad.</p>
                   )}
@@ -516,9 +562,9 @@ export default function NuevoReportePage() {
               {/* Image Upload */}
               <div className="space-y-4">
                 <Label>Fotografía</Label>
-                <div className="rounded-[var(--radius)] border border-dashed border-border bg-card p-6 text-center">
+                <div className="rounded-md border border-dashed border-border bg-card p-6 text-center">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius)] border border-border bg-card">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-md border border-border bg-card">
                       <Camera className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
@@ -558,7 +604,7 @@ export default function NuevoReportePage() {
                         <img
                           src={URL.createObjectURL(image) || "/placeholder.svg"}
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-[var(--radius)]"
+                          className="w-full h-24 object-cover rounded-md"
                         />
                         <Button
                           type="button"
@@ -614,7 +660,7 @@ export default function NuevoReportePage() {
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>Estás por crear un nuevo reporte con la siguiente información:</p>
-                <div className="bg-muted p-4 rounded-[var(--radius)] space-y-2 text-sm">
+                <div className="bg-muted p-4 rounded-md space-y-2 text-sm">
                   <div>
                     <span className="font-semibold">Título:</span> {formData.title}
                   </div>

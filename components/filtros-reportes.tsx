@@ -40,20 +40,17 @@ type FilterChipOptionProps = {
 
 export function FilterChipOption({ label, selected, onSelect, disabled = false }: FilterChipOptionProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="filter"
+      size="sm"
       onClick={onSelect}
       disabled={disabled}
       aria-pressed={selected}
-      className={cn(
-        "inline-flex min-h-9 items-center justify-center rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
-        selected
-          ? "border-primary bg-primary text-primary-foreground"
-           : "border-secondary bg-secondary text-secondary-foreground hover:bg-secondary/90"
-      )}
+      className="rounded-full"
     >
       {label}
-    </button>
+    </Button>
   )
 }
 
@@ -269,7 +266,7 @@ export function FiltrosReportes({
   ].filter(Boolean).length
 
   return (
-    <div className={isSheet ? "bg-background text-foreground" : "rounded-[var(--radius-xl)] border border-border bg-card"}>
+    <div className={isSheet ? "bg-background text-foreground" : "rounded-xl border border-border bg-card"}>
       <div className={cn("border-b border-border", isSheet ? "px-3 pb-3" : "px-4 py-4 md:px-6")}>
         <div className={cn("flex justify-between gap-3", isSheet ? "items-start" : "flex-wrap items-center")}>
         <div className="flex items-center gap-3">

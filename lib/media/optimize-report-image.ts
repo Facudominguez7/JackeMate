@@ -4,11 +4,16 @@ import {
   REPORT_IMAGE_FALLBACK_OUTPUT_TYPE,
   REPORT_IMAGE_MAX_BYTES,
   REPORT_IMAGE_MAX_DIMENSION,
-  REPORT_IMAGE_MIN_QUALITY,
   REPORT_IMAGE_MAX_SOURCE_BYTES,
+  REPORT_IMAGE_MIN_QUALITY,
   REPORT_IMAGE_OUTPUT_EXTENSION,
   REPORT_IMAGE_OUTPUT_QUALITY,
   REPORT_IMAGE_OUTPUT_TYPE,
+  REPORT_IMAGE_THUMBNAIL_MAX_BYTES,
+  REPORT_IMAGE_THUMBNAIL_MAX_DIMENSION,
+  REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION,
+  REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY,
+  REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE,
   isAcceptedReportImageType,
 } from "@/lib/media/report-images"
 
@@ -42,14 +47,14 @@ function loadImage(file: File) {
   })
 }
 
-function getResizedDimensions(width: number, height: number) {
+function getResizedDimensions(width: number, height: number, maxDimension: number) {
   const largerSide = Math.max(width, height)
 
-  if (largerSide <= REPORT_IMAGE_MAX_DIMENSION) {
+  if (largerSide <= maxDimension) {
     return { width, height }
   }
 
-  const scale = REPORT_IMAGE_MAX_DIMENSION / largerSide
+  const scale = maxDimension / largerSide
 
   return {
     width: Math.max(1, Math.round(width * scale)),
@@ -148,7 +153,7 @@ export async function optimizeReportImage(file: File): Promise<OptimizeReportIma
     }
   }
 
-  const { width, height } = getResizedDimensions(image.naturalWidth, image.naturalHeight)
+  const { width, height } = getResizedDimensions(image.naturalWidth, image.naturalHeight, REPORT_IMAGE_MAX_DIMENSION)
   const canvas = document.createElement("canvas")
 
   const context = canvas.getContext("2d")
@@ -219,4 +224,42 @@ export async function optimizeReportImage(file: File): Promise<OptimizeReportIma
       width !== image.naturalWidth ||
       height !== image.naturalHeight,
   }
+}
+
+export async function createReportImageThumbnail(file: File) {
+  if (!isAcceptedReportImageType(file.type)) {
+    throw new Error("La imagen debe estar en formato JPG, PNG o WebP.")
+  }
+
+  const image = await loadImage(file)
+  const { width, height } = getResizedDimensions(
+    image.naturalWidth,
+    image.naturalHeight,
+    REPORT_IMAGE_THUMBNAIL_MAX_DIMENSION,
+  )
+  const canvas = document.createElement("canvas")
+  const context = canvas.getContext("2d")
+
+  if (!context) {
+    throw new Error("Tu navegador no permitió preparar la miniatura.")
+  }
+
+  canvas.width = width
+  canvas.height = height
+  context.clearRect(0, 0, width, height)
+  context.drawImage(image, 0, 0, width, height)
+
+  const baseName = file.name.replace(/\.[^.]+$/, "") || "reporte"
+
+  for (const quality of getQualitySteps(REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY)) {
+    const blob = await canvasToBlobWithType(canvas, REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE, quality)
+
+    if (blob.size > REPORT_IMAGE_THUMBNAIL_MAX_BYTES) {
+      continue
+    }
+
+    return buildOptimizedFile(blob, `${baseName}-thumbnail.${REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION}`)
+  }
+
+  throw new Error("No pudimos preparar una miniatura liviana para la imagen.")
 }

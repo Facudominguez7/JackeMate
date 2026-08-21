@@ -36,8 +36,8 @@ export default function AuthPage() {
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login" className="data-[state=active]:bg-[var(--secondary)] data-[state=active]:text-[var(--secondary-foreground)] data-[state=active]:border-[var(--secondary)]">Ingresar</TabsTrigger>
-                <TabsTrigger value="register" className="data-[state=active]:bg-[var(--secondary)] data-[state=active]:text-[var(--secondary-foreground)] data-[state=active]:border-[var(--secondary)]">Registrarme</TabsTrigger>
+                <TabsTrigger value="login" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:border-secondary">Ingresar</TabsTrigger>
+                <TabsTrigger value="register" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:border-secondary">Registrarme</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login" className="space-y-5 pt-2">
@@ -212,7 +212,7 @@ export default function AuthPage() {
                     </button>
                   </Field>
 
-                  <label className="flex items-start gap-2 rounded-[var(--radius)] border border-border bg-background p-4 text-sm text-muted-foreground">
+                  <label className="flex items-start gap-2 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
                     <input type="checkbox" className="mt-0.5 size-4 rounded border-border" required />
                     <span>
                       Acepto los <Link href="/" className="text-primary hover:underline">términos y condiciones</Link> y la{" "}

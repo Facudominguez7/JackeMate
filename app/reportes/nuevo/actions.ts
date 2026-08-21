@@ -3,7 +3,11 @@
 import { ZodError, z } from "zod"
 
 import { crearReporteWorkflow, mutationErrorMessage } from "@/lib/use-cases/reportes"
-import { REPORT_IMAGE_MAX_BYTES, isAcceptedReportImageType } from "@/lib/media/report-images"
+import { isAcceptedReportImageType } from "@/lib/media/report-images"
+import {
+  validateUploadedReportImage,
+  validateUploadedReportThumbnail,
+} from "@/lib/media/report-image-validation.server"
 import { createAdminClient } from "@/utils/supabase/admin"
 import { createClient } from "@/utils/supabase/server"
 
@@ -16,7 +20,7 @@ const createReportSchema = z.object({
   lon: z.coerce.number().min(-180, "Seleccioná una ubicación en el mapa.").max(180, "Seleccioná una ubicación en el mapa."),
 })
 
-function getOptionalImage(formData: FormData) {
+async function getOptionalImage(formData: FormData) {
   const image = formData.get("image")
 
   if (!(image instanceof File) || image.size === 0) {
@@ -27,11 +31,21 @@ function getOptionalImage(formData: FormData) {
     throw new Error("La imagen debe estar en formato JPG, PNG o WebP.")
   }
 
-  if (image.size > REPORT_IMAGE_MAX_BYTES) {
-    throw new Error("La imagen optimizada no puede superar los 5 MB.")
+  const metadata = await validateUploadedReportImage(image)
+
+  return { file: image, metadata }
+}
+
+async function getOptionalThumbnail(formData: FormData) {
+  const thumbnail = formData.get("imageThumbnail")
+
+  if (!(thumbnail instanceof File) || thumbnail.size === 0) {
+    return null
   }
 
-  return image
+  const metadata = await validateUploadedReportThumbnail(thumbnail)
+
+  return { file: thumbnail, metadata }
 }
 
 export async function crearReporteAction(formData: FormData) {
@@ -54,6 +68,28 @@ export async function crearReporteAction(formData: FormData) {
       lon: formData.get("lon"),
     })
 
+    const image = await getOptionalImage(formData)
+    const imageThumbnail = await getOptionalThumbnail(formData)
+
+    if (imageThumbnail && !image) {
+      return {
+        success: false as const,
+        error: "No pudimos validar la miniatura sin la imagen principal.",
+      }
+    }
+
+    if (
+      image &&
+      imageThumbnail &&
+      (imageThumbnail.metadata.width > image.metadata.width ||
+        imageThumbnail.metadata.height > image.metadata.height)
+    ) {
+      return {
+        success: false as const,
+        error: "La miniatura generada no coincide con la imagen principal.",
+      }
+    }
+
     const adminClient = createAdminClient()
 
     return await crearReporteWorkflow(adminClient, {
@@ -64,7 +100,8 @@ export async function crearReporteAction(formData: FormData) {
       prioridadId: parsedInput.prioridadId,
       lat: parsedInput.lat,
       lon: parsedInput.lon,
-      image: getOptionalImage(formData),
+      image: image?.file ?? null,
+      imageThumbnail: imageThumbnail?.file ?? null,
     })
   } catch (error) {
     if (error instanceof ZodError) {

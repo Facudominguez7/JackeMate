@@ -4,10 +4,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import {
   AlertCircle,
   AlertTriangle,
+  ArrowDown,
   Calendar,
   CheckCircle,
   Construction,
-  Info,
   Lightbulb,
   MoreHorizontal,
   ShieldAlert,
@@ -72,11 +72,11 @@ export const getPriorityVariant = (priority: string): "alta" | "media" | "baja" 
 export const getPriorityIcon = (priority: string, className = "w-3 h-3") => {
   switch (priority) {
     case "Alta":
-      return <AlertTriangle className={className} />
+      return <AlertTriangle className={className} aria-hidden="true" />
     case "Media":
-      return <AlertCircle className={className} />
+      return <AlertCircle className={className} aria-hidden="true" />
     case "Baja":
-      return <Info className={className} />
+      return <ArrowDown className={className} aria-hidden="true" />
     default:
       return null
   }
@@ -143,7 +143,7 @@ export function ReportCard({
   return (
     <Link key={id} href={`/reportes/${id}`} className="block h-full w-full min-w-0">
       <Card className="h-full w-full min-w-0 overflow-hidden transition-colors hover:border-foreground/20">
-        <div className="aspect-[16/10] overflow-hidden bg-[var(--surface-subtle)]">
+        <div className="aspect-[16/10] overflow-hidden bg-surface-subtle">
           <img
             src={imageUrl || "/placeholder.svg"}
             alt={titulo}

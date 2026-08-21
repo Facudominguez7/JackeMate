@@ -11,6 +11,8 @@
 import { createClient } from "@/utils/supabase/server"
 import { getPublicProfilesByIds, indexPublicProfilesById } from "@/database/queries/profiles"
 import {
+  getPreferredReportListingImageUrl,
+  getPrimaryReportImageUrl,
   isMissingReportImageColumnsError,
   resolveReportImageRows,
   type ReportImageRow,
@@ -162,7 +164,8 @@ function mapReportToCardData(report: ReporteDB): ReportCardData {
     location: formatLocation(report.lat, report.lon),
     author: getSingleUsername(report.autor),
     createdAt: report.created_at,
-    image: report.fotos?.[0]?.publicUrl ?? report.fotos?.[0]?.url ?? null,
+    image: getPrimaryReportImageUrl(report.fotos),
+    thumbnailImage: getPreferredReportListingImageUrl(report.fotos),
   }
 }
 
@@ -196,13 +199,15 @@ function mapReportToDashboardItem(report: ReporteDB): DashboardUserReport {
     categoria: getSingleRelationName(report.categoria, "Sin categoría"),
     prioridad: getSingleRelationName(report.prioridad, "Sin prioridad"),
     estado: getSingleRelationName(report.estado, "Sin estado"),
-    imageUrl: report.fotos?.[0]?.publicUrl ?? report.fotos?.[0]?.url ?? null,
+    imageUrl: getPrimaryReportImageUrl(report.fotos),
     createdAt: report.created_at,
     autor: getSingleUsername(report.autor),
   }
 }
 
-const buildReportesSelect = (includeCanonicalImageFields: boolean) => `id,
+type ImageSelectMode = "thumbnail" | "canonical" | "legacy"
+
+const buildReportesSelect = (imageSelectMode: ImageSelectMode) => `id,
       usuario_id,
       titulo,
       descripcion,
@@ -212,12 +217,16 @@ const buildReportesSelect = (includeCanonicalImageFields: boolean) => `id,
       categoria:categorias!reportes_categoria_id_fkey(nombre),
       prioridad:prioridades!reportes_prioridad_id_fkey(nombre),
       estado:estados!reportes_estado_id_fkey(nombre),
-      fotos:fotos_reporte(${includeCanonicalImageFields ? "url,bucket,path" : "url"})`
+      fotos:fotos_reporte(${imageSelectMode === "thumbnail"
+        ? "url,bucket,path,thumbnail_url,thumbnail_bucket,thumbnail_path"
+        : imageSelectMode === "canonical"
+          ? "url,bucket,path"
+          : "url"})`
 
 async function fetchReportes(
   supabase: Awaited<ReturnType<typeof createClient>>,
   filtros: Required<Pick<FiltrosReportes, "soloConCoordenadas" | "limite" | "offset">> & FiltrosReportes,
-  includeCanonicalImageFields: boolean
+  imageSelectMode: ImageSelectMode,
 ) {
   const {
     search,
@@ -231,7 +240,7 @@ async function fetchReportes(
 
   let query = supabase
     .from("reportes")
-    .select(buildReportesSelect(includeCanonicalImageFields), { count: 'exact' })
+    .select(buildReportesSelect(imageSelectMode), { count: 'exact' })
     .is("deleted_at", null)
 
   if (search && search.trim() !== "") {
@@ -297,10 +306,14 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     offset,
   }
 
-  let { data, error, count } = await fetchReportes(supabase, normalizedFilters, true)
+  let { data, error, count } = await fetchReportes(supabase, normalizedFilters, "thumbnail")
 
   if (error && isMissingReportImageColumnsError(error)) {
-    ;({ data, error, count } = await fetchReportes(supabase, normalizedFilters, false))
+    ;({ data, error, count } = await fetchReportes(supabase, normalizedFilters, "canonical"))
+  }
+
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error, count } = await fetchReportes(supabase, normalizedFilters, "legacy"))
   }
 
   // Calcular si hay más resultados
@@ -353,7 +366,7 @@ export async function getDashboardUserReports(userId: string) {
 
   let { data, error } = await supabase
     .from("reportes")
-    .select(buildReportesSelect(true))
+    .select(buildReportesSelect("thumbnail"))
     .eq("usuario_id", userId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
@@ -362,7 +375,17 @@ export async function getDashboardUserReports(userId: string) {
   if (error && isMissingReportImageColumnsError(error)) {
     ;({ data, error } = await supabase
       .from("reportes")
-      .select(buildReportesSelect(false))
+      .select(buildReportesSelect("canonical"))
+      .eq("usuario_id", userId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .returns<ReporteDBRaw[]>())
+  }
+
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error } = await supabase
+      .from("reportes")
+      .select(buildReportesSelect("legacy"))
       .eq("usuario_id", userId)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })

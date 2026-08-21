@@ -25,6 +25,7 @@ export type ReportCardData = {
     author: string
     createdAt: string
     image: string | null
+    thumbnailImage: string | null
 }
 
 type ListaReportesClientProps = {
@@ -118,7 +119,7 @@ export function ListaReportesClient({
                                  priority={report.priority}
                                  status={report.status}
                                  createdAt={report.createdAt}
-                                 image={report.image}
+                                 image={report.thumbnailImage ?? report.image}
                              />
                         ) : (
                             <ReportCard

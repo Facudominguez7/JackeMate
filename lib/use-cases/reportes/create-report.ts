@@ -16,6 +16,7 @@ type MutationResult<T> =
 
 export type CreateReportWorkflowInput = CrearReporteParams & {
   image?: File | null
+  imageThumbnail?: File | null
 }
 
 export type CreateReportWorkflowResult = {
@@ -38,7 +39,7 @@ export async function crearReporteWorkflow(
 
   let imageUploaded = false
   if (input.image) {
-    imageUploaded = Boolean(await subirImagenReporte(supabase, reporte.id, input.image))
+    imageUploaded = Boolean(await subirImagenReporte(supabase, reporte.id, input.image, input.imageThumbnail ?? null))
   }
 
   const pointsResult = await sumarPuntos(
