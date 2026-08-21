@@ -1,6 +1,5 @@
 import { AlertTriangle } from "lucide-react"
 
-import { PageHeader } from "@/components/page-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent } from "@/components/ui/card"
 import { ListaReportesClient } from "@/components/lista-reportes-client"
@@ -37,19 +36,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
 
   return (
     <div className="page-shell">
-      <div className="page-container max-w-5xl space-y-4 py-4 md:space-y-5 md:py-6">
-        <PageHeader
-          title="Reportes"
-          description="Revisá el listado y ajustá filtros rápido."
-          actions={
-            <ReportesClientWrapper
-              categorias={categorias ?? []}
-              estados={estados ?? []}
-              prioridades={prioridades ?? []}
-            />
-          }
-        />
-
+      <div className="page-container space-y-4 py-4 md:space-y-5 md:py-6">
         {error && (
           <Alert variant="destructive">
             <AlertTriangle className="size-4" />
@@ -58,23 +45,29 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
           </Alert>
         )}
 
-        {reports.length > 0 ? (
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">Incidentes visibles</h2>
-            </div>
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">Incidentes reportados</h2>
+            <ReportesClientWrapper
+              categorias={categorias ?? []}
+              estados={estados ?? []}
+              prioridades={prioridades ?? []}
+            />
+          </div>
+
+          {reports.length > 0 ? (
             <ListaReportesClient initialReports={reports} initialHasMore={hasMore ?? false} variant="compact" />
-          </section>
-        ) : !error ? (
-          <Card className="border-dashed">
-            <CardContent className="space-y-2 p-4 text-center">
-              <p className="text-lg font-semibold tracking-tight">No hay reportes publicados con esos criterios.</p>
-              <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground">
-                Ajustá los filtros para volver a ver incidentes en el listado.
-              </p>
-            </CardContent>
-          </Card>
-        ) : null}
+          ) : !error ? (
+            <Card className="border-dashed">
+              <CardContent className="space-y-2 p-4 text-center">
+                <p className="text-lg font-semibold tracking-tight">No hay reportes publicados con esos criterios.</p>
+                <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground">
+                  Ajustá los filtros para volver a ver incidentes en el listado.
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
+        </section>
       </div>
     </div>
   )

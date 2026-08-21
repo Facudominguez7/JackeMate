@@ -25,7 +25,7 @@
   --destructive: oklch(0.57 0.18 25);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.88 0.015 157);
-  --input: oklch(0.93 0.005 157);
+  --input: oklch(91.174% 0.00166 148.475);
   --ring: oklch(0.62 0.08 230);
 
   --radius: 0.25rem;
@@ -70,7 +70,7 @@
 
   --priority-high: var(--semantic-danger);
   --priority-medium: var(--semantic-warning);
-  --priority-low: oklch(0.55 0.03 95);
+  --priority-low: var(--semantic-info);
   --priority-low-soft: oklch(0.96 0.002 95);
   --priority-low-border: oklch(0.88 0.004 95);
 

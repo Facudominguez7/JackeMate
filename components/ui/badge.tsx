@@ -22,7 +22,7 @@ const badgeVariants = cva(
         blue: "border-transparent bg-[var(--semantic-info)] text-card [a&]:hover:bg-[var(--semantic-info)]/90",
         alta: "border-transparent bg-destructive text-destructive-foreground [a&]:hover:bg-destructive/90",
         media: "border-transparent bg-[var(--semantic-warning)] text-foreground [a&]:hover:bg-[var(--semantic-warning)]/90",
-        baja: "border-transparent bg-[var(--priority-low)] text-card-foreground [a&]:hover:bg-[var(--priority-low)]/90",
+        baja: "border-transparent bg-[var(--priority-low)] text-card [a&]:hover:bg-[var(--priority-low)]/90",
         oro: "border-transparent bg-[var(--rank-gold)] text-foreground [a&]:hover:bg-[var(--rank-gold)]/90",
         plata: "border-transparent bg-[var(--rank-silver)] text-card-foreground [a&]:hover:bg-[var(--rank-silver)]/90",
         bronce: "border-transparent bg-[var(--rank-bronze)] text-card [a&]:hover:bg-[var(--rank-bronze)]/90",

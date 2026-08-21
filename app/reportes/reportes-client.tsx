@@ -15,12 +15,12 @@ type ReportesClientWrapperProps = {
 }
 
 /**
- * Componente cliente que muestra la interfaz de filtros para reportes y un indicador flotante mientras hay una transición pendiente.
+ * Componente cliente que muestra la interfaz de filtros para reportes y el estado de carga durante una transición pendiente.
  *
  * @param categorias - Array de categorías, cada elemento con `id` (número) y `nombre` (cadena).
  * @param estados - Array de estados, cada elemento con `id` (número) y `nombre` (cadena).
  * @param prioridades - Array de prioridades, cada elemento con `id` (número) y `nombre` (cadena).
- * @returns Elemento JSX que renderiza el componente de filtros y muestra un badge flotante con "Aplicando filtros..." durante la transición.
+ * @returns Elemento JSX que renderiza el componente de filtros y muestra "Cargando reportes..." durante la transición.
  */
 export function ReportesClientWrapper({ categorias, estados, prioridades }: ReportesClientWrapperProps) {
   const searchParams = useSearchParams()
@@ -50,22 +50,13 @@ export function ReportesClientWrapper({ categorias, estados, prioridades }: Repo
   return (
     <>
       {isPending && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-5 duration-300">
-          <div className="bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-lg flex items-center gap-3">
-            <div className="flex gap-1">
-              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce"></div>
-              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 rounded-full bg-primary-foreground animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            </div>
-            <span className="font-medium text-sm">Aplicando filtros...</span>
-          </div>
-        </div>
+        <div>Cargando reportes...</div>
       )}
 
       <Button
         type="button"
         variant="ghost"
-        className="min-h-9 rounded-full border border-border bg-secondary px-3.5 text-sm font-semibold text-secondary-foreground hover:bg-secondary/90 hover:text-secondary-foreground focus-visible:ring-ring focus-visible:ring-offset-0"
+        className="h-8 rounded-full border border-border bg-secondary px-2.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/90 hover:text-secondary-foreground focus-visible:ring-ring focus-visible:ring-offset-0"
         onClick={() => setShowFilters((prev) => !prev)}
         aria-label={showFilters ? "Cerrar filtros" : `Abrir filtros${activeFilters > 0 ? `, ${activeFilters} activos` : ""}`}
         aria-expanded={showFilters}

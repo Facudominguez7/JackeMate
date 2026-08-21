@@ -9,7 +9,6 @@
 
 import { useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
 
 import { ReportCompactCard } from "@/components/report-compact-card"
 import { ReportCard } from "@/components/report-card"
@@ -108,7 +107,7 @@ export function ListaReportesClient({
     return (
         <>
             {reports.length > 0 && (
-                <div className={variant === "compact" ? "grid min-w-0 grid-cols-1 gap-2" : "grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2"}>
+                <div className={variant === "compact" ? "grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2"}>
                     {reports.map((report) => (
                         variant === "compact" ? (
                              <ReportCompactCard
@@ -151,10 +150,7 @@ export function ListaReportesClient({
                             className={variant === "compact" ? "min-w-56 rounded-full" : "min-w-56"}
                         >
                             {isLoading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Cargando...
-                                </>
+                                "Cargando reportes..."
                             ) : (
                                 "Cargar Más Reportes"
                             )}
