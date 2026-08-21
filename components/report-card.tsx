@@ -49,6 +49,8 @@ export const getStatusIcon = (status: string, className = "w-3 h-3") => {
       return <CheckCircle className={className} />
     case "Rechazado":
       return <X className={className} />
+    case "Pendiente":
+      return <AlertCircle className={className} />
     default:
       return null
   }
@@ -140,7 +142,7 @@ export function ReportCard({
 }: ReportCardProps) {
   return (
     <Link key={id} href={`/reportes/${id}`} className="block h-full w-full min-w-0">
-      <Card className="h-full w-full min-w-0 overflow-hidden rounded-[1.5rem] transition-colors hover:border-foreground/20">
+      <Card className="h-full w-full min-w-0 overflow-hidden transition-colors hover:border-foreground/20">
         <div className="aspect-[16/10] overflow-hidden bg-[var(--surface-subtle)]">
           <img
             src={imageUrl || "/placeholder.svg"}

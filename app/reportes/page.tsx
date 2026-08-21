@@ -1,9 +1,7 @@
-import Link from "next/link"
-import { AlertTriangle, ArrowRight, Plus, SearchCheck } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 
+import { PageHeader } from "@/components/page-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ListaReportesClient } from "@/components/lista-reportes-client"
 import { ReportesClientWrapper } from "./reportes-client"
@@ -37,47 +35,20 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
   const { data: estados } = await getEstados()
   const { data: prioridades } = await getPrioridades()
 
-  const activeFilters = [search, categoria, estado, prioridad].filter(Boolean).length
-
   return (
     <div className="page-shell">
-      <div className="page-container page-stack max-w-5xl">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="section-eyebrow">Reportes</span>
-            <Badge variant="secondary">{reports.length} visibles</Badge>
-            {activeFilters > 0 && <Badge variant="secondary">{activeFilters} filtros activos</Badge>}
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:w-auto lg:grid-cols-[repeat(2,minmax(0,auto))]">
-            <Button size="lg" className="justify-between" asChild>
-              <Link href="/reportes/nuevo">
-                <span className="flex items-center gap-2">
-                  <Plus className="size-4" />
-                  Crear reporte
-                </span>
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" className="justify-between" asChild>
-              <Link href="/mapa">
-                <span className="flex items-center gap-2">
-                  <SearchCheck className="size-4" />
-                  Ver en mapa
-                </span>
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-          </div>
-        </section>
-
-        <section className="section-stack">
-          <ReportesClientWrapper
-            categorias={categorias ?? []}
-            estados={estados ?? []}
-            prioridades={prioridades ?? []}
-          />
-        </section>
+      <div className="page-container max-w-5xl space-y-4 py-4 md:space-y-5 md:py-6">
+        <PageHeader
+          title="Reportes"
+          description="Revisá el listado y ajustá filtros rápido."
+          actions={
+            <ReportesClientWrapper
+              categorias={categorias ?? []}
+              estados={estados ?? []}
+              prioridades={prioridades ?? []}
+            />
+          }
+        />
 
         {error && (
           <Alert variant="destructive">
@@ -88,25 +59,19 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
         )}
 
         {reports.length > 0 ? (
-          <section className="section-stack">
+          <section className="space-y-3">
             <div>
-              <span className="section-eyebrow">Listado</span>
-              <h2 className="section-title mt-3">Incidentes visibles</h2>
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">Incidentes visibles</h2>
             </div>
-            <ListaReportesClient initialReports={reports} initialHasMore={hasMore ?? false} />
+            <ListaReportesClient initialReports={reports} initialHasMore={hasMore ?? false} variant="compact" />
           </section>
         ) : !error ? (
           <Card className="border-dashed">
-            <CardContent className="space-y-3 pt-6 text-center">
+            <CardContent className="space-y-2 p-4 text-center">
               <p className="text-lg font-semibold tracking-tight">No hay reportes publicados con esos criterios.</p>
               <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground">
-                Ajustá los filtros o creá un nuevo reporte para sumar evidencia ciudadana desde tu barrio.
+                Ajustá los filtros para volver a ver incidentes en el listado.
               </p>
-              <div className="flex justify-center">
-                <Button asChild>
-                  <Link href="/reportes/nuevo">Crear el primer reporte</Link>
-                </Button>
-              </div>
             </CardContent>
           </Card>
         ) : null}

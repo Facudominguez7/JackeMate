@@ -6,7 +6,7 @@
 @import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 :root {
-  --background: oklch(0.988 0.008 155);
+  --background: oklch(94.463% 0.00213 14.416);
   --foreground: oklch(0.19 0.01 95);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.19 0.01 95);
@@ -28,11 +28,11 @@
   --input: oklch(0.93 0.005 157);
   --ring: oklch(0.62 0.08 230);
 
-  --radius: 0.75rem;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  --radius: 0.25rem;
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
   --radius-pill: 999px;
 
   --surface-subtle: oklch(0.972 0.014 157);
@@ -87,6 +87,7 @@
   --map-marker-foreground: var(--card);
 
   --elevation-soft: 0 10px 30px color-mix(in oklab, var(--foreground) 12%, transparent);
+  --card-shadow: 0 12px 28px color-mix(in oklab, var(--foreground) 16%, transparent);
 
 }
 

@@ -9,9 +9,11 @@
 
 import { useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { ReportCard } from "@/components/report-card"
 import { Loader2 } from "lucide-react"
+
+import { ReportCompactCard } from "@/components/report-compact-card"
+import { ReportCard } from "@/components/report-card"
+import { Button } from "@/components/ui/button"
 
 export type ReportCardData = {
     id: number
@@ -29,6 +31,7 @@ export type ReportCardData = {
 type ListaReportesClientProps = {
     initialReports: ReportCardData[]
     initialHasMore: boolean
+    variant?: "default" | "compact"
 }
 
 /**
@@ -39,7 +42,8 @@ type ListaReportesClientProps = {
  */
 export function ListaReportesClient({
     initialReports,
-    initialHasMore
+    initialHasMore,
+    variant = "default"
 }: ListaReportesClientProps) {
     const searchParams = useSearchParams()
     const [reports, setReports] = useState<ReportCardData[]>(initialReports)
@@ -104,34 +108,47 @@ export function ListaReportesClient({
     return (
         <>
             {reports.length > 0 && (
-                <div className="grid grid-cols-1 gap-4 min-w-0 md:grid-cols-2">
+                <div className={variant === "compact" ? "grid min-w-0 grid-cols-1 gap-2" : "grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2"}>
                     {reports.map((report) => (
-                        <ReportCard
-                            key={report.id}
-                            id={report.id}
-                            titulo={report.title}
-                            descripcion={report.description}
-                            categoria={report.category}
-                            prioridad={report.priority}
-                            estado={report.status}
-                            imageUrl={report.image}
-                            createdAt={report.createdAt}
-                            autor={report.author}
-                        />
+                        variant === "compact" ? (
+                             <ReportCompactCard
+                                 key={report.id}
+                                 id={report.id}
+                                 title={report.title}
+                                 description={report.description}
+                                 priority={report.priority}
+                                 status={report.status}
+                                 createdAt={report.createdAt}
+                                 image={report.image}
+                             />
+                        ) : (
+                            <ReportCard
+                                key={report.id}
+                                id={report.id}
+                                titulo={report.title}
+                                descripcion={report.description}
+                                categoria={report.category}
+                                prioridad={report.priority}
+                                estado={report.status}
+                                imageUrl={report.image}
+                                createdAt={report.createdAt}
+                                autor={report.author}
+                            />
+                        )
                     ))}
                 </div>
             )}
 
             {/* Botón para cargar más reportes */}
             {reports.length > 0 && (
-                <div className="mt-10 flex justify-center">
+                <div className={variant === "compact" ? "mt-6 flex justify-center" : "mt-10 flex justify-center"}>
                     {hasMore ? (
                         <Button
-                            variant="outline"
+                            variant="default"
                             size="lg"
                             onClick={cargarMas}
                             disabled={isLoading}
-                            className="min-w-56"
+                            className={variant === "compact" ? "min-w-56 rounded-full" : "min-w-56"}
                         >
                             {isLoading ? (
                                 <>

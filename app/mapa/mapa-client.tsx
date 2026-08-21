@@ -150,7 +150,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
         <Button
           type="button"
           size="icon"
-          className="size-[3.75rem] rounded-2xl bg-primary text-primary-foreground shadow-xl hover:bg-primary/90"
+          className="size-[3.75rem] rounded-[var(--radius)] bg-primary text-primary-foreground shadow-xl hover:bg-primary/90"
           onClick={() => setShowActions((prev) => !prev)}
           aria-label={showActions ? "Cerrar acciones de reportes" : "Abrir acciones de reportes"}
           aria-expanded={showActions}

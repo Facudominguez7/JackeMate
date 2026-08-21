@@ -26,7 +26,7 @@ export default function AuthPage() {
   const nextPath = searchParams.get("next") ?? "/mapa"
 
   return (
-    <div className="flex min-h-[calc(100dvh-2.75rem)] items-center justify-center bg-input px-4 pt-6 pb-[calc(5.75rem+env(safe-area-inset-bottom))]">
+    <div className="flex min-h-[calc(100dvh-2.75rem)] items-center justify-center bg-background px-4 pt-6 pb-[calc(5.75rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto w-full max-w-md">
         <Card>
           <CardHeader className="pb-4">
@@ -212,7 +212,7 @@ export default function AuthPage() {
                     </button>
                   </Field>
 
-                  <label className="flex items-start gap-2 rounded-[var(--radius-lg)] border border-border bg-background p-4 text-sm text-muted-foreground">
+                  <label className="flex items-start gap-2 rounded-[var(--radius)] border border-border bg-background p-4 text-sm text-muted-foreground">
                     <input type="checkbox" className="mt-0.5 size-4 rounded border-border" required />
                     <span>
                       Acepto los <Link href="/" className="text-primary hover:underline">términos y condiciones</Link> y la{" "}
