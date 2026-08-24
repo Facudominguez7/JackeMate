@@ -18,7 +18,7 @@
   --secondary: #000000;
   --secondary-foreground: #ffffff;
 
-  --muted: oklch(0.965 0.012 157);
+  --muted: oklch(96.115% 0.00011 271.152);
   --muted-foreground: oklch(0.45 0.028 157);
   --accent: oklch(0.93 0.03 157);
   --accent-foreground: oklch(0.3 0.05 157);
@@ -89,6 +89,8 @@
   --elevation-soft: 0 10px 30px color-mix(in oklab, var(--foreground) 12%, transparent);
   --card-shadow: 0 12px 28px color-mix(in oklab, var(--foreground) 16%, transparent);
 
+  --bottom-nav-space: calc(5.75rem + env(safe-area-inset-bottom));
+
 }
 
 @theme inline {
@@ -147,12 +149,25 @@
 
 @layer components {
   .page-shell {
-    @apply min-h-screen bg-background;
-    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+    @apply min-h-full bg-background;
   }
 
   .app-main {
-    min-height: 100dvh;
+    min-height: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--bottom-nav-space);
+  }
+
+  .auth-shell {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: safe center;
+    overflow-y: auto;
   }
 
   .page-container {

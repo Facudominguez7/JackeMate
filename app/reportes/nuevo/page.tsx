@@ -574,7 +574,7 @@ export default function NuevoReportePage() {
                     <div className="flex gap-2">
                       <Button type="button" size="sm" asChild>
                         <label htmlFor="images" className="cursor-pointer">
-                          <Camera className="w-4 h-4 mr-2" />
+                          <Camera className="w-4 h-4" />
                           Tomar Foto
                         </label>
                       </Button>
@@ -609,11 +609,12 @@ export default function NuevoReportePage() {
                         <Button
                           type="button"
                           variant="destructive"
-                          size="sm"
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                          size="icon-sm"
+                          className="absolute -top-2 -right-2"
                           onClick={() => removeImage(index)}
+                          aria-label={`Eliminar imagen ${index + 1}`}
                         >
-                          ×
+                          <span aria-hidden="true">×</span>
                         </Button>
                       </div>
                     ))}
@@ -628,13 +629,13 @@ export default function NuevoReportePage() {
                   className="flex-1"
                   disabled={!canSubmitReport}
                 >
-                  <Send className="w-4 h-4 mr-2" />
+                  <Send className="w-4 h-4" />
                   {isSubmitting ? "Enviando..." : canSubmitReport ? "Enviar Reporte" : "Faltan datos"}
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
-                  className="flex-1 border border-border bg-secondary text-secondary-foreground hover:bg-secondary/90 hover:text-secondary-foreground"
+                  variant="outline"
+                  className="flex-1"
                   asChild
                   disabled={loading || isSubmitting}
                 >
@@ -643,8 +644,8 @@ export default function NuevoReportePage() {
               </div>
 
               {!canSubmitReport && missingFields.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Te falta completar: <span className="font-medium text-foreground">{missingFields.join(", ")}</span>.
+                <p className="text-xs text-destructive">
+                  Te falta completar: <span className="font-medium">{missingFields.join(", ")}</span>.
                 </p>
               )}
             </form>

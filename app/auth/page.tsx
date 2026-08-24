@@ -26,7 +26,7 @@ export default function AuthPage() {
   const nextPath = searchParams.get("next") ?? "/mapa"
 
   return (
-    <div className="flex min-h-[calc(100dvh-2.75rem)] items-center justify-center bg-background px-4 pt-6 pb-[calc(5.75rem+env(safe-area-inset-bottom))]">
+    <div className="auth-shell bg-background px-4 py-6">
       <div className="mx-auto w-full max-w-md">
         <Card>
           <CardHeader className="pb-4">
@@ -74,14 +74,16 @@ export default function AuthPage() {
                         autoComplete="current-password"
                         required
                       />
-                    <button
+                    <Button
                       type="button"
+                      variant="muted"
+                      size="icon-sm"
                       onClick={() => setShowPassword((prev) => !prev)}
                       aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
                     >
-                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
+                      {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                    </Button>
                   </Field>
 
                   <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
@@ -177,14 +179,16 @@ export default function AuthPage() {
                       autoComplete="new-password"
                       required
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="muted"
+                      size="icon-sm"
                       onClick={() => setShowPassword((prev) => !prev)}
                       aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
                     >
-                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
+                      {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                    </Button>
                   </Field>
 
                   <Field label="Confirmar contraseña" htmlFor="register-confirm-password">
@@ -198,18 +202,20 @@ export default function AuthPage() {
                       autoComplete="new-password"
                       required
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="muted"
+                      size="icon-sm"
                       onClick={() => setShowConfirmPassword((prev) => !prev)}
                       aria-label={
                         showConfirmPassword
                           ? "Ocultar confirmación de contraseña"
                           : "Mostrar confirmación de contraseña"
                       }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
                     >
-                      {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
+                      {showConfirmPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                    </Button>
                   </Field>
 
                   <label className="flex items-start gap-2 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">

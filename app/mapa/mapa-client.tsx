@@ -12,7 +12,6 @@ import { Drawer, DrawerContent } from "@/components/ui/drawer"
 import { FiltrosReportes } from "@/components/filtros-reportes"
 import { LoadingLogo } from "@/components/loading-logo"
 import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
-import { cn } from "@/lib/utils"
 
 const MapContainer = dynamic(() => import("@/components/map-container").then((m) => m.MapContainer), {
   ssr: false,
@@ -61,10 +60,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
     }
   }, [])
 
-  const mapActionLinkClassName = cn(
-    buttonVariants({ size: "sm" }),
-    "min-h-11 rounded-full bg-secondary px-4 text-sm font-semibold text-secondary-foreground shadow-lg hover:bg-secondary/90 focus-visible:ring-primary focus-visible:ring-offset-secondary"
-  )
+  const mapActionLinkClassName = buttonVariants({ size: "lg", variant: "floating" })
 
   return (
     <div className="relative h-[100dvh] min-h-[32rem] overflow-hidden bg-background">
@@ -84,10 +80,11 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
 
       <div className="pointer-events-none absolute left-3 top-3 z-30 pt-[max(env(safe-area-inset-top),0rem)] sm:left-5 sm:top-5">
         <div className="flex items-start gap-2">
-          <Button
-            type="button"
-            size="icon"
-            className="pointer-events-auto size-[3.25rem] rounded-full border border-secondary-foreground/10 bg-secondary text-secondary-foreground shadow-lg hover:bg-secondary/90 hover:text-secondary-foreground focus-visible:ring-primary focus-visible:ring-offset-secondary"
+            <Button
+              type="button"
+              variant="floating"
+              size="icon-lg"
+              className="pointer-events-auto"
             onClick={(e) => {
               e.currentTarget.blur()
               setShowFilters((prev) => !prev)
@@ -98,15 +95,17 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
             {showFilters ? <X className="size-5" aria-hidden="true" /> : <SlidersHorizontal className="size-5" aria-hidden="true" />}
           </Button>
           {activeFilters > 0 && !showFilters && (
-            <button
+            <Button
               type="button"
-              className="pointer-events-auto mt-1 inline-flex min-h-9 max-w-[11rem] items-center gap-1.5 rounded-full border border-secondary-foreground/10 bg-secondary/90 px-3 text-left text-[11px] font-semibold leading-none text-secondary-foreground shadow-lg backdrop-blur transition-colors hover:bg-secondary"
+              variant="floating"
+              size="sm"
+              className="pointer-events-auto mt-1 max-w-[11rem] text-left"
               onClick={() => setShowFilters(true)}
               aria-label={`Abrir filtros, ${activeFiltersLabel}`}
             >
               <Search className="size-3.5" aria-hidden="true" />
               <span className="truncate">{activeFiltersLabel}</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -149,8 +148,8 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
         )}
         <Button
           type="button"
-          size="icon"
-          className="size-[3.75rem] rounded-md bg-primary text-primary-foreground shadow-xl hover:bg-primary/90"
+          variant="floating-primary"
+          size="icon-xl"
           onClick={() => setShowActions((prev) => !prev)}
           aria-label={showActions ? "Cerrar acciones de reportes" : "Abrir acciones de reportes"}
           aria-expanded={showActions}

@@ -55,8 +55,8 @@ export function ReportesClientWrapper({ categorias, estados, prioridades }: Repo
 
       <Button
         type="button"
-        variant="ghost"
-        className="h-8 rounded-full border border-border bg-secondary px-2.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/90 hover:text-secondary-foreground focus-visible:ring-ring focus-visible:ring-offset-0"
+        variant="secondary"
+        size="xs"
         onClick={() => setShowFilters((prev) => !prev)}
         aria-label={showFilters ? "Cerrar filtros" : `Abrir filtros${activeFilters > 0 ? `, ${activeFilters} activos` : ""}`}
         aria-expanded={showFilters}

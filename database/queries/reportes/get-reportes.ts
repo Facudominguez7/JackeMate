@@ -408,7 +408,7 @@ export async function getDashboardUserReports(userId: string) {
 }
 
 /**
- * Recupera todas las categorías disponibles ordenadas por nombre.
+ * Recupera todas las categorías disponibles por nombre, dejando "Otros" al final.
  *
  * @returns Un objeto con `data` — arreglo de categorías (cada elemento tiene `id` y `nombre`) o `null` si no hay resultados — y `error` con la información del error si se produjo alguno.
  */
@@ -420,7 +420,18 @@ export async function getCategorias() {
     .select("id, nombre")
     .order("nombre")
 
-  return { data, error }
+  const sortedData = data?.sort((a, b) => {
+    const aIsOther = a.nombre.localeCompare("Otros", "es", { sensitivity: "base" }) === 0
+    const bIsOther = b.nombre.localeCompare("Otros", "es", { sensitivity: "base" }) === 0
+
+    if (aIsOther !== bIsOther) {
+      return aIsOther ? 1 : -1
+    }
+
+    return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+  })
+
+  return { data: sortedData, error }
 }
 
 /**
@@ -440,7 +451,7 @@ export async function getEstados() {
 }
 
 /**
- * Obtiene la lista de prioridades disponibles ordenadas por nombre.
+ * Obtiene la lista de prioridades disponibles en el orden Baja, Media y Alta.
  *
  * @returns `data` — Array de objetos con `id` y `nombre` de cada prioridad; `error` — objeto de error de la consulta si se produjo, `null` en caso contrario.
  */
@@ -450,7 +461,7 @@ export async function getPrioridades() {
   const { data, error } = await supabase
     .from("prioridades")
     .select("id, nombre")
-    .order("nombre")
+    .order("id", { ascending: false })
 
   return { data, error }
 }

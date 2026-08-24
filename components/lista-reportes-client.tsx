@@ -148,7 +148,7 @@ export function ListaReportesClient({
                             size="lg"
                             onClick={cargarMas}
                             disabled={isLoading}
-                            className={variant === "compact" ? "min-w-56 rounded-full" : "min-w-56"}
+                            className="min-w-56"
                         >
                             {isLoading ? (
                                 "Cargando reportes..."

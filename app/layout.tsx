@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" data-scroll-behavior="smooth">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className={`flex min-h-dvh flex-col font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground"

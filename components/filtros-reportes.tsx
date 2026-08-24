@@ -47,7 +47,6 @@ export function FilterChipOption({ label, selected, onSelect, disabled = false }
       onClick={onSelect}
       disabled={disabled}
       aria-pressed={selected}
-      className="rounded-full"
     >
       {label}
     </Button>
@@ -337,8 +336,10 @@ export function FiltrosReportes({
                 disabled={isPending}
               />
               {searchInput && (
-                <button
-                  type="button"
+                <Button
+                   type="button"
+                   variant="muted"
+                   size="icon-sm"
                   onClick={() => {
                     isTypingRef.current = false
                     lastSearchValueRef.current = ""
@@ -352,11 +353,11 @@ export function FiltrosReportes({
                     params.delete("search")
                     router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname)
                   }}
-                  className="absolute right-1 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="absolute right-1 top-1/2 -translate-y-1/2"
                   aria-label="Limpiar búsqueda"
                 >
                   <X className="size-4" aria-hidden="true" />
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -447,7 +448,7 @@ export function FiltrosReportes({
         {isSheet && (
           <div className="sticky bottom-0 z-10 mt-1 border-t border-border bg-background px-3 pb-[calc(max(env(safe-area-inset-bottom),1rem))] pt-3 shadow-[0_-10px_30px_rgba(15,23,42,0.12)]">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-5 -translate-y-full bg-gradient-to-t from-background via-background/90 to-transparent" aria-hidden="true" />
-            <Button type="button" onClick={aplicarFiltros} disabled={isPending} className="min-h-12 w-full bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary focus-visible:ring-offset-background">
+            <Button type="button" size="lg" onClick={aplicarFiltros} disabled={isPending} className="w-full">
               Aplicar filtros
             </Button>
           </div>

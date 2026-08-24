@@ -14,20 +14,31 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/92",
         filter:
-          "border border-border bg-card text-foreground hover:bg-surface-subtle aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90",
+          "border border-border bg-card text-foreground hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary/90",
+        neutral:
+          "border border-border bg-card text-card-foreground hover:bg-muted",
         outline:
-          "border border-primary/20 bg-accent text-accent-foreground hover:border-primary/35 hover:bg-primary/14",
+          "border border-border bg-background text-foreground hover:bg-muted",
         secondary:
-          "bg-surface-strong text-accent-foreground hover:bg-accent",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+        floating:
+          "border border-secondary-foreground/10 bg-secondary text-secondary-foreground shadow-lg hover:bg-secondary/90 focus-visible:ring-primary focus-visible:ring-offset-secondary",
+        "floating-primary":
+          "rounded-md bg-primary text-primary-foreground shadow-xl hover:bg-primary/90 focus-visible:ring-primary focus-visible:ring-offset-background",
         ghost:
-          "text-foreground hover:bg-accent",
-        link: "h-auto rounded-none px-0 text-primary underline-offset-4 hover:text-primary/80 hover:underline",
+          "text-foreground hover:bg-muted",
+        muted:
+          "text-muted-foreground hover:bg-muted hover:text-foreground",
       },
       size: {
+        xs: "min-h-8 gap-1.5 px-2.5 text-xs has-[>svg]:px-2",
         default: "min-h-10 px-4 py-2 has-[>svg]:px-3.5",
         sm: "min-h-9 gap-1.5 px-3.5 text-xs has-[>svg]:px-3",
         lg: "min-h-11 px-5 text-sm has-[>svg]:px-4",
         icon: "size-10",
+        "icon-sm": "size-8",
+        "icon-lg": "size-[3.25rem]",
+        "icon-xl": "size-[3.75rem]",
       },
     },
     defaultVariants: {

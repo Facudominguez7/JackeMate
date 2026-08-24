@@ -6,11 +6,14 @@ import {
   LayoutDashboard,
   List,
   LogIn,
+  LogOut,
   Map,
   Plus,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
+import { signout } from "@/app/auth/actions";
 
 interface HeaderClientProps {
   user: User | null | undefined;
@@ -57,10 +60,17 @@ export function HeaderClient({ user }: HeaderClientProps) {
     <>
       {!isAppRoute && (
         <header className="sticky top-0 z-40 bg-[var(--secondary)] text-[var(--secondary-foreground)]">
-          <div className="mx-auto flex min-h-[2.75rem] w-full max-w-5xl items-center justify-center px-4 py-1.5 sm:px-6 lg:px-8">
+          <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-5xl items-center justify-center px-4 py-1.5 sm:px-6 lg:px-8">
             <h1 className="text-base font-semibold tracking-tight text-[var(--secondary-foreground)]">
               {getRouteTitle(pathname)}
             </h1>
+            {user && (
+              <form action={signout} className="absolute right-4 sm:right-6 lg:right-8">
+                <Button type="submit" variant="neutral" size="icon-sm" aria-label="Cerrar sesión">
+                  <LogOut aria-hidden="true" />
+                </Button>
+              </form>
+            )}
           </div>
         </header>
       )}
