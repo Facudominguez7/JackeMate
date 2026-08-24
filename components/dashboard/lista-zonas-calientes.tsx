@@ -16,6 +16,25 @@ type Props = {
   zonas: ZonaConReportes[]
 }
 
+// Custom tooltip para el gráfico de barras (debe vivir en el scope del módulo)
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    return (
+      <div className="rounded-[var(--radius-lg)] border border-border bg-card p-3">
+        <p className="font-semibold text-sm mb-1">{data.nombre}</p>
+        <p className="text-xs text-muted-foreground mb-1">
+          {data.coordenadas}
+        </p>
+        <p className="text-sm font-bold text-primary">
+          {data.cantidad} {data.cantidad === 1 ? 'reporte' : 'reportes'}
+        </p>
+      </div>
+    )
+  }
+  return null
+}
+
 /**
  * Componente que muestra un gráfico de barras horizontales con las zonas que tienen más reportes.
  * 
@@ -47,25 +66,6 @@ export function GraficoZonasCalientes({ zonas }: Props) {
     coordenadas: `${zona.lat.toFixed(4)}, ${zona.lon.toFixed(4)}`,
     color: ZONE_COLORS[index % ZONE_COLORS.length]
   }))
-
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <div className="rounded-[var(--radius-lg)] border border-border bg-card p-3">
-          <p className="font-semibold text-sm mb-1">{data.nombre}</p>
-          <p className="text-xs text-muted-foreground mb-1">
-            {data.coordenadas}
-          </p>
-          <p className="text-sm font-bold text-primary">
-            {data.cantidad} {data.cantidad === 1 ? 'reporte' : 'reportes'}
-          </p>
-        </div>
-      )
-    }
-    return null
-  }
 
   return (
     <Card>

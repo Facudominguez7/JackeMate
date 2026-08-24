@@ -7,7 +7,7 @@
  * respetando los filtros activos en la URL
  */
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ReportCard } from "@/components/report-card"
@@ -49,13 +49,16 @@ export function ListaReportesClient({
     const [hasMore, setHasMore] = useState(initialHasMore)
     const [isLoading, setIsLoading] = useState(false)
     const [offset, setOffset] = useState(initialReports.length)
+    const [prevParamsKey, setPrevParamsKey] = useState(searchParams.toString())
 
-    // Resetear cuando cambian los filtros (los searchParams cambian)
-    useEffect(() => {
+    // Resetear cuando cambian los filtros (ajuste de estado durante el render)
+    const paramsKey = searchParams.toString()
+    if (prevParamsKey !== paramsKey) {
+        setPrevParamsKey(paramsKey)
         setReports(initialReports)
         setHasMore(initialHasMore)
         setOffset(initialReports.length)
-    }, [initialReports, initialHasMore, searchParams])
+    }
 
     /**
      * Cargar más reportes desde la API

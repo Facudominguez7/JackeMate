@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import { toast } from "sonner"
+import { useMounted } from "@/hooks/use-mounted"
 
 // Configurar el ícono del marcador
 const markerIcon = new L.Icon({
@@ -74,11 +75,10 @@ function LocationMarker({ onLocationSelect, initialLat, initialLon }: LocationPi
   })
 
   useEffect(() => {
-    if (initialLat && initialLon && !position) {
-      setPosition([initialLat, initialLon])
+    if (initialLat && initialLon) {
       map.setView([initialLat, initialLon], 13)
     }
-  }, [initialLat, initialLon, map, position])
+  }, [initialLat, initialLon, map])
 
   return position ? <Marker position={position} icon={markerIcon} /> : null
 }
@@ -96,11 +96,7 @@ function LocationMarker({ onLocationSelect, initialLat, initialLon }: LocationPi
  * @returns El elemento React que renderiza el mapa y su interfaz de selección de ubicación
  */
 export function LocationPickerMap({ onLocationSelect, initialLat, initialLon }: LocationPickerMapProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useMounted()
 
   if (!mounted) {
     return (

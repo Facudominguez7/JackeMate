@@ -34,6 +34,7 @@ import {
   verificarPuedeCrearReporte
 } from "@/database/queries/reportes/nuevo"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useMounted } from "@/hooks/use-mounted"
 import dynamic from "next/dynamic"
 import { crearReporteAction } from "./actions"
 
@@ -84,6 +85,7 @@ export default function NuevoReportePage() {
 
   const supabase = createClient()
   const isMobile = useIsMobile()
+  const mounted = useMounted()
   
   useEffect(() => {
     const checkUserAndLoadData = async () => {
@@ -124,38 +126,36 @@ export default function NuevoReportePage() {
     checkUserAndLoadData()
   }, [])
 
-  // Obtener ubicación automáticamente solo en dispositivos móviles
+  // Desktop: no necesita geolocalización, el usuario selecciona manualmente
+  if (mounted && isMobile === false && geoStatus === "pending") {
+    setGeoStatus("ok")
+  }
+
+  // Mobile sin soporte de geolocalización: marcar error
+  if (mounted && isMobile === true && typeof window !== "undefined" && !("geolocation" in navigator) && geoStatus === "pending") {
+    setGeoStatus("error")
+  }
+
+  // Mobile con geolocalización: obtener posición automáticamente (API imperativa, callbacks asíncronos)
   useEffect(() => {
     if (typeof window === "undefined") return
-    
-    // En desktop, marcamos como OK inmediatamente para que el usuario seleccione manualmente
-    if (isMobile === false) {
-      setGeoStatus("ok")
-      return
-    }
-    
-    // En mobile, intentar obtener ubicación automáticamente
-    if (isMobile === true) {
-      if (!("geolocation" in navigator)) {
-        setGeoStatus("error")
-        return
-      }
+    if (isMobile !== true) return
+    if (!("geolocation" in navigator)) return
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setFormData((prev) => ({
-            ...prev,
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
-          }))
-          setGeoStatus("ok")
-        },
-        () => {
-          setGeoStatus("error")
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      )
-    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData((prev) => ({
+          ...prev,
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+        }))
+        setGeoStatus("ok")
+      },
+      () => {
+        setGeoStatus("error")
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
   }, [isMobile])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
