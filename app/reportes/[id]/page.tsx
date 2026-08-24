@@ -37,6 +37,7 @@ import {
   Clock,
   Shield,
   Settings,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,6 +70,8 @@ import { getStatusVariant, getPriorityVariant, getPriorityIcon, getStatusIcon, g
 import { PUNTOS } from "@/database/queries/puntos";
 import { REPORT_STATE_IDS } from "@/lib/authz/catalog";
 import { getNameFromRelation, getUserInitials, getUsernameFromRelation } from "@/lib/identity/display";
+import { ChipEstadoOperativo } from "@/components/cuadrillas/chip-estado-operativo";
+import { LineaTiempoOperativa } from "@/components/cuadrillas/linea-tiempo-operativa";
 import {
   cambiarEstadoAdminAction,
   crearComentarioAction,
@@ -76,8 +79,10 @@ import {
   eliminarComentarioPropioAction,
   eliminarReporteAdminAction,
   eliminarReportePropioAction,
+  obtenerGestionOperativaAction,
   votarNoExisteAction,
   votarReparadoAction,
+  type GestionOperativaDetalle,
 } from "./actions";
 
 dayjs.extend(utc);
@@ -129,6 +134,9 @@ export default function ReporteDetallePage({
   const [estadoSeleccionado, setEstadoSeleccionado] = useState("");
   const [comentarioEstado, setComentarioEstado] = useState("");
   const [isChangingEstado, setIsChangingEstado] = useState(false);
+
+  // Estado para el seguimiento de cuadrilla (solo lectura en esta página)
+  const [gestionOperativa, setGestionOperativa] = useState<GestionOperativaDetalle | null>(null);
 
   // Estados para controlar los AlertDialogs
   const [showDeleteReporteDialog, setShowDeleteReporteDialog] = useState(false);
@@ -183,6 +191,11 @@ export default function ReporteDetallePage({
           setVotosReparadoCount(data.votos.reparado.count);
           setHasVoted(data.votos.noExiste.hasVoted);
           setHasVotedReparado(data.votos.reparado.hasVoted);
+
+          const gestionResult = await obtenerGestionOperativaAction(data.id);
+          if (gestionResult.success) {
+            setGestionOperativa(gestionResult.data);
+          }
         }
 
         // Obtener comentarios
@@ -978,6 +991,47 @@ export default function ReporteDetallePage({
               </Card>
             )}
 
+            {/* Seguimiento de la cuadrilla (cuadrillas) - solo lectura; la gestión vive en /dashboard/cuadrillas */}
+            {gestionOperativa &&
+              (gestionOperativa.puedeOperar ||
+                gestionOperativa.estadoOperativo !== null ||
+                gestionOperativa.eventos.length > 0) && (
+                <Card>
+                  <CardHeader className="pb-3 md:pb-4 lg:pb-6">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-muted-foreground md:w-6 md:h-6" />
+                      <CardTitle className="text-base md:text-lg lg:text-xl">Seguimiento de la cuadrilla</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs md:text-sm">
+                      {gestionOperativa.puedeOperar
+                        ? "Estado de la cuadrilla asignada y su historial de intervención en este reporte"
+                        : "Seguimiento de la cuadrilla asignada a este reporte"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-0">
+                    <div>
+                      {gestionOperativa.estadoOperativo ? (
+                        <ChipEstadoOperativo
+                          estadoOperativo={gestionOperativa.estadoOperativo}
+                          cuadrillaNombre={gestionOperativa.cuadrillaNombre}
+                        />
+                      ) : (
+                        gestionOperativa.puedeOperar && (
+                          <p className="text-sm text-muted-foreground">Sin cuadrilla asignada</p>
+                        )
+                      )}
+                    </div>
+
+                    <div className="pt-2">
+                      <LineaTiempoOperativa
+                        eventos={gestionOperativa.eventos}
+                        mostrarInternas={gestionOperativa.puedeOperar}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
             {currentUser && !isReporteCerrado && (
               <Card className="hidden lg:block">
                 <CardContent className="space-y-4 pt-5 md:space-y-5 md:pt-6">
@@ -1443,6 +1497,7 @@ export default function ReporteDetallePage({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }

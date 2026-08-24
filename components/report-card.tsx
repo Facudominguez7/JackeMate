@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { ChipEstadoOperativo } from "@/components/cuadrillas/chip-estado-operativo"
+import type { EstadoOperativo } from "@/lib/authz/catalog"
 import {
   AlertCircle,
   AlertTriangle,
@@ -28,6 +30,8 @@ export type ReportCardProps = {
   imageUrl: string | null
   createdAt: string
   autor?: string
+  estadoOperativo?: EstadoOperativo | null
+  cuadrillaNombre?: string | null
 }
 
 export const getStatusVariant = (status: string): "reparado" | "pendiente" | "rechazado" | "outline" => {
@@ -137,6 +141,8 @@ export function ReportCard({
   imageUrl,
   createdAt,
   autor,
+  estadoOperativo,
+  cuadrillaNombre,
 }: ReportCardProps) {
   return (
     <Link key={id} href={`/reportes/${id}`} className="block h-full w-full min-w-0">
@@ -164,6 +170,7 @@ export function ReportCard({
               {getCategoryIcon(categoria)}
               {categoria}
             </Badge>
+            <ChipEstadoOperativo estadoOperativo={estadoOperativo} cuadrillaNombre={cuadrillaNombre} />
           </div>
 
           <div className="space-y-2">

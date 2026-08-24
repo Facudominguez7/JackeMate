@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { BarChart3, Calendar, CheckCircle, Clock, FileText, Plus, Star, Timer, TrendingUp, Trophy } from "lucide-react"
+import { BarChart3, Calendar, CheckCircle, Clock, FileText, Plus, Star, Timer, TrendingUp, Trophy, Users } from "lucide-react"
 
 import { GraficoReportesPorCategoria, GraficoZonasCalientes, MapaCalorZonas, MetricCard } from "@/components/dashboard"
 import { ReportCard } from "@/components/report-card"
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { getDashboardPageData } from "@/database/queries/dashboard"
+import { puedeOperarCuadrillas } from "@/lib/authz/roles"
 import { getUserInitials } from "@/lib/identity/display"
 
 export default async function DashboardPage() {
@@ -63,6 +64,17 @@ export default async function DashboardPage() {
                     <TrendingUp className="size-4" />
                   </Link>
                 </Button>
+                {puedeOperarCuadrillas(data.roleId) && (
+                  <Button size="lg" variant="outline" className="justify-between" asChild>
+                    <Link href="/dashboard/cuadrillas">
+                      <span className="flex items-center gap-2">
+                        <Users className="size-4" />
+                        Gestionar cuadrillas
+                      </span>
+                      <TrendingUp className="size-4" />
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
           </section>

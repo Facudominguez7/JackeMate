@@ -13,6 +13,7 @@ import dynamic from "next/dynamic"
 import type { LeafletMapProps } from "@/components/leaflet-map"
 import { getPriorityColor } from "@/components/report-card"
 import { LoadingLogo } from "@/components/loading-logo"
+import type { EstadoOperativo } from "@/lib/authz/catalog"
 
 /**
  * Interfaz que representa un reporte con sus datos para visualizar en el mapa
@@ -29,6 +30,8 @@ interface Report {
   author: string
   createdAt: string
   image?: string
+  estadoOperativo?: EstadoOperativo | null
+  cuadrillaNombre?: string | null
 }
 
 /**
@@ -37,6 +40,8 @@ interface Report {
 interface MapContainerProps {
   reports: Report[]
   showLegend?: boolean
+  /** Modo selección: se propaga a `LeafletMap` para avisar qué reporte se eligió al hacer click. */
+  onSeleccionarReporte?: (reporteId: number) => void
 }
 
 /**
@@ -62,11 +67,11 @@ const LeafletMap = dynamic<LeafletMapProps>(
  * @param showLegend - Indica si se debe mostrar la leyenda de colores; por defecto `true`
  * @returns El elemento JSX que contiene el mapa y sus superposiciones (leyenda e instrucciones)
  */
-export function MapContainer({ reports, showLegend = true }: MapContainerProps) {
+export function MapContainer({ reports, showLegend = true, onSeleccionarReporte }: MapContainerProps) {
   return (
     <div className="relative w-full h-full">
       {/* Componente principal del mapa de Leaflet */}
-      <LeafletMap reports={reports} />
+      <LeafletMap reports={reports} onSeleccionarReporte={onSeleccionarReporte} />
 
       {/* Leyenda de colores flotante - Ajustada para mobile */}
       {showLegend && (

@@ -26,6 +26,8 @@ export type DashboardPageData = {
     email: string | null
   } | null
   isAnalyticsDashboard: boolean
+  /** Rol persistido del usuario (`profiles.rol_id`), para decidir qué accesos operativos mostrar. */
+  roleId: number | null
   puntos: number
   userReports: DashboardUserReport[]
   estadisticas: DashboardAnalyticsData | null
@@ -44,6 +46,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
     return {
       user: null,
       isAnalyticsDashboard: false,
+      roleId: null,
       puntos: 0,
       userReports: [],
       estadisticas: null,
@@ -67,6 +70,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
     return {
       user: { id: user.id, email: user.email ?? null },
       isAnalyticsDashboard: true,
+      roleId: roleContext?.roleId ?? null,
       puntos: 0,
       userReports: [],
       estadisticas,
@@ -84,6 +88,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
   return {
     user: { id: user.id, email: user.email ?? null },
     isAnalyticsDashboard: false,
+    roleId: roleContext?.roleId ?? null,
     puntos,
     userReports,
     estadisticas: null,
