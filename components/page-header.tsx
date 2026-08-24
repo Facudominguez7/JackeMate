@@ -12,7 +12,7 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
   return (
-    <Card className={cn("overflow-hidden shadow-[var(--card-shadow)]", className)}>
+    <Card className={cn("overflow-hidden", className)}>
       <CardContent>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0 space-y-1">

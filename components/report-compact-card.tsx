@@ -32,7 +32,7 @@ export function ReportCompactCard({
 }: ReportCompactCardProps) {
   return (
     <Link href={`/reportes/${id}`} className="block">
-      <Card className="overflow-hidden border-border bg-card shadow-[var(--card-shadow)] transition-colors hover:border-primary/25">
+      <Card className="overflow-hidden border-border bg-card transition-colors hover:border-primary/25">
         <CardContent>
           <div className="flex items-start gap-3">
             <div className="size-20 flex-none overflow-hidden rounded-md bg-surface-subtle md:size-24">

@@ -36,8 +36,8 @@ export default function AuthPage() {
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:border-secondary">Ingresar</TabsTrigger>
-                <TabsTrigger value="register" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:border-secondary">Registrarme</TabsTrigger>
+                <TabsTrigger value="login">Ingresar</TabsTrigger>
+                <TabsTrigger value="register">Registrarme</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login" className="space-y-5 pt-2">

@@ -9,10 +9,11 @@ import {
   LogOut,
   Map,
   Plus,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { signout } from "@/app/auth/actions";
 
 interface HeaderClientProps {
@@ -31,6 +32,7 @@ function getRouteTitle(pathname: string): string {
   if (pathname.startsWith("/auth")) return "Iniciar sesión";
   if (pathname.startsWith("/reportes/nuevo")) return "Crear reporte";
   if (pathname.startsWith("/reportes")) return "Reportes";
+  if (pathname.startsWith("/comunidad")) return "Comunidad";
   if (pathname.startsWith("/dashboard")) return "Mi cuenta";
   if (pathname.startsWith("/como-funciona")) return "Cómo funciona";
   return "JackeMate";
@@ -44,7 +46,8 @@ export function HeaderClient({ user }: HeaderClientProps) {
     { href: "/mapa", label: "Mapa", icon: Map },
     { href: "/reportes", label: "Reportes", icon: List },
     { href: "/reportes/nuevo", label: "Crear", icon: Plus },
-    { href: user ? "/dashboard" : "/auth", label: "Cuenta", icon: user ? LayoutDashboard : LogIn },
+    { href: "/comunidad", label: "Comunidad", icon: Users },
+    { href: user ? "/dashboard" : "/auth", label: user ? "Cuenta" : "Login", icon: user ? LayoutDashboard : LogIn },
   ];
 
   const isActive = (href: string) => {
@@ -75,7 +78,7 @@ export function HeaderClient({ user }: HeaderClientProps) {
         </header>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-secondary-foreground/10 bg-secondary px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 text-secondary-foreground shadow-xl">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-secondary-foreground/10 bg-secondary px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 text-secondary-foreground shadow-xl">
         {bottomItems.map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
 
@@ -84,11 +87,18 @@ export function HeaderClient({ user }: HeaderClientProps) {
               key={label}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-2 text-[0.68rem] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-secondary ${
+              aria-label={label}
+              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-1 text-[0.68rem] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-secondary ${
                 active ? "text-primary" : "text-secondary-foreground/70 hover:text-secondary-foreground"
               }`}
             >
-              <Icon className="size-5" aria-hidden="true" />
+              {href === "/reportes/nuevo" ? (
+                <span className={`${buttonVariants({ variant: "default", size: "icon-lg" })} -mt-6 border-4 border-secondary shadow-xl`}>
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+              ) : (
+                <Icon className="size-5" aria-hidden="true" />
+              )}
               <span>{label}</span>
             </Link>
           );
