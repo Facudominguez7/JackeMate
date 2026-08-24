@@ -36,8 +36,6 @@
   --radius-pill: 999px;
 
   --surface-subtle: oklch(0.972 0.014 157);
-  --surface-strong: oklch(0.945 0.022 157);
-
   --semantic-info: oklch(0.56 0.11 240);
   --semantic-info-soft: oklch(0.95 0.02 240);
   --semantic-info-border: oklch(0.88 0.03 240);
@@ -59,14 +57,8 @@
   --semantic-admin-border: oklch(0.88 0.03 285);
 
   --rank-gold: oklch(0.76 0.14 84);
-  --rank-gold-soft: oklch(0.96 0.03 88);
-  --rank-gold-border: oklch(0.9 0.05 86);
   --rank-silver: oklch(0.66 0.01 250);
-  --rank-silver-soft: oklch(0.95 0.004 250);
-  --rank-silver-border: oklch(0.86 0.008 250);
   --rank-bronze: oklch(0.61 0.09 50);
-  --rank-bronze-soft: oklch(0.95 0.02 55);
-  --rank-bronze-border: oklch(0.87 0.03 55);
 
   --priority-high: var(--semantic-danger);
   --priority-medium: var(--semantic-warning);
@@ -120,7 +112,6 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-surface-subtle: var(--surface-subtle);
-  --color-surface-strong: var(--surface-strong);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
@@ -182,40 +173,16 @@
     @apply space-y-4 md:space-y-5;
   }
 
+  .page-meta-label {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
   .page-hero-panel {
     @apply overflow-hidden rounded-[var(--radius-xl)] border border-border bg-card;
   }
 
   .page-hero-grid {
     @apply grid gap-6 p-6 md:gap-8 md:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:p-10;
-  }
-
-  .page-kicker {
-    @apply text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground;
-  }
-
-  .page-meta-grid {
-    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
-  }
-
-  .page-meta-card {
-    @apply rounded-[var(--radius-lg)] border border-border bg-[var(--surface-subtle)] p-4;
-  }
-
-  .page-meta-label {
-    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
-  }
-
-  .page-meta-value {
-    @apply mt-2 text-lg font-semibold tracking-tight md:text-xl;
-  }
-
-  .surface-subtle {
-    background: var(--surface-subtle);
-  }
-
-  .surface-strong {
-    background: var(--surface-strong);
   }
 
   .section-eyebrow {
@@ -239,14 +206,6 @@
 
   .hero-copy {
     @apply max-w-2xl text-base leading-7 text-muted-foreground md:text-lg;
-  }
-
-  .kpi-card {
-    @apply rounded-[var(--radius-lg)] border border-border bg-card p-5 md:p-6;
-  }
-
-  .kpi-value {
-    @apply text-3xl font-semibold tracking-tight md:text-4xl;
   }
 
   .tone-info-card {
@@ -295,22 +254,11 @@
     color: var(--semantic-admin);
   }
 
-  .tone-info-inline {
-    @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-info-soft);
-    border-color: var(--semantic-info-border);
-    color: var(--semantic-info);
-  }
-
   .tone-warning-inline {
     @apply rounded-xl border px-3 py-2;
     background: var(--semantic-warning-soft);
     border-color: var(--semantic-warning-border);
     color: var(--semantic-warning);
-  }
-
-  .map-card-dot {
-    @apply inline-flex size-2.5 rounded-full border border-background;
   }
 
   .map-legend-card {
@@ -371,12 +319,6 @@
   margin-top: 7.5rem !important;
   margin-left: 1rem !important;
   margin-right: 1rem !important;
-}
-
-@media (min-width: 768px) {
-  .leaflet-top .leaflet-control {
-    margin-top: 7.5rem !important;
-  }
 }
 
 .leaflet-pane,

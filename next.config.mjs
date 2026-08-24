@@ -7,7 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   
-  allowedDevOrigins: ['192.168.100.2'],
+  allowedDevOrigins: ['192.168.0.106'],
 }
 
 
