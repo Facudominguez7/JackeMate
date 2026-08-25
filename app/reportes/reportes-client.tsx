@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 
 import { FiltrosReportes } from "@/components/filtros-reportes"
 import { Button } from "@/components/ui/button"
-import { Drawer, DrawerContent } from "@/components/ui/drawer"
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 
 type ReportesClientWrapperProps = {
   categorias: { id: number; nombre: string }[]
@@ -39,12 +39,6 @@ export function ReportesClientWrapper({ categorias, estados, prioridades }: Repo
   const handleDrawerOpenChange = useCallback((open: boolean) => {
     setShowFilters(open)
 
-    if (open && typeof document !== "undefined") {
-      const active = document.activeElement
-      if (active instanceof HTMLElement) {
-        active.blur()
-      }
-    }
   }, [])
 
   return (
@@ -53,19 +47,19 @@ export function ReportesClientWrapper({ categorias, estados, prioridades }: Repo
         <div>Cargando reportes...</div>
       )}
 
-      <Button
-        type="button"
-        variant="secondary"
-        size="xs"
-        onClick={() => setShowFilters((prev) => !prev)}
-        aria-label={showFilters ? "Cerrar filtros" : `Abrir filtros${activeFilters > 0 ? `, ${activeFilters} activos` : ""}`}
-        aria-expanded={showFilters}
-      >
-        {showFilters ? <X className="size-4" aria-hidden="true" /> : <SlidersHorizontal className="size-4" aria-hidden="true" />}
-        <span>{showFilters ? "Cerrar" : activeFiltersLabel}</span>
-      </Button>
-
       <Drawer open={showFilters} onOpenChange={handleDrawerOpenChange}>
+        <DrawerTrigger asChild>
+          <Button
+            type="button"
+            variant="secondary"
+            size="xs"
+            aria-label={showFilters ? "Cerrar filtros" : `Abrir filtros${activeFilters > 0 ? `, ${activeFilters} activos` : ""}`}
+            aria-expanded={showFilters}
+          >
+            {showFilters ? <X className="size-4" aria-hidden="true" /> : <SlidersHorizontal className="size-4" aria-hidden="true" />}
+            <span>{showFilters ? "Cerrar" : activeFiltersLabel}</span>
+          </Button>
+        </DrawerTrigger>
         <DrawerContent className="max-h-[85dvh]">
           <div className="flex-1 min-h-0 overflow-y-auto">
             <FiltrosReportes

@@ -3,6 +3,7 @@ import { AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent } from "@/components/ui/card"
 import { ListaReportesClient } from "@/components/lista-reportes-client"
+import { EstadoReportes } from "./estado-reportes"
 import { ReportesClientWrapper } from "./reportes-client"
 import { getCategorias, getEstados, getPrioridades, getReportCardData } from "@/database/queries/reportes/get-reportes"
 
@@ -36,7 +37,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
 
   return (
     <div className="page-shell">
-      <div className="page-container space-y-4 py-4 md:space-y-5 md:py-6">
+      <div className="page-container page-stack">
         {error && (
           <Alert variant="destructive">
             <AlertTriangle className="size-4" />
@@ -54,6 +55,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
               prioridades={prioridades ?? []}
             />
           </div>
+          <EstadoReportes searchParams={params} />
 
           {reports.length > 0 ? (
             <ListaReportesClient initialReports={reports} initialHasMore={hasMore ?? false} variant="compact" />

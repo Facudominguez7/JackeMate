@@ -8,7 +8,7 @@ import { useSearchParams } from "next/navigation"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { Drawer, DrawerContent } from "@/components/ui/drawer"
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 import { FiltrosReportes } from "@/components/filtros-reportes"
 import { LoadingLogo } from "@/components/loading-logo"
 import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
@@ -52,18 +52,13 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
 
   const handleDrawerOpenChange = useCallback((open: boolean) => {
     setShowFilters(open)
-    if (open && typeof document !== "undefined") {
-      const active = document.activeElement
-      if (active instanceof HTMLElement) {
-        active.blur()
-      }
-    }
   }, [])
 
   const mapActionLinkClassName = buttonVariants({ size: "lg", variant: "floating" })
 
   return (
-    <div className="relative h-[100dvh] min-h-[32rem] overflow-hidden bg-background">
+    <Drawer open={showFilters} onOpenChange={handleDrawerOpenChange}>
+      <div className="relative h-[100dvh] min-h-[32rem] overflow-hidden bg-background">
       <div className="absolute inset-0 z-0">
         {error ? (
           <div className="flex h-full items-center justify-center p-5">
@@ -80,37 +75,35 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
 
       <div className="pointer-events-none absolute left-3 top-3 z-30 pt-[max(env(safe-area-inset-top),0rem)] sm:left-5 sm:top-5">
         <div className="flex items-start gap-2">
-            <Button
-              type="button"
-              variant="floating"
-              size="icon-lg"
-              className="pointer-events-auto"
-            onClick={(e) => {
-              e.currentTarget.blur()
-              setShowFilters((prev) => !prev)
-            }}
-            aria-label={showFilters ? "Cerrar filtros" : "Abrir filtros"}
-            aria-expanded={showFilters}
-          >
-            {showFilters ? <X className="size-5" aria-hidden="true" /> : <SlidersHorizontal className="size-5" aria-hidden="true" />}
-          </Button>
+            <DrawerTrigger asChild>
+              <Button
+                type="button"
+                variant="floating"
+                size="icon-lg"
+                className="pointer-events-auto"
+                aria-label={showFilters ? "Cerrar filtros" : "Abrir filtros"}
+                aria-expanded={showFilters}
+              >
+                {showFilters ? <X className="size-5" aria-hidden="true" /> : <SlidersHorizontal className="size-5" aria-hidden="true" />}
+              </Button>
+            </DrawerTrigger>
           {activeFilters > 0 && !showFilters && (
-            <Button
-              type="button"
-              variant="floating"
-              size="sm"
-              className="pointer-events-auto mt-1 max-w-[11rem] text-left"
-              onClick={() => setShowFilters(true)}
-              aria-label={`Abrir filtros, ${activeFiltersLabel}`}
-            >
-              <Search className="size-3.5" aria-hidden="true" />
-              <span className="truncate">{activeFiltersLabel}</span>
-            </Button>
+            <DrawerTrigger asChild>
+              <Button
+                type="button"
+                variant="floating"
+                size="sm"
+                className="pointer-events-auto mt-1 max-w-[11rem] text-left"
+                aria-label={`Abrir filtros, ${activeFiltersLabel}`}
+              >
+                <Search className="size-3.5" aria-hidden="true" />
+                <span className="truncate">{activeFiltersLabel}</span>
+              </Button>
+            </DrawerTrigger>
           )}
         </div>
       </div>
 
-      <Drawer open={showFilters} onOpenChange={handleDrawerOpenChange}>
         <DrawerContent className="max-h-[85dvh]">
           <div className="flex-1 min-h-0 overflow-y-auto">
             <FiltrosReportes
@@ -125,7 +118,6 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
             />
           </div>
         </DrawerContent>
-      </Drawer>
 
       {isPending && (
         <div className="absolute left-1/2 top-32 z-40 -translate-x-1/2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-semibold text-foreground shadow-lg backdrop-blur">
@@ -157,6 +149,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
           {showActions ? <X className="size-6" aria-hidden="true" /> : <Plus className="size-6" aria-hidden="true" />}
         </Button>
       </div>
-    </div>
+      </div>
+    </Drawer>
   )
 }

@@ -40,14 +40,13 @@ function getRouteTitle(pathname: string): string {
 
 export function HeaderClient({ user }: HeaderClientProps) {
   const pathname = usePathname();
-  const isAppRoute = pathname === "/" || pathname.startsWith("/mapa");
 
   const bottomItems: NavItem[] = [
     { href: "/mapa", label: "Mapa", icon: Map },
     { href: "/reportes", label: "Reportes", icon: List },
     { href: "/reportes/nuevo", label: "Crear", icon: Plus },
     { href: "/comunidad", label: "Comunidad", icon: Users },
-    { href: user ? "/dashboard" : "/auth", label: user ? "Cuenta" : "Login", icon: user ? LayoutDashboard : LogIn },
+    { href: user ? "/dashboard" : "/auth", label: user ? "Cuenta" : "Ingresar", icon: user ? LayoutDashboard : LogIn },
   ];
 
   const isActive = (href: string) => {
@@ -61,22 +60,26 @@ export function HeaderClient({ user }: HeaderClientProps) {
 
   return (
     <>
-      {!isAppRoute && (
-        <header className="sticky top-0 z-40 bg-[var(--secondary)] text-[var(--secondary-foreground)]">
-          <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-5xl items-center justify-center px-4 py-1.5 sm:px-6 lg:px-8">
-            <h1 className="text-base font-semibold tracking-tight text-[var(--secondary-foreground)]">
-              {getRouteTitle(pathname)}
-            </h1>
-            {user && (
-              <form action={signout} className="absolute right-4 sm:right-6 lg:right-8">
-                <Button type="submit" variant="neutral" size="icon-sm" aria-label="Cerrar sesión">
-                  <LogOut aria-hidden="true" />
-                </Button>
-              </form>
-            )}
-          </div>
-        </header>
-      )}
+      <header className="header-curve sticky top-0 z-40 bg-secondary text-secondary-foreground shadow-sm">
+        <div className="relative mx-auto flex min-h-[4.5rem] w-full max-w-5xl items-center justify-center px-4 py-3 sm:px-6 lg:px-8">
+          <h1 className="text-base font-semibold tracking-tight text-secondary-foreground">
+            {getRouteTitle(pathname)}
+          </h1>
+          {user && (
+            <form action={signout} className="absolute right-4 sm:right-6 lg:right-8">
+              <Button
+                type="submit"
+                variant="neutral"
+                size="icon"
+                aria-label="Cerrar sesión"
+                className="border-0 bg-background text-foreground shadow-sm hover:bg-background/90 focus-visible:ring-primary focus-visible:ring-offset-secondary"
+              >
+                <LogOut aria-hidden="true" />
+              </Button>
+            </form>
+          )}
+        </div>
+      </header>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-secondary-foreground/10 bg-secondary px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 text-secondary-foreground shadow-xl">
         {bottomItems.map(({ href, label, icon: Icon }) => {

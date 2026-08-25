@@ -1,4 +1,5 @@
-import { CheckCircle2, Clock3, FileText, Medal, Users } from "lucide-react"
+import { Award, CheckCircle2, ChevronRight, Clock3, FileText, Medal, Trophy, Users } from "lucide-react"
+import Link from "next/link"
 
 import { getComunidadPageData } from "@/database/queries/comunidad"
 import { getUserInitials } from "@/lib/identity/display"
@@ -7,17 +8,18 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-const rankingVariants = ["oro", "plata", "bronce"] as const
+const rankingVariants = ["ranking-first", "ranking-second", "ranking-third"] as const
+const rankingIcons = [Trophy, Medal, Award] as const
 
 export default async function ComunidadPage() {
   const data = await getComunidadPageData()
 
   const summary = [
-    { label: "Miembros", description: "Personas registradas", value: data.members, icon: Users },
-    { label: "Reportes totales", description: "Reportes públicos", value: data.totalReports, icon: FileText },
-    { label: "Resueltos", description: "Casos solucionados", value: data.solvedReports, icon: CheckCircle2 },
-    { label: "Pendientes", description: "Casos por atender", value: data.pendingReports, icon: Clock3 },
-    { label: "En seguimiento", description: "Casos en progreso", value: data.followUpReports, icon: Medal },
+    { label: "Miembros", description: "Personas registradas", value: data.members, icon: Users, href: null },
+    { label: "Reportes totales", description: "Reportes públicos", value: data.totalReports, icon: FileText, href: "/reportes" },
+    { label: "Resueltos", description: "Casos solucionados", value: data.solvedReports, icon: CheckCircle2, href: "/reportes?estado=Reparado" },
+    { label: "Pendientes", description: "Casos por atender", value: data.pendingReports, icon: Clock3, href: "/reportes?estado=Pendiente" },
+    { label: "En seguimiento", description: "Casos en progreso", value: data.followUpReports, icon: Medal, href: "/reportes?estado=seguimiento" },
   ]
 
   const topContributors = data.contributors.slice(0, 3)
@@ -34,8 +36,8 @@ export default async function ComunidadPage() {
 
           <TabsContent value="ranking" className="space-y-2 pt-2">
             <section aria-labelledby="ranking-destacado">
-              <Card className="gap-0">
-                <CardHeader><CardTitle id="ranking-destacado">Personas que más reportan</CardTitle></CardHeader>
+              <Card className="gap-0 py-3">
+                <CardHeader className="px-4 pb-2"><CardTitle id="ranking-destacado">Personas que más reportan</CardTitle></CardHeader>
                 <CardContent className="p-0">
                   {topContributors.length === 0 ? (
                     <div className="rounded-[var(--radius)] border border-dashed p-8 text-center">
@@ -43,14 +45,22 @@ export default async function ComunidadPage() {
                       <p className="mt-2 text-sm leading-6 text-muted-foreground">Sé la primera persona en sumar un reporte público a la comunidad.</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-1 px-5 py-3 sm:gap-2">
+                    <div className="grid grid-cols-3 gap-1 py-2 sm:gap-2">
                       {topContributors.map((contributor, index) => {
                         const rank = index + 1
+                        const RankIcon = rankingIcons[index]
                         return (
                           <div key={contributor.id} className="flex min-w-0 flex-col items-center gap-1 px-1 py-1 text-center sm:px-2">
-                            <Badge variant={rankingVariants[index]} className="size-8 justify-center text-sm" aria-label={`Puesto ${rank}`}>{rank}</Badge>
-                            <p className="w-full truncate text-sm font-semibold">{contributor.username}</p>
-                            <p className="text-xs font-semibold">{contributor.points} puntos</p>
+                            <Badge
+                              variant={rankingVariants[index]}
+                              className="size-14 rounded-full border-2 border-background text-base font-bold leading-none shadow-sm sm:size-16"
+                              aria-label={`Puesto ${rank}: ${contributor.username}`}
+                            >
+                              <RankIcon className="!size-5" aria-hidden="true" />
+                              <span>{rank}</span>
+                            </Badge>
+                            <p className="w-full break-words text-sm font-semibold leading-5">{contributor.username}</p>
+                            <p className="ranking-points text-xs font-semibold">{contributor.points} puntos</p>
                           </div>
                         )
                       })}
@@ -77,7 +87,7 @@ export default async function ComunidadPage() {
                             <p className="truncate font-semibold">{contributor.username}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold">{contributor.points}</p>
+                            <p className="ranking-points font-semibold">{contributor.points}</p>
                             <p className="text-xs text-muted-foreground">puntos</p>
                           </div>
                         </div>
@@ -93,16 +103,34 @@ export default async function ComunidadPage() {
             <h2 id="resumen-comunidad" className="sr-only">Resumen de reportes de la comunidad</h2>
             <Card>
               <CardContent className="divide-y divide-border p-0">
-                {summary.map(({ label, description, value, icon: Icon }) => (
-                  <div key={label} className="flex items-center gap-3 px-5 py-3">
-                    <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">{label}</p>
-                      <p className="text-xs text-muted-foreground">{description}</p>
+                {summary.map(({ label, description, value, icon: Icon, href }) => {
+                  const content = (
+                    <>
+                      <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold">{label}</p>
+                        <p className="text-xs text-muted-foreground">{description}</p>
+                      </div>
+                      <p className="text-lg font-semibold tracking-tight">{value}</p>
+                      {href && <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+                    </>
+                  )
+
+                  return href ? (
+                    <Link
+                      key={label}
+                      href={href}
+                      aria-label={`${label}: ${description}`}
+                      className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div key={label} className="flex items-center gap-3 px-5 py-3">
+                      {content}
                     </div>
-                    <p className="text-lg font-semibold tracking-tight">{value}</p>
-                  </div>
-                ))}
+                  )
+                })}
               </CardContent>
             </Card>
           </TabsContent>

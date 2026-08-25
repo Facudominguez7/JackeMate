@@ -8,7 +8,7 @@ import {
   type TiempoPromedioResolucion,
   type ZonaConReportes,
 } from "@/database/queries/interesado"
-import { getDashboardUserReports, type DashboardUserReport } from "@/database/queries/reportes/get-reportes"
+import { getDashboardUserReports, type DashboardUserReport, type FiltrosReportes } from "@/database/queries/reportes/get-reportes"
 import { getUserRoleContext, canViewDashboard } from "@/lib/authz/roles"
 import { createClient } from "@/utils/supabase/server"
 
@@ -34,7 +34,9 @@ export type DashboardPageData = {
   zonasCalientes: ZonaConReportes[]
 }
 
-export async function getDashboardPageData(): Promise<DashboardPageData> {
+export async function getDashboardPageData(
+  filtros: Pick<FiltrosReportes, "search" | "categoria" | "estado" | "prioridad"> = {},
+): Promise<DashboardPageData> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -78,7 +80,7 @@ export async function getDashboardPageData(): Promise<DashboardPageData> {
 
   const [{ puntos }, { data: userReports }] = await Promise.all([
     getPuntosUsuario(supabase, user.id),
-    getDashboardUserReports(user.id),
+    getDashboardUserReports(user.id, filtros),
   ])
 
   return {

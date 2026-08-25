@@ -25,7 +25,7 @@
   --destructive: oklch(0.57 0.18 25);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.88 0.015 157);
-  --input: oklch(91.174% 0.00166 148.475);
+  --input: oklch(96.416% 0.00011 271.152);
   --ring: oklch(0.62 0.08 230);
 
   --radius: 0.25rem;
@@ -56,9 +56,10 @@
   --semantic-admin-soft: oklch(0.95 0.02 285);
   --semantic-admin-border: oklch(0.88 0.03 285);
 
-  --rank-gold: oklch(0.76 0.14 84);
-  --rank-silver: oklch(0.66 0.01 250);
-  --rank-bronze: oklch(0.61 0.09 50);
+  --ranking-first: oklch(0.76 0.14 84);
+  --ranking-second: oklch(0.66 0.01 250);
+  --ranking-third: oklch(0.61 0.09 50);
+  --ranking-points: var(--semantic-info);
 
   --priority-high: var(--semantic-danger);
   --priority-medium: var(--semantic-warning);
@@ -79,7 +80,7 @@
   --map-marker-foreground: var(--card);
 
   --elevation-soft: 0 10px 30px color-mix(in oklab, var(--foreground) 12%, transparent);
-  --card-shadow: 0 12px 28px color-mix(in oklab, var(--foreground) 16%, transparent);
+  --card-shadow: 7px 7px 12px color-mix(in oklab, var(--foreground) 20%, transparent);
 
   --bottom-nav-space: calc(5.75rem + env(safe-area-inset-bottom));
 
@@ -143,6 +144,10 @@
     @apply min-h-full bg-background;
   }
 
+  .header-curve {
+    border-radius: 0 0 50% 50% / 0 0 1.5rem 1.5rem;
+  }
+
   .app-main {
     min-height: 0;
     flex: 1 1 auto;
@@ -181,6 +186,10 @@
     @apply overflow-hidden rounded-[var(--radius-xl)] border border-border bg-card;
   }
 
+  .card-shadow {
+    box-shadow: var(--card-shadow);
+  }
+
   .page-hero-grid {
     @apply grid gap-6 p-6 md:gap-8 md:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:p-10;
   }
@@ -198,14 +207,6 @@
 
   .section-copy {
     @apply max-w-2xl text-sm leading-6 text-muted-foreground md:text-base;
-  }
-
-  .hero-title {
-    @apply text-balance text-4xl font-semibold leading-none tracking-[-0.05em] md:text-6xl lg:text-7xl xl:text-[5.5rem];
-  }
-
-  .hero-copy {
-    @apply max-w-2xl text-base leading-7 text-muted-foreground md:text-lg;
   }
 
   .tone-info-card {
@@ -231,6 +232,10 @@
   .tone-admin-card {
     background: var(--semantic-admin-soft);
     border-color: var(--semantic-admin-border);
+  }
+
+  .ranking-points {
+    color: var(--ranking-points);
   }
 
   .tone-success-inline {

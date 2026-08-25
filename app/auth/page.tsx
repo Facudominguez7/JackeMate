@@ -86,13 +86,9 @@ export default function AuthPage() {
                     </Button>
                   </Field>
 
-                  <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" className="size-4 rounded border-border" />
-                      Recordarme
-                    </label>
+                  <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
                     <Link href="mailto:hola@jackemate.app" className="text-primary hover:underline">
-                      Recuperar acceso
+                      ¿Olvidaste tu contraseña?
                     </Link>
                   </div>
 

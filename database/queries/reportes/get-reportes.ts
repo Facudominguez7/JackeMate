@@ -96,6 +96,8 @@ const STATE_FILTER_IDS = {
   rechazado: 3,
 } as const
 
+const FOLLOW_UP_FILTER = "seguimiento"
+
 function normalizeFilterValue(value: string) {
   return value
     .trim()
@@ -252,9 +254,13 @@ async function fetchReportes(
     query = query.eq("categoria_id", categoriaId)
   }
 
-  const estadoId = resolveLookupFilterId(STATE_FILTER_IDS, estado)
-  if (estadoId !== null) {
-    query = query.eq("estado_id", estadoId)
+  if (normalizeFilterValue(estado ?? "") === FOLLOW_UP_FILTER) {
+    query = query.not("estado_id", "in", "(1,2,3)")
+  } else {
+    const estadoId = resolveLookupFilterId(STATE_FILTER_IDS, estado)
+    if (estadoId !== null) {
+      query = query.eq("estado_id", estadoId)
+    }
   }
 
   const prioridadId = resolveLookupFilterId(PRIORITY_FILTER_IDS, prioridad)
@@ -361,35 +367,50 @@ export async function getReportMapData(filtros: FiltrosReportes = {}) {
   }
 }
 
-export async function getDashboardUserReports(userId: string) {
+export async function getDashboardUserReports(
+  userId: string,
+  filtros: Pick<FiltrosReportes, "search" | "categoria" | "estado" | "prioridad"> = {},
+) {
   const supabase = await createClient()
+  const { search, categoria, estado, prioridad } = filtros
 
-  let { data, error } = await supabase
-    .from("reportes")
-    .select(buildReportesSelect("thumbnail"))
-    .eq("usuario_id", userId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .returns<ReporteDBRaw[]>()
-
-  if (error && isMissingReportImageColumnsError(error)) {
-    ;({ data, error } = await supabase
+  const fetchDashboardReports = async (imageSelectMode: ImageSelectMode) => {
+    let query = supabase
       .from("reportes")
-      .select(buildReportesSelect("canonical"))
+      .select(buildReportesSelect(imageSelectMode))
       .eq("usuario_id", userId)
       .is("deleted_at", null)
+
+    if (search && search.trim() !== "") {
+      query = query.or(`titulo.ilike.%${search}%,descripcion.ilike.%${search}%`)
+    }
+
+    const categoriaId = resolveLookupFilterId(CATEGORY_FILTER_IDS, categoria)
+    if (categoriaId !== null) query = query.eq("categoria_id", categoriaId)
+
+    if (normalizeFilterValue(estado ?? "") === FOLLOW_UP_FILTER) {
+      query = query.not("estado_id", "in", "(1,2,3)")
+    } else {
+      const estadoId = resolveLookupFilterId(STATE_FILTER_IDS, estado)
+      if (estadoId !== null) query = query.eq("estado_id", estadoId)
+    }
+
+    const prioridadId = resolveLookupFilterId(PRIORITY_FILTER_IDS, prioridad)
+    if (prioridadId !== null) query = query.eq("prioridad_id", prioridadId)
+
+    return query
       .order("created_at", { ascending: false })
-      .returns<ReporteDBRaw[]>())
+      .returns<ReporteDBRaw[]>()
+  }
+
+  let { data, error } = await fetchDashboardReports("thumbnail")
+
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error } = await fetchDashboardReports("canonical"))
   }
 
   if (error && isMissingReportImageColumnsError(error)) {
-    ;({ data, error } = await supabase
-      .from("reportes")
-      .select(buildReportesSelect("legacy"))
-      .eq("usuario_id", userId)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .returns<ReporteDBRaw[]>())
+    ;({ data, error } = await fetchDashboardReports("legacy"))
   }
 
   if (error || !data) {
