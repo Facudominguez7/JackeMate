@@ -37,23 +37,31 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const redirectWithSupabaseCookies = (url: URL) => {
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie))
+    return response
+  }
+
+  const pathname = request.nextUrl.pathname
+
   // Define which paths require authentication
   // /reportes y /mapa son públicas para que usuarios anónimos puedan ver reportes
   // /reportes/nuevo y el detalle de reporte requieren sesión
   const protectedPaths = ['/dashboard', '/reportes/nuevo']
-  const isReportDetail = /^\/reportes\/[^/]+$/.test(request.nextUrl.pathname)
-  const isProtected = protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p)) || isReportDetail
+  const isReportDetail = /^\/reportes\/[^/]+$/.test(pathname)
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p)) || isReportDetail
 
   if (!user && isProtected) {
     // no user and trying to access a protected route -> redirect to login
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
     url.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
-    return NextResponse.redirect(url)
+    return redirectWithSupabaseCookies(url)
   }
 
   // Verificar permisos para crear reportes (solo Admin y Ciudadano)
-  if (user && request.nextUrl.pathname.startsWith('/reportes/nuevo')) {
+  if (user && pathname.startsWith('/reportes/nuevo')) {
     const { data: profileData } = await supabase
       .from('profiles')
       .select('rol_id')
@@ -68,7 +76,7 @@ export async function updateSession(request: NextRequest) {
       // Usuario autenticado pero sin permisos -> redirigir al mapa
       const url = request.nextUrl.clone()
       url.pathname = '/mapa'
-      return NextResponse.redirect(url)
+      return redirectWithSupabaseCookies(url)
     }
   }
 

@@ -11,6 +11,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 import { FiltrosReportes } from "@/components/filtros-reportes"
 import { LoadingState } from "@/components/loading-state"
+import { OnboardingModal } from "@/components/onboarding-modal"
 import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
 
 const MapContainer = dynamic(() => import("@/components/map-container").then((m) => m.MapContainer), {
@@ -59,6 +60,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
   return (
     <Drawer open={showFilters} onOpenChange={handleDrawerOpenChange}>
       <div className="relative h-[100dvh] min-h-[32rem] overflow-hidden bg-background">
+      <OnboardingModal />
       <div className="absolute inset-0 z-0">
         {error ? (
           <div className="flex h-full items-center justify-center p-5">
