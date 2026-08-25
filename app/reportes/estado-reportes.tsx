@@ -10,7 +10,7 @@ type EstadoReportesProps = {
 const statusOptions = [
   { label: "Todos", value: null },
   { label: "Resueltos", value: "Reparado" },
-  { label: "Rechazados", value: "Rechazado" },
+  { label: "Pendientes", value: "Pendiente" },
 ] as const
 
 function buildStatusHref(searchParams: Record<string, string | undefined>, value: string | null) {
@@ -39,8 +39,8 @@ export function EstadoReportes({ searchParams }: EstadoReportesProps) {
             : currentStatus === option.value.toLowerCase()
           const activeVariant = option.value === "Reparado"
             ? "reparado"
-            : option.value === "Rechazado"
-              ? "rechazado"
+            : option.value === "Pendiente"
+              ? "pendiente"
               : "secondary"
 
           return (

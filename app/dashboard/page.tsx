@@ -42,10 +42,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
               <div>
                 {data.tiempoResolucion && (
-                  <Card className="tone-admin-card border">
+                  <Card className="border-[var(--semantic-admin)]/25 bg-[var(--semantic-admin)]/10">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--semantic-admin-border)] bg-card text-[var(--semantic-admin)]">
+                        <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--semantic-admin)]/25 bg-card text-[var(--semantic-admin)]">
                           <Timer className="size-4" />
                         </div>
                         <div>

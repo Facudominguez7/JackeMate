@@ -37,24 +37,14 @@
 
   --surface-subtle: oklch(0.972 0.014 157);
   --semantic-info: oklch(0.56 0.11 240);
-  --semantic-info-soft: oklch(0.95 0.02 240);
-  --semantic-info-border: oklch(0.88 0.03 240);
 
   --semantic-success: oklch(0.57 0.12 157);
-  --semantic-success-soft: oklch(0.95 0.02 157);
-  --semantic-success-border: oklch(0.88 0.03 157);
 
   --semantic-warning: oklch(0.72 0.13 85);
-  --semantic-warning-soft: oklch(0.97 0.03 90);
-  --semantic-warning-border: oklch(0.9 0.04 90);
 
   --semantic-danger: oklch(0.57 0.18 25);
-  --semantic-danger-soft: oklch(0.96 0.02 25);
-  --semantic-danger-border: oklch(0.89 0.04 25);
 
   --semantic-admin: oklch(0.5 0.1 285);
-  --semantic-admin-soft: oklch(0.95 0.02 285);
-  --semantic-admin-border: oklch(0.88 0.03 285);
 
   --ranking-first: oklch(0.76 0.14 84);
   --ranking-second: oklch(0.66 0.01 250);
@@ -64,8 +54,6 @@
   --priority-high: var(--semantic-danger);
   --priority-medium: var(--semantic-warning);
   --priority-low: var(--semantic-info);
-  --priority-low-soft: oklch(0.96 0.002 95);
-  --priority-low-border: oklch(0.88 0.004 95);
 
   --category-accent: var(--ranking-third);
 
@@ -164,7 +152,7 @@
   }
 
   .page-container {
-    @apply mx-auto w-full max-w-[120rem] px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-[120rem] px-2 sm:px-6 lg:px-8;
   }
 
   .page-stack {
@@ -193,8 +181,8 @@
 
   .section-eyebrow {
     @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em];
-    background: var(--semantic-success-soft);
-    border-color: var(--semantic-success-border);
+    background: color-mix(in oklab, var(--semantic-success) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-success) 25%, var(--border));
     color: var(--primary);
   }
 
@@ -207,28 +195,23 @@
   }
 
   .tone-info-card {
-    background: var(--semantic-info-soft);
-    border-color: var(--semantic-info-border);
+    background: color-mix(in oklab, var(--semantic-info) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-info) 25%, var(--border));
   }
 
   .tone-success-card {
-    background: var(--semantic-success-soft);
-    border-color: var(--semantic-success-border);
+    background: color-mix(in oklab, var(--semantic-success) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-success) 25%, var(--border));
   }
 
   .tone-warning-card {
-    background: var(--semantic-warning-soft);
-    border-color: var(--semantic-warning-border);
+    background: color-mix(in oklab, var(--semantic-warning) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-warning) 25%, var(--border));
   }
 
   .tone-danger-card {
-    background: var(--semantic-danger-soft);
-    border-color: var(--semantic-danger-border);
-  }
-
-  .tone-admin-card {
-    background: var(--semantic-admin-soft);
-    border-color: var(--semantic-admin-border);
+    background: color-mix(in oklab, var(--semantic-danger) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-danger) 25%, var(--border));
   }
 
   .ranking-points {
@@ -245,29 +228,22 @@
 
   .tone-success-soft-inline {
     @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-success-soft);
-    border-color: var(--semantic-success-border);
+    background: color-mix(in oklab, var(--semantic-success) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-success) 25%, var(--border));
     color: var(--semantic-success);
   }
 
   .tone-danger-soft-inline {
     @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-danger-soft);
-    border-color: var(--semantic-danger-border);
+    background: color-mix(in oklab, var(--semantic-danger) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-danger) 25%, var(--border));
     color: var(--semantic-danger);
-  }
-
-  .tone-admin-inline {
-    @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-admin-soft);
-    border-color: var(--semantic-admin-border);
-    color: var(--semantic-admin);
   }
 
   .tone-warning-inline {
     @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-warning-soft);
-    border-color: var(--semantic-warning-border);
+    background: color-mix(in oklab, var(--semantic-warning) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-warning) 25%, var(--border));
     color: var(--semantic-warning);
   }
 

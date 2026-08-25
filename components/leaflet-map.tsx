@@ -100,70 +100,6 @@ type PopupChipTone = {
   text: string
 }
 
-const getStatusTone = (status: string): PopupChipTone => {
-  switch (status) {
-    case "Reparado":
-      return {
-        background: "var(--semantic-success-soft)",
-        border: "var(--semantic-success-border)",
-        text: "var(--semantic-success)",
-      }
-    case "Pendiente":
-      return {
-        background: "var(--semantic-warning-soft)",
-        border: "var(--semantic-warning-border)",
-        text: "var(--semantic-warning)",
-      }
-    case "Rechazado":
-      return {
-        background: "var(--semantic-danger-soft)",
-        border: "var(--semantic-danger-border)",
-        text: "var(--semantic-danger)",
-      }
-    default:
-      return {
-        background: "var(--surface-subtle)",
-        border: "var(--border)",
-        text: "var(--muted-foreground)",
-      }
-  }
-}
-
-const getPriorityTone = (priority: string): PopupChipTone => {
-  switch (priority) {
-    case "Alta":
-      return {
-        background: "var(--semantic-danger-soft)",
-        border: "var(--semantic-danger-border)",
-        text: "var(--semantic-danger)",
-      }
-    case "Media":
-      return {
-        background: "var(--semantic-warning-soft)",
-        border: "var(--semantic-warning-border)",
-        text: "var(--semantic-warning)",
-      }
-    case "Baja":
-      return {
-        background: "var(--priority-low-soft)",
-        border: "var(--priority-low-border)",
-        text: "var(--priority-low)",
-      }
-    default:
-      return {
-        background: "var(--surface-subtle)",
-        border: "var(--border)",
-        text: "var(--muted-foreground)",
-      }
-  }
-}
-
-const getCategoryTone = (): PopupChipTone => ({
-  background: "var(--semantic-info-soft)",
-  border: "var(--semantic-info-border)",
-  text: "var(--semantic-info)",
-})
-
 const createPopupChip = (label: string, tone: PopupChipTone, iconMarkup: string): string => `
   <span style="
     display:inline-flex;
@@ -203,9 +139,29 @@ const createPopupContent = (
   const truncatedDescription =
     safeDescription.length > 110 ? `${safeDescription.substring(0, 110)}...` : safeDescription
 
-  const statusTone = getStatusTone(report.status)
-  const categoryTone = getCategoryTone()
-  const priorityTone = getPriorityTone(report.priority)
+  const statusTone: PopupChipTone = {
+    background: statusColor,
+    border: "transparent",
+    text:
+      report.status === "Rechazado"
+        ? "var(--destructive-foreground)"
+        : "var(--primary-foreground)",
+  }
+  const categoryTone: PopupChipTone = {
+    background: categoryColor,
+    border: "transparent",
+    text: "var(--card)",
+  }
+  const priorityTone: PopupChipTone = {
+    background: priorityColor,
+    border: "transparent",
+    text:
+      report.priority === "Alta"
+        ? "var(--destructive-foreground)"
+        : report.priority === "Media"
+          ? "var(--foreground)"
+          : "var(--card)",
+  }
 
   return `
     <div style="min-width:250px;max-width:270px;color:var(--foreground);font-size:13px;line-height:1.45;">

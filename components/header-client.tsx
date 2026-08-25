@@ -35,7 +35,7 @@ function getRouteTitle(pathname: string): string {
   if (pathname.startsWith("/comunidad")) return "Comunidad";
   if (pathname.startsWith("/dashboard")) return "Mi cuenta";
   if (pathname.startsWith("/como-funciona")) return "Cómo funciona";
-  return "JackeMate";
+  return "Reporty";
 }
 
 export function HeaderClient({ user }: HeaderClientProps) {

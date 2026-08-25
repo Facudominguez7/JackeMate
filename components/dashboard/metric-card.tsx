@@ -23,7 +23,7 @@ const toneClasses = {
     icon: "text-[var(--semantic-danger)]",
   },
   admin: {
-    wrapper: "tone-admin-card",
+    wrapper: "border-[var(--semantic-admin)]/25 bg-[var(--semantic-admin)]/10",
     icon: "text-[var(--semantic-admin)]",
   },
 } as const

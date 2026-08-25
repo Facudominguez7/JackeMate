@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -23,6 +22,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   MapPin,
   Calendar,
@@ -134,6 +140,7 @@ export default function ReporteDetallePage({
   // Estados para controlar los AlertDialogs de Admin
   const [showAdminChangeEstadoDialog, setShowAdminChangeEstadoDialog] = useState(false);
   const [showAdminDeleteReporteDialog, setShowAdminDeleteReporteDialog] = useState(false);
+  const [showAdminPanelDialog, setShowAdminPanelDialog] = useState(false);
 
   const supabase = createClient();
 
@@ -435,96 +442,83 @@ export default function ReporteDetallePage({
             {/* Encabezado del Reporte */}
             <Card className="gap-0">
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Badge
-                        variant={getPriorityVariant(getNameFromRelation(reporte.prioridades))}
-                        className="flex items-center gap-1 text-xs"
-                      >
-                        {getPriorityIcon(getNameFromRelation(reporte.prioridades), "size-3")}
-                        {getNameFromRelation(reporte.prioridades)}
-                      </Badge>
-                      <Badge
-                        variant={getStatusVariant(getNameFromRelation(reporte.estados))}
-                        className="flex items-center gap-1 text-xs"
-                      >
-                        {getStatusIcon(getNameFromRelation(reporte.estados), "size-3")}
-                        {getNameFromRelation(reporte.estados)}
-                      </Badge>
-                      <Badge variant="category" className="flex items-center gap-1 text-xs">
-                        {getCategoryIcon(getNameFromRelation(reporte.categorias), "size-3")}
-                        {getNameFromRelation(reporte.categorias)}
-                      </Badge>
-                    </div>
-                    {/* Mostrar fecha de cambio si está Reparado o Rechazado */}
-                    {fechaCambioEstado && isReporteCerrado && (
-                        <div className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-medium ${getNameFromRelation(reporte.estados).toLowerCase() === 'reparado'
-                          ? 'tone-success-inline'
-                          : 'tone-danger-inline'
-                        }`}>
-                         <Clock className="size-3.5 shrink-0" />
-                        <span>
-                          {getNameFromRelation(reporte.estados)} el{" "}
-                          {dayjs
-                            .utc(fechaCambioEstado)
-                            .tz("America/Argentina/Buenos_Aires")
-                            .format("DD/MM/YYYY [a las] HH:mm")}
-                        </span>
-                      </div>
-                    )}
-                    <CardTitle className="text-xl font-bold tracking-tight md:text-2xl">{reporte.titulo}</CardTitle>
-                  </div>
+                <div className="flex w-full flex-wrap items-center gap-1.5">
+                  <Badge
+                    variant={getPriorityVariant(getNameFromRelation(reporte.prioridades))}
+                    className="flex items-center gap-1 text-xs"
+                  >
+                    {getPriorityIcon(getNameFromRelation(reporte.prioridades), "size-3")}
+                    {getNameFromRelation(reporte.prioridades)}
+                  </Badge>
+                  <Badge
+                    variant={getStatusVariant(getNameFromRelation(reporte.estados))}
+                    className="flex items-center gap-1 text-xs"
+                  >
+                    {getStatusIcon(getNameFromRelation(reporte.estados), "size-3")}
+                    {getNameFromRelation(reporte.estados)}
+                  </Badge>
+                  <Badge variant="category" className="flex items-center gap-1 text-xs">
+                    {getCategoryIcon(getNameFromRelation(reporte.categorias), "size-3")}
+                    {getNameFromRelation(reporte.categorias)}
+                  </Badge>
+                </div>
+                <div className="flex min-w-0 items-start gap-3">
+                  <CardTitle className="min-w-0 flex-1 break-words text-xl font-bold tracking-tight md:text-2xl">{reporte.titulo}</CardTitle>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    {currentUser && !isReporteCerrado && (
-                      <>
+                  {currentUser && !isReporteCerrado && (
+                    <>
+                      <Button
+                        variant={hasVotedReparado ? "secondary" : "default"}
+                        size="icon"
+                        className="size-8"
+                        onClick={handleVoteReparado}
+                        disabled={hasVotedReparado || isVotingReparado}
+                        aria-label={`${hasVotedReparado ? "Ya votaste que está reparado" : "Votar que está reparado"}. ${votosReparadoCount} votos`}
+                        title={`${hasVotedReparado ? "Ya votaste: reparado" : "Votar reparado"} (${votosReparadoCount} / 1)`}
+                      >
+                        <ThumbsUp className="size-4" />
+                      </Button>
+                      {currentUser.id !== reporte.usuario_id && (
                         <Button
-                          variant={hasVotedReparado ? "secondary" : "default"}
+                          variant={hasVoted ? "secondary" : "destructive"}
                           size="icon"
                           className="size-8"
-                          onClick={handleVoteReparado}
-                          disabled={hasVotedReparado || isVotingReparado}
-                          aria-label={`${hasVotedReparado ? "Ya votaste que está reparado" : "Votar que está reparado"}. ${votosReparadoCount} votos`}
-                          title={`${hasVotedReparado ? "Ya votaste: reparado" : "Votar reparado"} (${votosReparadoCount} / 1)`}
+                          onClick={handleVoteNoExiste}
+                          disabled={hasVoted || isVoting}
+                          aria-label={`${hasVoted ? "Ya votaste que no existe" : "Votar que no existe"}. ${votosCount} votos`}
+                          title={`${hasVoted ? "Ya votaste: no existe" : "Votar no existe"} (${votosCount} / 1)`}
                         >
-                          <ThumbsUp className="size-4" />
+                          <ThumbsDown className="size-4" />
                         </Button>
-                        {currentUser.id !== reporte.usuario_id && (
-                          <Button
-                            variant={hasVoted ? "secondary" : "destructive"}
-                            size="icon"
-                            className="size-8"
-                            onClick={handleVoteNoExiste}
-                            disabled={hasVoted || isVoting}
-                            aria-label={`${hasVoted ? "Ya votaste que no existe" : "Votar que no existe"}. ${votosCount} votos`}
-                            title={`${hasVoted ? "Ya votaste: no existe" : "Votar no existe"} (${votosCount} / 1)`}
-                          >
-                            <ThumbsDown className="size-4" />
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {isAdmin && (
-                      <Badge variant="admin" className="hidden sm:inline-flex">
-                        <Shield className="mr-1 size-3" />
-                        Administrador
-                      </Badge>
-                    )}
+                      )}
+                    </>
+                  )}
+                  {isAdmin && (
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      className="border-[var(--semantic-admin)]/40 text-[var(--semantic-admin)] hover:bg-[var(--semantic-admin)]/10 hover:text-[var(--semantic-admin)]"
+                      onClick={() => setShowAdminPanelDialog(true)}
+                      aria-label="Abrir herramientas de administrador"
+                      title="Herramientas de administrador"
+                    >
+                      <Shield className="size-4" />
+                    </Button>
+                  )}
 
-                    {/* Botón eliminar - solo para el creador */}
-                    {currentUser && currentUser.id === reporte.usuario_id && (
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="size-11"
-                        onClick={handleDeleteReporte}
-                        disabled={isDeleting}
-                        aria-label={isDeleting ? "Eliminando reporte" : "Eliminar reporte"}
-                        title="Eliminar reporte"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    )}
+                  {currentUser && !isAdmin && currentUser.id === reporte.usuario_id && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="size-8"
+                      onClick={handleDeleteReporte}
+                      disabled={isDeleting}
+                      aria-label={isDeleting ? "Eliminando reporte" : "Eliminar reporte"}
+                      title="Eliminar reporte"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  )}
                   </div>
                 </div>
               </CardHeader>
@@ -561,17 +555,32 @@ export default function ReporteDetallePage({
                     </Avatar>
                     <span className="truncate">Reportado por {getUsernameFromRelation(reporte.profiles)}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                 <div className="flex items-center gap-1.5">
                     <Calendar className="size-3.5 shrink-0" />
                     <span className="whitespace-nowrap">
                       {new Date(reporte.created_at).toLocaleDateString("es-AR", {
                         year: "numeric",
                         month: "short",
                         day: "numeric",
-                      })}
+                     })}
+                   </span>
+                 </div>
+               </div>
+                {fechaCambioEstado && isReporteCerrado && (
+                  <div className={`mt-3 inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-medium ${getNameFromRelation(reporte.estados).toLowerCase() === 'reparado'
+                    ? 'tone-success-inline'
+                    : 'tone-danger-inline'
+                  }`}>
+                    <Clock className="size-3.5 shrink-0" />
+                    <span>
+                      {getNameFromRelation(reporte.estados)} el{" "}
+                      {dayjs
+                        .utc(fechaCambioEstado)
+                        .tz("America/Argentina/Buenos_Aires")
+                        .format("DD/MM/YYYY [a las] HH:mm")}
                     </span>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -595,71 +604,6 @@ export default function ReporteDetallePage({
 
           {/* Barra Lateral */}
           <div className="space-y-4 lg:col-span-4">
-
-            {/* Panel de Administrador - Solo visible para admins */}
-            {isAdmin && (
-              <Card className="tone-admin-card border-2">
-                <CardHeader className="pb-3 md:pb-4 lg:pb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className="w-5 h-5 text-[var(--semantic-admin)] md:w-6 md:h-6" />
-                    <CardTitle className="text-base text-[var(--semantic-admin)] md:text-lg lg:text-xl">
-                      Panel de Administrador
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="text-xs md:text-sm">
-                    Controles exclusivos para gestionar este reporte
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-0">
-                  {/* Cambiar Estado */}
-                  <div className="space-y-2">
-                    <label className="text-xs md:text-sm font-medium text-foreground">
-                      Cambiar Estado
-                    </label>
-                    <Select value={estadoSeleccionado} onValueChange={setEstadoSeleccionado}>
-                      <SelectTrigger className="w-full text-xs md:text-sm">
-                        <SelectValue placeholder="Seleccionar estado..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {estados.map((estado) => (
-                          <SelectItem key={estado.id} value={estado.id.toString()}>
-                            {estado.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Textarea
-                      placeholder="Descripción del cambio (opcional)"
-                      value={comentarioEstado}
-                      onChange={(e) => setComentarioEstado(e.target.value)}
-                      className="min-h-[60px] text-xs md:text-sm resize-none"
-                    />
-                    <Button
-                      onClick={handleAdminChangeEstado}
-                      disabled={!estadoSeleccionado || isChangingEstado}
-                       className="w-full text-xs md:text-sm"
-                      size="sm"
-                    >
-                      <Settings className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
-                      {isChangingEstado ? "Actualizando..." : "Actualizar Estado"}
-                    </Button>
-                  </div>
-
-                  {/* Eliminar Reporte */}
-                   <div className="border-t border-[var(--semantic-admin-border)] pt-3">
-                    <Button
-                      onClick={handleAdminDeleteReporte}
-                      variant="destructive"
-                      className="w-full text-xs md:text-sm"
-                      size="sm"
-                    >
-                      <Trash2 className="w-3 h-3 md:w-4 md:h-4 mr-1.5" />
-                      Eliminar Reporte (Admin)
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Marcador de Posición del Mapa */}
             <Card>
@@ -695,6 +639,65 @@ export default function ReporteDetallePage({
           </div>
         </div>
       </div>
+
+      {isAdmin && (
+        <Dialog open={showAdminPanelDialog} onOpenChange={setShowAdminPanelDialog}>
+          <DialogContent>
+            <DialogHeader className="pr-8">
+              <DialogTitle className="flex items-center gap-2 text-[var(--semantic-admin)]">
+                <Shield className="size-5" />
+                Panel de Administrador
+              </DialogTitle>
+              <DialogDescription>
+                Controles exclusivos para gestionar este reporte
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 rounded-xl border border-border p-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Cambiar Estado</label>
+                <Select value={estadoSeleccionado} onValueChange={setEstadoSeleccionado}>
+                  <SelectTrigger className="w-full text-sm">
+                    <SelectValue placeholder="Seleccionar estado..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {estados.map((estado) => (
+                      <SelectItem key={estado.id} value={estado.id.toString()}>
+                        {estado.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Textarea
+                  placeholder="Descripción del cambio (opcional)"
+                  value={comentarioEstado}
+                  onChange={(e) => setComentarioEstado(e.target.value)}
+                  className="min-h-[60px] resize-none text-sm"
+                />
+                <Button
+                  onClick={handleAdminChangeEstado}
+                  disabled={!estadoSeleccionado || isChangingEstado}
+                  className="w-full text-sm"
+                  size="sm"
+                >
+                  <Settings className="size-4" />
+                  {isChangingEstado ? "Actualizando..." : "Actualizar Estado"}
+                </Button>
+              </div>
+              <div className="border-t border-border pt-3">
+                <Button
+                  onClick={handleAdminDeleteReporte}
+                  variant="destructive"
+                  className="w-full text-sm"
+                  size="sm"
+                >
+                  <Trash2 className="size-4" />
+                  Eliminar Reporte (Admin)
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* AlertDialog - Eliminar Reporte */}
       <AlertDialog open={showDeleteReporteDialog} onOpenChange={setShowDeleteReporteDialog}>
@@ -855,7 +858,7 @@ export default function ReporteDetallePage({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--semantic-admin-soft)] text-[var(--semantic-admin)]">
+              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--semantic-admin)]/10 text-[var(--semantic-admin)]">
                 <Shield className="size-4" aria-hidden="true" />
               </span>
               ¿Cambiar estado del reporte?
@@ -873,7 +876,11 @@ export default function ReporteDetallePage({
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-muted-foreground">Nuevo estado:</span>
-                    <Badge variant="default">
+                    <Badge
+                      variant={getStatusVariant(
+                        estados.find(e => e.id.toString() === estadoSeleccionado)?.nombre || ""
+                      )}
+                    >
                       {estados.find(e => e.id.toString() === estadoSeleccionado)?.nombre || "N/A"}
                     </Badge>
                   </div>
@@ -884,7 +891,7 @@ export default function ReporteDetallePage({
                     </div>
                   )}
                 </div>
-                <div className="tone-admin-inline rounded-xl p-3">
+                <div className="rounded-xl border border-[var(--semantic-admin)]/25 bg-[var(--semantic-admin)]/10 p-3 text-[var(--semantic-admin)]">
                   <p className="text-sm">
                     Esta acción quedará registrada en el historial del reporte.
                   </p>
@@ -920,7 +927,7 @@ export default function ReporteDetallePage({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--semantic-admin-soft)] text-[var(--semantic-admin)]">
+              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--semantic-admin)]/10 text-[var(--semantic-admin)]">
                 <Shield className="size-4" aria-hidden="true" />
               </span>
               ¿Eliminar reporte como administrador?

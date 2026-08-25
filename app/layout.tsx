@@ -6,7 +6,7 @@ import Header from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "JackeMate",
+  title: "Reporty",
   description: "Plataforma ciudadana para reportar problemas urbanos en Posadas, Misiones.",
   icons: {
     icon: [
