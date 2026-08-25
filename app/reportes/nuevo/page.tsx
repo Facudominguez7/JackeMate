@@ -24,7 +24,7 @@ import {
 import { MapPin, Camera, Send } from "lucide-react"
 import Link from "next/link"
 import { PUNTOS } from "@/database/queries/puntos"
-import { LoadingLogo } from "@/components/loading-logo"
+import { LoadingState } from "@/components/loading-state"
 import { REPORT_IMAGE_ACCEPT_ATTR } from "@/lib/media/report-images"
 import { createReportImageThumbnail, optimizeReportImage } from "@/lib/media/optimize-report-image"
 import { toast } from "sonner"
@@ -69,7 +69,7 @@ const LocationPickerMap = dynamic(
     ssr: false,
     loading: () => (
       <div className="w-full h-[400px] bg-muted rounded-md flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+        <LoadingState text="Cargando mapa..." />
       </div>
     )
   }
@@ -331,8 +331,8 @@ export default function NuevoReportePage() {
   // Mostrar mensaje de carga o error de autenticación
   if (loading) {
     return (
-      <div className="page-shell flex items-center justify-center">
-        <LoadingLogo size="lg" text="Preparando formulario..." />
+      <div className="page-shell flex flex-1 items-center justify-center">
+        <LoadingState text="Preparando formulario..." />
       </div>
     )
   }
@@ -657,25 +657,30 @@ export default function NuevoReportePage() {
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Confirmar envío del reporte?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Send className="size-4" aria-hidden="true" />
+              </span>
+              ¿Confirmar envío del reporte?
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                <p>Estás por crear un nuevo reporte con la siguiente información:</p>
-                <div className="bg-muted p-4 rounded-md space-y-2 text-sm">
+                <p>Revisá la información antes de publicar el reporte.</p>
+                <div className="space-y-2 rounded-xl border border-border/70 bg-muted/60 p-3 text-sm">
                   <div>
-                    <span className="font-semibold">Título:</span> {formData.title}
+                  <span className="font-medium text-muted-foreground">Título:</span> {formData.title}
                   </div>
                   <div>
-                    <span className="font-semibold">Categoría:</span>{" "}
+                    <span className="font-medium text-muted-foreground">Categoría:</span>{" "}
                     {categorias.find(c => c.id === parseInt(formData.category))?.nombre}
                   </div>
                   <div>
-                    <span className="font-semibold">Prioridad:</span>{" "}
+                    <span className="font-medium text-muted-foreground">Prioridad:</span>{" "}
                     {prioridades.find(p => p.id === parseInt(formData.priority))?.nombre}
                   </div>
                   {formData.images.length > 0 && (
                    <div>
-                     <span className="font-semibold">Imagen:</span> Sí
+                      <span className="font-medium text-muted-foreground">Imagen:</span> Sí
                     </div>
                   )}
                 </div>

@@ -1,12 +1,9 @@
-/**
- * Componente que muestra el estado de carga de reportes.
- *
- * @returns Un elemento JSX con el texto "Cargando reportes...".
- */
+import { LoadingState } from "@/components/loading-state"
+
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <span>Cargando reportes...</span>
+    <div className="flex min-h-screen w-full items-center justify-center bg-background">
+      <LoadingState text="Cargando reportes..." className="h-32 w-full max-w-sm" />
     </div>
   )
 }

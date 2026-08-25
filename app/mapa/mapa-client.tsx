@@ -10,14 +10,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 import { FiltrosReportes } from "@/components/filtros-reportes"
-import { LoadingLogo } from "@/components/loading-logo"
+import { LoadingState } from "@/components/loading-state"
 import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
 
 const MapContainer = dynamic(() => import("@/components/map-container").then((m) => m.MapContainer), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-background">
-      <LoadingLogo size="md" text="Cargando mapa..." />
+      <LoadingState text="Cargando mapa..." />
     </div>
   ),
 })

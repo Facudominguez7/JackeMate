@@ -67,10 +67,7 @@
   --priority-low-soft: oklch(0.96 0.002 95);
   --priority-low-border: oklch(0.88 0.004 95);
 
-  --status-pending: var(--semantic-warning);
-  --status-repaired: var(--semantic-success);
-  --status-rejected: var(--semantic-danger);
-  --category-accent: var(--semantic-info);
+  --category-accent: var(--ranking-third);
 
   --map-heat-high: var(--semantic-danger);
   --map-heat-medium: var(--semantic-warning);
@@ -239,13 +236,21 @@
   }
 
   .tone-success-inline {
+    @apply rounded-xl border border-transparent bg-primary px-3 py-2 text-primary-foreground transition-colors hover:bg-primary/90;
+  }
+
+  .tone-danger-inline {
+    @apply rounded-xl border border-transparent bg-destructive px-3 py-2 text-destructive-foreground transition-colors hover:bg-destructive/90;
+  }
+
+  .tone-success-soft-inline {
     @apply rounded-xl border px-3 py-2;
     background: var(--semantic-success-soft);
     border-color: var(--semantic-success-border);
     color: var(--semantic-success);
   }
 
-  .tone-danger-inline {
+  .tone-danger-soft-inline {
     @apply rounded-xl border px-3 py-2;
     background: var(--semantic-danger-soft);
     border-color: var(--semantic-danger-border);

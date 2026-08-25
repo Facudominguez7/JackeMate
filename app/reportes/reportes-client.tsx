@@ -5,6 +5,7 @@ import { SlidersHorizontal, X } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 
 import { FiltrosReportes } from "@/components/filtros-reportes"
+import { LoadingState } from "@/components/loading-state"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 
@@ -20,7 +21,7 @@ type ReportesClientWrapperProps = {
  * @param categorias - Array de categorías, cada elemento con `id` (número) y `nombre` (cadena).
  * @param estados - Array de estados, cada elemento con `id` (número) y `nombre` (cadena).
  * @param prioridades - Array de prioridades, cada elemento con `id` (número) y `nombre` (cadena).
- * @returns Elemento JSX que renderiza el componente de filtros y muestra "Cargando reportes..." durante la transición.
+ * @returns Elemento JSX que renderiza el componente de filtros y muestra el estado de carga durante la transición.
  */
 export function ReportesClientWrapper({ categorias, estados, prioridades }: ReportesClientWrapperProps) {
   const searchParams = useSearchParams()
@@ -44,7 +45,9 @@ export function ReportesClientWrapper({ categorias, estados, prioridades }: Repo
   return (
     <>
       {isPending && (
-        <div>Cargando reportes...</div>
+        <div className="flex min-h-12 w-full items-center justify-center">
+          <LoadingState text="Cargando reportes..." className="h-12 w-auto flex-row gap-2 px-4" />
+        </div>
       )}
 
       <Drawer open={showFilters} onOpenChange={handleDrawerOpenChange}>

@@ -12,6 +12,7 @@ import { useSearchParams } from "next/navigation"
 
 import { ReportCompactCard } from "@/components/report-compact-card"
 import { ReportCard } from "@/components/report-card"
+import { LoadingState } from "@/components/loading-state"
 import { Button } from "@/components/ui/button"
 
 export type ReportCardData = {
@@ -151,7 +152,7 @@ export function ListaReportesClient({
                             className="min-w-56"
                         >
                             {isLoading ? (
-                                "Cargando reportes..."
+                                <LoadingState text="Cargando reportes..." className="h-10 w-auto flex-row gap-2 px-4" />
                             ) : (
                                 "Cargar Más Reportes"
                             )}

@@ -117,11 +117,11 @@ export const getPriorityColor = (priority: string): string => {
 export const getStatusColor = (status: string): string => {
   switch (status) {
     case "Reparado":
-      return "var(--status-repaired)"
+      return "var(--semantic-success)"
     case "Pendiente":
-      return "var(--status-pending)"
+      return "var(--semantic-warning)"
     case "Rechazado":
-      return "var(--status-rejected)"
+      return "var(--semantic-danger)"
     default:
       return "var(--muted-foreground)"
   }
@@ -162,7 +162,7 @@ export function ReportCard({
               {getStatusIcon(estado)}
               {estado}
             </Badge>
-            <Badge variant="blue" className="gap-1">
+            <Badge variant="category" className="gap-1">
               {getCategoryIcon(categoria)}
               {categoria}
             </Badge>

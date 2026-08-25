@@ -14,7 +14,7 @@ import type { LeafletMapProps } from "@/components/leaflet-map"
 import { MousePointer2 } from "lucide-react"
 
 import { getPriorityColor } from "@/components/report-card"
-import { LoadingLogo } from "@/components/loading-logo"
+import { LoadingState } from "@/components/loading-state"
 import { useMounted } from "@/hooks/use-mounted"
 
 /**
@@ -52,7 +52,7 @@ const LeafletMap = dynamic<LeafletMapProps>(
     ssr: false,
     loading: () => (
       <div className="w-full h-full flex items-center justify-center">
-        <LoadingLogo size="md" />
+        <LoadingState text="Cargando mapa..." />
       </div>
     ),
   }
@@ -75,7 +75,7 @@ export function MapContainer({ reports, showLegend = true }: MapContainerProps) 
         <LeafletMap reports={reports} />
       ) : (
         <div className="flex h-full w-full items-center justify-center">
-          <LoadingLogo size="md" />
+          <LoadingState text="Cargando mapa..." />
         </div>
       )}
 
