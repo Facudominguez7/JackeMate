@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 
-import { LoadingLogo } from "@/components/loading-logo"
+import { LoadingState } from "@/components/loading-state"
 
 import { DialogoConfirmacionOperativa } from "@/components/cuadrillas/dialogo-confirmacion-operativa"
 import { FormularioCuadrilla } from "@/components/cuadrillas/formulario-cuadrilla"
@@ -38,9 +38,7 @@ import type { AccionOperativa } from "@/lib/use-cases/cuadrillas"
 const MapContainer = dynamic(() => import("@/components/map-container").then((m) => m.MapContainer), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center">
-      <LoadingLogo size="md" />
-    </div>
+    <LoadingState text="Cargando mapa..." />
   ),
 })
 
