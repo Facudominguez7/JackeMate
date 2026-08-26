@@ -159,17 +159,15 @@ const createPopupContent = (
       report.priority === "Alta"
         ? "var(--destructive-foreground)"
         : report.priority === "Media"
-          ? "var(--foreground)"
+          ? "var(--primary-foreground)"
           : "var(--card)",
   }
 
   return `
-    <div style="min-width:250px;max-width:270px;color:var(--foreground);font-size:13px;line-height:1.45;">
+    <a href="/reportes/${report.id}" style="display:block;min-width:250px;max-width:270px;color:var(--foreground);font-size:13px;line-height:1.45;text-decoration:none;">
       <div style="margin-bottom:10px;">
         <h3 style="margin:0 0 6px;font-size:15px;font-weight:700;line-height:1.3;color:var(--foreground);">
-          <a href="/reportes/${report.id}" style="color:var(--foreground);text-decoration:none;">
-            ${safeTitle}
-          </a>
+          ${safeTitle}
         </h3>
         <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground);">
           <span style="display:inline-flex;color:var(--primary);">${popupIcons.location}</span>
@@ -207,7 +205,7 @@ const createPopupContent = (
           <span>${safeDate}</span>
         </span>
       </div>
-    </div>
+    </a>
   `
 }
 

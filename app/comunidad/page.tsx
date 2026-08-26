@@ -19,7 +19,6 @@ export default async function ComunidadPage() {
     { label: "Reportes totales", description: "Reportes públicos", value: data.totalReports, icon: FileText, href: "/reportes" },
     { label: "Resueltos", description: "Casos solucionados", value: data.solvedReports, icon: CheckCircle2, href: "/reportes?estado=Reparado" },
     { label: "Pendientes", description: "Casos por atender", value: data.pendingReports, icon: Clock3, href: "/reportes?estado=Pendiente" },
-    { label: "En seguimiento", description: "Casos en progreso", value: data.followUpReports, icon: Medal, href: "/reportes?estado=seguimiento" },
   ]
 
   const topContributors = data.contributors.slice(0, 3)
@@ -28,11 +27,13 @@ export default async function ComunidadPage() {
   return (
     <div className="page-shell">
       <div className="page-container page-stack">
-        <Tabs defaultValue="ranking" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="ranking">Ranking</TabsTrigger>
-            <TabsTrigger value="reports">Reportes</TabsTrigger>
-          </TabsList>
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Comunidad</h2>
+          <Tabs defaultValue="ranking" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="ranking">Ranking</TabsTrigger>
+              <TabsTrigger value="reports">Reportes</TabsTrigger>
+            </TabsList>
 
           <TabsContent value="ranking" className="space-y-2 pt-2">
             <section aria-labelledby="ranking-destacado">
@@ -134,7 +135,8 @@ export default async function ComunidadPage() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </section>
       </div>
     </div>
   )

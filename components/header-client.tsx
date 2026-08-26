@@ -6,20 +6,16 @@ import {
   LayoutDashboard,
   List,
   LogIn,
-  LogOut,
   Map,
   Plus,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { signout } from "@/app/auth/actions";
+import { buttonVariants } from "@/components/ui/button";
 
 interface HeaderClientProps {
   user: User | null | undefined;
-  displayName: string;
-  userRolId: number | null;
 }
 
 type NavItem = {
@@ -28,18 +24,8 @@ type NavItem = {
   icon: LucideIcon;
 };
 
-function getRouteTitle(pathname: string): string {
-  if (pathname.startsWith("/auth")) return "Iniciar sesión";
-  if (pathname.startsWith("/reportes/nuevo")) return "Crear reporte";
-  if (pathname.startsWith("/reportes")) return "Reportes";
-  if (pathname.startsWith("/comunidad")) return "Comunidad";
-  if (pathname.startsWith("/dashboard")) return "Mi cuenta";
-  return "Reporty";
-}
-
 export function HeaderClient({ user }: HeaderClientProps) {
   const pathname = usePathname();
-  const isMapRoute = pathname === "/" || pathname.startsWith("/mapa");
   const bottomItems: NavItem[] = [
     { href: "/mapa", label: "Mapa", icon: Map },
     { href: "/reportes", label: "Reportes", icon: List },
@@ -58,30 +44,6 @@ export function HeaderClient({ user }: HeaderClientProps) {
   };
 
   return (
-    <>
-      {!isMapRoute && (
-        <header className="header-curve sticky top-0 z-40 bg-secondary/[0.87] text-secondary-foreground shadow-sm">
-          <div className="relative mx-auto flex min-h-12 w-full max-w-5xl items-center justify-center px-3 py-2 sm:px-4 lg:px-6">
-            <h1 className="text-base font-semibold tracking-tight text-secondary-foreground">
-              {getRouteTitle(pathname)}
-            </h1>
-            {user && (
-              <form action={signout} className="absolute right-4 sm:right-6 lg:right-8">
-                <Button
-                  type="submit"
-                  variant="neutral"
-                  size="icon"
-                  aria-label="Cerrar sesión"
-                  className="border-0 bg-background text-foreground shadow-sm hover:bg-background/90 focus-visible:ring-primary focus-visible:ring-offset-secondary"
-                >
-                  <LogOut aria-hidden="true" />
-                </Button>
-              </form>
-            )}
-          </div>
-        </header>
-      )}
-
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-secondary-foreground/10 bg-secondary/[0.87] px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2 text-secondary-foreground shadow-xl">
           {bottomItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);
@@ -108,6 +70,5 @@ export function HeaderClient({ user }: HeaderClientProps) {
             );
           })}
       </nav>
-    </>
   );
 }

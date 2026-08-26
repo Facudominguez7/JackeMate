@@ -124,7 +124,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   return (
     <div className="page-shell">
       <div className="page-container page-stack">
-        <section className="page-hero-panel">
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Mi cuenta</h2>
+          <section className="page-hero-panel">
           <div className="page-hero-grid lg:items-center">
             <div className="flex items-start gap-4 md:gap-6">
               <Avatar className="size-16 border border-border bg-[var(--surface-subtle)] md:size-20">
@@ -133,7 +135,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
               <div className="min-w-0 flex-1 space-y-2">
                 <div>
-                  <h1 className="section-title text-balance">{data.user.email}</h1>
+                  <h2 className="section-title text-balance">{data.user.email}</h2>
                   <p className="ranking-points mt-1 inline-flex items-center gap-1.5 text-sm font-semibold">
                     <Trophy className="size-4" aria-hidden="true" />
                     {data.puntos} puntos
@@ -142,6 +144,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </div>
             </div>
           </div>
+          </section>
         </section>
 
         <section aria-label="Resumen personal">

@@ -21,7 +21,6 @@ export type CommunityPageData = {
   totalReports: number
   solvedReports: number
   pendingReports: number
-  followUpReports: number
   contributors: CommunityContributor[]
   error: PostgrestError | null
 }
@@ -31,7 +30,6 @@ const EMPTY_DATA: CommunityPageData = {
   totalReports: 0,
   solvedReports: 0,
   pendingReports: 0,
-  followUpReports: 0,
   contributors: [],
   error: null,
 }
@@ -84,7 +82,6 @@ export async function getComunidadPageData(): Promise<CommunityPageData> {
       totalReports: statistics.totalReportes,
       solvedReports: statistics.reportesResueltos,
       pendingReports: statistics.reportesPendientes,
-      followUpReports: statistics.reportesEnProgreso,
       contributors,
       error: profilesError ?? null,
     }

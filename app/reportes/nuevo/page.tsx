@@ -395,7 +395,9 @@ export default function NuevoReportePage() {
   return (
     <div className="page-shell">
       <div className="page-container max-w-5xl space-y-6 py-6 md:space-y-8 md:py-8 lg:space-y-10 lg:py-10">
-        <Card>
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Crear reporte</h2>
+          <Card>
           <CardHeader>
             <CardTitle>Información del Problema</CardTitle>
             <CardDescription>Completa todos los campos para crear un reporte detallado</CardDescription>
@@ -650,7 +652,8 @@ export default function NuevoReportePage() {
               )}
             </form>
           </CardContent>
-        </Card>
+          </Card>
+        </section>
       </div>
 
       {/* Alert Dialog de Confirmación */}

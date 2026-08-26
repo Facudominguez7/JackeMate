@@ -52,7 +52,7 @@
   --ranking-points: var(--semantic-info);
 
   --priority-high: var(--semantic-danger);
-  --priority-medium: var(--semantic-warning);
+  --priority-medium: oklch(0.72 0.16 55);
   --priority-low: var(--semantic-info);
 
   --category-accent: var(--ranking-third);
@@ -127,10 +127,6 @@
 @layer components {
   .page-shell {
     @apply min-h-full bg-background;
-  }
-
-  .header-curve {
-    border-radius: 0 0 70% 70% / 20rem 20rem 10rem 10rem;
   }
 
   .app-main {
