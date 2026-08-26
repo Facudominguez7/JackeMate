@@ -253,20 +253,20 @@ export function PanelCuadrillas({
   return (
     <>
       <Tabs defaultValue="operacion" className="w-full">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="operacion">Asignar</TabsTrigger>
           <TabsTrigger value="intervenciones">
-            Intervenciones en curso
+            En curso
             {asignaciones.length > 0 && (
               <span className="ml-1.5 text-muted-foreground">({asignaciones.length})</span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+          <TabsTrigger value="catalogo">Nueva</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="operacion" className="mt-6 space-y-6 md:mt-8 md:space-y-8">
+        <TabsContent value="operacion" className="section-stack mt-2">
           <Card>
-            <CardContent className="space-y-4 pt-6">
+            <CardContent className="space-y-4">
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold tracking-tight">Asignar una cuadrilla</h2>
                 <p className="text-xs text-muted-foreground md:text-sm">
@@ -288,11 +288,11 @@ export function PanelCuadrillas({
                         <Label>Elegí el reporte desde el mapa</Label>
                         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1.5">
-                            <span className="size-2.5 rounded-full bg-[var(--map-heat-neutral)] ring-1 ring-black/10" />
+                            <span className="size-2.5 rounded-full bg-[var(--map-heat-neutral)] ring-1 ring-border" />
                             Sin cuadrilla
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <span className="size-2.5 rounded-full bg-[var(--semantic-admin)] ring-1 ring-black/10" />
+                            <span className="size-2.5 rounded-full bg-[var(--semantic-admin)] ring-1 ring-border" />
                             Ya asignado
                           </span>
                         </div>
@@ -368,7 +368,11 @@ export function PanelCuadrillas({
                     </div>
                   </div>
 
-                  <Button onClick={asignar} disabled={enviando || !reporteSeleccionado || !cuadrillaParaAsignar}>
+                  <Button
+                    className="w-full"
+                    onClick={asignar}
+                    disabled={enviando || !reporteSeleccionado || !cuadrillaParaAsignar}
+                  >
                     Asignar cuadrilla
                   </Button>
                 </>
@@ -378,7 +382,7 @@ export function PanelCuadrillas({
 
         </TabsContent>
 
-        <TabsContent value="intervenciones" className="mt-6 space-y-6 md:mt-8 md:space-y-8">
+        <TabsContent value="intervenciones" className="section-stack mt-2">
           {asignaciones.length === 0 ? (
             <p className="text-sm text-muted-foreground">No hay intervenciones abiertas.</p>
           ) : (
@@ -389,7 +393,7 @@ export function PanelCuadrillas({
                 la reasignacion imposible de completar sin cambiar de pestaña.
               */}
               <Card>
-                <CardContent className="space-y-2 pt-6">
+                <CardContent className="space-y-2">
                   <Label>Cuadrilla destino (para reasignar)</Label>
                   <div className="max-w-md">
                     <SelectorCuadrilla
@@ -429,10 +433,10 @@ export function PanelCuadrillas({
           )}
         </TabsContent>
 
-        <TabsContent value="catalogo" className="mt-6 space-y-6 md:mt-8 md:space-y-8">
+        <TabsContent value="catalogo" className="section-stack mt-2">
           {puedeGestionarCatalogo && (
             <Card>
-              <CardContent className="space-y-4 pt-6">
+              <CardContent className="space-y-4">
                 <div className="space-y-1">
                   <h2 className="text-lg font-semibold tracking-tight">
                     {cuadrillaEnEdicion ? "Editar cuadrilla" : "Nueva cuadrilla"}

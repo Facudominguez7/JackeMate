@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { BarChart3, Calendar, CheckCircle, Clock, FileText, Plus, Star, Timer, TrendingUp, Trophy, Users } from "lucide-react"
+import { Calendar, CheckCircle, Clock, FileText, LogOut, Plus, Star, Timer, TrendingUp, Trophy, Users } from "lucide-react"
 
 import { GraficoReportesPorCategoria, GraficoZonasCalientes, MapaCalorZonas } from "@/components/dashboard"
 import { ReportCompactCard } from "@/components/report-compact-card"
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 import { getDashboardPageData } from "@/database/queries/dashboard"
+import { signout } from "@/app/auth/actions"
 import { puedeOperarCuadrillas } from "@/lib/authz/roles"
 import { getUserInitials } from "@/lib/identity/display"
 
@@ -33,54 +34,37 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   if (data.isAnalyticsDashboard) {
     return (
       <div className="page-shell">
-        <div className="page-container page-stack">
-          <section className="page-hero-panel">
-            <div className="page-hero-grid lg:items-center">
-              <div className="section-stack">
-                <div>
-                  <h1 className="section-title text-balance">Analíticas de reportes</h1>
-                  <p className="section-copy mt-2">Una lectura breve del estado, la distribución y las zonas con mayor concentración.</p>
-                </div>
-              </div>
-
-              <div>
-                {data.tiempoResolucion && (
-                  <Card className="border-[var(--semantic-admin)]/25 bg-[var(--semantic-admin)]/10">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--semantic-admin)]/25 bg-card text-[var(--semantic-admin)]">
-                          <Timer className="size-4" />
-                        </div>
-                        <div>
-                          <p className="page-meta-label">Tiempo promedio de resolución</p>
-                          <p className="mt-1 text-xl font-semibold tracking-tight">{data.tiempoResolucion.diasPromedio} días</p>
-                          <p className="text-xs text-muted-foreground">≈ {data.tiempoResolucion.horasPromedio} horas entre apertura y cierre.</p>
-                        </div>
+        <div className="page-container space-y-4 py-2 md:space-y-6 md:py-8 lg:space-y-8 lg:py-10">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">Analíticas de reportes</h2>
+            <div className="grid gap-3 md:grid-cols-2">
+              {data.tiempoResolucion && (
+                <Card className="border-[var(--semantic-admin)]/25 bg-[var(--semantic-admin)]/10">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--semantic-admin)]/25 bg-card text-[var(--semantic-admin)]">
+                        <Timer className="size-4" />
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-                <Button size="lg" className="justify-between" asChild>
-                  <Link href="/mapa">
+                      <div>
+                        <p className="page-meta-label">Tiempo promedio de resolución</p>
+                        <p className="mt-1 text-xl font-semibold tracking-tight">{data.tiempoResolucion.diasPromedio} días</p>
+                        <p className="text-xs text-muted-foreground">≈ {data.tiempoResolucion.horasPromedio} horas entre apertura y cierre.</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {puedeOperarCuadrillas(data.roleId) && (
+                <Button size="lg" variant="secondary" className="w-full justify-between" asChild>
+                  <Link href="/dashboard/cuadrillas">
                     <span className="flex items-center gap-2">
-                      <BarChart3 className="size-4" />
-                      Abrir mapa general
+                      <Users className="size-4" />
+                      Gestionar cuadrillas
                     </span>
                     <TrendingUp className="size-4" />
                   </Link>
                 </Button>
-                {puedeOperarCuadrillas(data.roleId) && (
-                  <Button size="lg" variant="outline" className="justify-between" asChild>
-                    <Link href="/dashboard/cuadrillas">
-                      <span className="flex items-center gap-2">
-                        <Users className="size-4" />
-                        Gestionar cuadrillas
-                      </span>
-                      <TrendingUp className="size-4" />
-                    </Link>
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </section>
 
@@ -148,7 +132,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <div className="page-shell">
       <div className="page-container page-stack">
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">Mi cuenta</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">Mi cuenta</h2>
+            <form action={signout}>
+              <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground">
+                <LogOut className="size-3.5" aria-hidden="true" />
+                Cerrar sesión
+              </Button>
+            </form>
+          </div>
           <section className="page-hero-panel">
           <div className="page-hero-grid lg:items-center">
             <div className="flex items-start gap-4 md:gap-6">
@@ -158,7 +150,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
               <div className="min-w-0 flex-1 space-y-2">
                 <div>
-                  <h2 className="section-title text-balance">{data.user.email}</h2>
+                  <h2 className="max-w-full break-all text-base font-semibold leading-tight tracking-tight sm:text-lg md:text-xl">
+                    {data.user.email}
+                  </h2>
                   <p className="ranking-points mt-1 inline-flex items-center gap-1.5 text-sm font-semibold">
                     <Trophy className="size-4" aria-hidden="true" />
                     {data.puntos} puntos

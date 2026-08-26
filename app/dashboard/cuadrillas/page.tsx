@@ -90,21 +90,19 @@ export default async function CuadrillasPage() {
   return (
     <div className="page-shell">
       <div className="page-container page-stack">
-        {/*
-          Sin encabezado ni tarjetas de métricas: esta es una pantalla de trabajo y el operador
-          entra directo a operar. El titulo y los contadores solo empujaban el mapa fuera de la
-          primera pantalla, obligando a hacer scroll antes de poder hacer nada.
-        */}
-        <PanelCuadrillas
-          cuadrillas={cuadrillas}
-          abiertasPorCuadrilla={Object.fromEntries(abiertasPorCuadrilla)}
-          asignaciones={asignaciones}
-          accionesPorAsignacion={accionesPorAsignacion}
-          reportesAsignables={reportesAsignables}
-          reportesEnMapa={reportesEnMapa}
-          cuadrillasOcupadas={cuadrillasOcupadas}
-          puedeGestionarCatalogo={puedeGestionarCuadrillas(roleId)}
-        />
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Gestionar cuadrillas</h2>
+          <PanelCuadrillas
+            cuadrillas={cuadrillas}
+            abiertasPorCuadrilla={Object.fromEntries(abiertasPorCuadrilla)}
+            asignaciones={asignaciones}
+            accionesPorAsignacion={accionesPorAsignacion}
+            reportesAsignables={reportesAsignables}
+            reportesEnMapa={reportesEnMapa}
+            cuadrillasOcupadas={cuadrillasOcupadas}
+            puedeGestionarCatalogo={puedeGestionarCuadrillas(roleId)}
+          />
+        </section>
       </div>
     </div>
   )

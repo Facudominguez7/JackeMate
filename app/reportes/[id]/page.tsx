@@ -689,19 +689,19 @@ export default function ReporteDetallePage({
               (gestionOperativa.puedeOperar ||
                 gestionOperativa.estadoOperativo !== null ||
                 gestionOperativa.eventos.length > 0) && (
-                <Card>
-                  <CardHeader className="pb-3 md:pb-4 lg:pb-6">
+                <Card className="gap-0">
+                  <CardHeader className="gap-2 p-5 md:p-6 md:pb-5">
                     <div className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-muted-foreground md:w-6 md:h-6" />
-                      <CardTitle className="text-base md:text-lg lg:text-xl">Seguimiento de la cuadrilla</CardTitle>
+                      <Users className="size-5 text-muted-foreground md:size-6" />
+                      <CardTitle className="text-lg font-semibold tracking-tight">Seguimiento de la cuadrilla</CardTitle>
                     </div>
-                    <CardDescription className="text-xs md:text-sm">
+                    <CardDescription className="text-sm leading-6">
                       {gestionOperativa.puedeOperar
                         ? "Estado de la cuadrilla asignada y su historial de intervención en este reporte"
                         : "Seguimiento de la cuadrilla asignada a este reporte"}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4 pt-0">
+                  <CardContent className="section-stack">
                     <div>
                       {gestionOperativa.estadoOperativo ? (
                         <ChipEstadoOperativo
