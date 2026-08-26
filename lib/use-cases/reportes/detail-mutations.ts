@@ -134,9 +134,17 @@ async function getReportImageRows(
 ): Promise<ReportImageStorageRow[]> {
   let { data, error } = await supabase
     .from("fotos_reporte")
-    .select("url, bucket, path")
+    .select("url, bucket, path, thumbnail_url, thumbnail_bucket, thumbnail_path")
     .eq("reporte_id", reporteId)
     .returns<ReportImageStorageRow[]>()
+
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error } = await supabase
+      .from("fotos_reporte")
+      .select("url, bucket, path")
+      .eq("reporte_id", reporteId)
+      .returns<ReportImageStorageRow[]>())
+  }
 
   if (error && isMissingReportImageColumnsError(error)) {
     ;({ data, error } = await supabase

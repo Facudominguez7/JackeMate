@@ -9,10 +9,13 @@
 
 import { useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
+
+import { ReportCompactCard } from "@/components/report-compact-card"
 import { ReportCard } from "@/components/report-card"
 import { Loader2 } from "lucide-react"
 import type { EstadoOperativo } from "@/lib/authz/catalog"
+import { LoadingState } from "@/components/loading-state"
+import { Button } from "@/components/ui/button"
 
 export type ReportCardData = {
     id: number
@@ -27,11 +30,13 @@ export type ReportCardData = {
     image: string | null
     estadoOperativo?: EstadoOperativo | null
     cuadrillaNombre?: string | null
+    thumbnailImage: string | null
 }
 
 type ListaReportesClientProps = {
     initialReports: ReportCardData[]
     initialHasMore: boolean
+    variant?: "default" | "compact"
 }
 
 /**
@@ -42,7 +47,8 @@ type ListaReportesClientProps = {
  */
 export function ListaReportesClient({
     initialReports,
-    initialHasMore
+    initialHasMore,
+    variant = "default"
 }: ListaReportesClientProps) {
     const searchParams = useSearchParams()
     const [reports, setReports] = useState<ReportCardData[]>(initialReports)
@@ -107,42 +113,52 @@ export function ListaReportesClient({
     return (
         <>
             {reports.length > 0 && (
-                <div className="grid grid-cols-1 gap-5 min-w-0 md:grid-cols-2 xl:grid-cols-3">
+                <div className={variant === "compact" ? "grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2"}>
                     {reports.map((report) => (
-                        <ReportCard
-                            key={report.id}
-                            id={report.id}
-                            titulo={report.title}
-                            descripcion={report.description}
-                            categoria={report.category}
-                            prioridad={report.priority}
-                            estado={report.status}
-                            imageUrl={report.image}
-                            createdAt={report.createdAt}
-                            autor={report.author}
-                            estadoOperativo={report.estadoOperativo}
-                            cuadrillaNombre={report.cuadrillaNombre}
-                        />
+                        variant === "compact" ? (
+                             <ReportCompactCard
+                                 key={report.id}
+                                 id={report.id}
+                                 title={report.title}
+                                 description={report.description}
+                                 priority={report.priority}
+                                 status={report.status}
+                                 createdAt={report.createdAt}
+                                 image={report.thumbnailImage ?? report.image}
+                             />
+                        ) : (
+                            <ReportCard
+                                key={report.id}
+                                id={report.id}
+                                titulo={report.title}
+                                descripcion={report.description}
+                                categoria={report.category}
+                                prioridad={report.priority}
+                                estado={report.status}
+                                imageUrl={report.image}
+                                createdAt={report.createdAt}
+                                autor={report.author}
+                                estadoOperativo={report.estadoOperativo}
+                                cuadrillaNombre={report.cuadrillaNombre}
+                            />
+                        )
                     ))}
                 </div>
             )}
 
             {/* Botón para cargar más reportes */}
             {reports.length > 0 && (
-                <div className="mt-10 flex justify-center">
+                <div className={variant === "compact" ? "mt-6 flex justify-center" : "mt-10 flex justify-center"}>
                     {hasMore ? (
                         <Button
-                            variant="outline"
+                            variant="default"
                             size="lg"
                             onClick={cargarMas}
                             disabled={isLoading}
                             className="min-w-56"
                         >
                             {isLoading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Cargando...
-                                </>
+                                <LoadingState text="Cargando reportes..." className="h-10 w-auto flex-row gap-2 px-4" />
                             ) : (
                                 "Cargar Más Reportes"
                             )}

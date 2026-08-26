@@ -8,12 +8,18 @@ export const REPORT_IMAGE_MAX_DIMENSION = 1536
 export const REPORT_IMAGE_OUTPUT_TYPE = "image/webp" as const
 export const REPORT_IMAGE_OUTPUT_EXTENSION = "webp" as const
 export const REPORT_IMAGE_OUTPUT_QUALITY = 0.82
+export const REPORT_IMAGE_THUMBNAIL_MAX_DIMENSION = 384
+export const REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE = "image/webp" as const
+export const REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION = "webp" as const
+export const REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY = 0.74
 export const REPORT_IMAGE_FALLBACK_OUTPUT_TYPE = "image/jpeg" as const
 export const REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION = "jpg" as const
 export const REPORT_IMAGE_FALLBACK_OUTPUT_QUALITY = 0.8
 export const REPORT_IMAGE_MIN_QUALITY = 0.68
 export const REPORT_IMAGE_MAX_BYTES = Math.floor(2.5 * 1024 * 1024)
 export const REPORT_IMAGE_MAX_SOURCE_BYTES = 15 * 1024 * 1024
+export const REPORT_IMAGE_THUMBNAIL_MAX_BYTES = 512 * 1024
+export const REPORT_IMAGE_MAX_BYTES_LABEL = "2.5 MB"
 
 export type ReportImageRef = {
   bucket: ReportImageBucket
@@ -25,10 +31,14 @@ export type ReportImageRow = {
   url?: string | null
   bucket?: string | null
   path?: string | null
+  thumbnail_url?: string | null
+  thumbnail_bucket?: string | null
+  thumbnail_path?: string | null
 }
 
 export type ResolvedReportImageRow<T extends ReportImageRow = ReportImageRow> = T & {
   publicUrl: string | null
+  thumbnailPublicUrl: string | null
 }
 
 const STORAGE_OBJECT_PATH_REGEX = /^\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/
@@ -123,6 +133,27 @@ export function normalizeReportImageRef(image: ReportImageRow | null | undefined
   return parseLegacyReportImageUrl(image.url)
 }
 
+export function normalizeReportImageThumbnailRef(image: ReportImageRow | null | undefined): ReportImageRef | null {
+  if (!image) {
+    return null
+  }
+
+  if (image.thumbnail_bucket === REPORT_BUCKET && image.thumbnail_path) {
+    const storageRef = parseReportImageStorageReference(image.thumbnail_path)
+
+    if (!storageRef) {
+      return null
+    }
+
+    return {
+      ...storageRef,
+      publicUrl: image.thumbnail_url ?? null,
+    }
+  }
+
+  return parseLegacyReportImageUrl(image.thumbnail_url)
+}
+
 export function resolveReportImageUrl(image: ReportImageRow | null | undefined) {
   const normalizedImage = normalizeReportImageRef(image)
 
@@ -133,10 +164,21 @@ export function resolveReportImageUrl(image: ReportImageRow | null | undefined) 
   return buildReportImagePublicUrl(normalizedImage) ?? normalizedImage.publicUrl ?? null
 }
 
+export function resolveReportImageThumbnailUrl(image: ReportImageRow | null | undefined) {
+  const normalizedImage = normalizeReportImageThumbnailRef(image)
+
+  if (!normalizedImage) {
+    return image?.thumbnail_url ?? null
+  }
+
+  return buildReportImagePublicUrl(normalizedImage) ?? normalizedImage.publicUrl ?? null
+}
+
 export function resolveReportImageRows<T extends ReportImageRow>(images: T[] | null | undefined): ResolvedReportImageRow<T>[] {
   return (images ?? []).map((image) => ({
     ...image,
     publicUrl: resolveReportImageUrl(image),
+    thumbnailPublicUrl: resolveReportImageThumbnailUrl(image),
   }))
 }
 
@@ -144,17 +186,27 @@ export function getPrimaryReportImageUrl(images: ReportImageRow[] | null | undef
   return resolveReportImageRows(images)[0]?.publicUrl ?? null
 }
 
+export function getPrimaryReportThumbnailUrl(images: ReportImageRow[] | null | undefined) {
+  return resolveReportImageRows(images)[0]?.thumbnailPublicUrl ?? null
+}
+
+export function getPreferredReportListingImageUrl(images: ReportImageRow[] | null | undefined) {
+  const [primaryImage] = resolveReportImageRows(images)
+
+  return primaryImage?.thumbnailPublicUrl ?? primaryImage?.publicUrl ?? primaryImage?.thumbnail_url ?? primaryImage?.url ?? null
+}
+
 export function getReportImageStorageRefs(images: ReportImageRow[] | null | undefined) {
   const uniqueRefs = new Map<string, ReportImageRef>()
 
   for (const image of images ?? []) {
-    const ref = normalizeReportImageRef(image)
+    for (const ref of [normalizeReportImageRef(image), normalizeReportImageThumbnailRef(image)]) {
+      if (!ref?.path) {
+        continue
+      }
 
-    if (!ref?.path) {
-      continue
+      uniqueRefs.set(`${ref.bucket}/${ref.path}`, ref)
     }
-
-    uniqueRefs.set(`${ref.bucket}/${ref.path}`, ref)
   }
 
   return Array.from(uniqueRefs.values())
@@ -163,7 +215,7 @@ export function getReportImageStorageRefs(images: ReportImageRow[] | null | unde
 export function isMissingReportImageColumnsError(error: { message?: string; details?: string } | null | undefined) {
   const message = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase()
 
-  return message.includes("bucket") || message.includes("path")
+  return message.includes("bucket") || message.includes("path") || message.includes("thumbnail")
 }
 
 export function isAcceptedReportImageType(type: string | null | undefined): type is (typeof REPORT_IMAGE_ACCEPTED_TYPES)[number] {

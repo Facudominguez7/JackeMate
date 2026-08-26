@@ -67,7 +67,7 @@ export async function sendCommentNotificationEmail({
   const safeComment = escapeHtml(comentarioContenido);
 
   return resend.emails.send({
-    from: "JackeMate <team@notificaciones.octavioduarte.com.ar>",
+    from: "Reporty <team@notificaciones.octavioduarte.com.ar>",
     to: [ownerEmail],
     subject: `Nuevo comentario en tu reporte: ${reporteTitulo}`,
     html: `
@@ -80,7 +80,7 @@ export async function sendCommentNotificationEmail({
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
           <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 35px 30px; border-radius: 12px 12px 0 0; text-align: center; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);">
-            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">JackeMate</h1>
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">Reporty</h1>
             <p style="color: rgba(255,255,255,0.95); margin: 10px 0 0 0; font-size: 14px; font-weight: 500;">Sistema de Reportes Ciudadanos</p>
           </div>
 
@@ -116,7 +116,7 @@ export async function sendCommentNotificationEmail({
           </div>
 
           <div style="text-align: center; margin-top: 25px; padding: 25px 20px; color: #999; font-size: 12px; background: white; border-radius: 8px; border: 1px solid #e5e5e5;">
-            <p style="margin: 0 0 8px 0; font-weight: 600; color: #666;">© ${new Date().getFullYear()} JackeMate. Todos los derechos reservados.</p>
+            <p style="margin: 0 0 8px 0; font-weight: 600; color: #666;">© ${new Date().getFullYear()} Reporty. Todos los derechos reservados.</p>
             <p style="margin: 0; color: #999;">Sistema de reportes ciudadanos para una comunidad mejor 🌱</p>
           </div>
         </body>
@@ -150,7 +150,7 @@ export async function sendStatusNotificationEmail({
     : 'Lamentamos informarte que tu reporte no cumplió con los criterios de validación o fue marcado como "No Existe" por otros usuarios.';
 
   return resend.emails.send({
-    from: "JackeMate <team@notificaciones.octavioduarte.com.ar>",
+    from: "Reporty <team@notificaciones.octavioduarte.com.ar>",
     to: [ownerEmail],
     subject: `${estadoEmoji} Tu reporte "${reporteTitulo}" cambió de estado`,
     html: `
@@ -163,7 +163,7 @@ export async function sendStatusNotificationEmail({
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
           <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 35px 30px; border-radius: 12px 12px 0 0; text-align: center; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);">
-            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">JackeMate</h1>
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">Reporty</h1>
             <p style="color: rgba(255,255,255,0.95); margin: 10px 0 0 0; font-size: 14px; font-weight: 500;">Sistema de Reportes Ciudadanos</p>
           </div>
 
@@ -219,7 +219,7 @@ export async function sendStatusNotificationEmail({
           </div>
 
           <div style="text-align: center; margin-top: 25px; padding: 25px 20px; color: #999; font-size: 12px; background: white; border-radius: 8px; border: 1px solid #e5e5e5;">
-            <p style="margin: 0 0 8px 0; font-weight: 600; color: #666;">© ${new Date().getFullYear()} JackeMate. Todos los derechos reservados.</p>
+            <p style="margin: 0 0 8px 0; font-weight: 600; color: #666;">© ${new Date().getFullYear()} Reporty. Todos los derechos reservados.</p>
             <p style="margin: 0; color: #999;">Sistema de reportes ciudadanos para una comunidad mejor 🌱</p>
           </div>
         </body>

@@ -11,9 +11,11 @@
 
 import dynamic from "next/dynamic"
 import type { LeafletMapProps } from "@/components/leaflet-map"
+import { MousePointer2 } from "lucide-react"
+
 import { getPriorityColor } from "@/components/report-card"
-import { LoadingLogo } from "@/components/loading-logo"
 import type { EstadoOperativo } from "@/lib/authz/catalog"
+import { LoadingState } from "@/components/loading-state"
 
 /**
  * Interfaz que representa un reporte con sus datos para visualizar en el mapa
@@ -54,7 +56,7 @@ const LeafletMap = dynamic<LeafletMapProps>(
     ssr: false,
     loading: () => (
       <div className="w-full h-full flex items-center justify-center">
-        <LoadingLogo size="md" />
+        <LoadingState text="Cargando mapa..." />
       </div>
     ),
   }
@@ -75,8 +77,8 @@ export function MapContainer({ reports, showLegend = true, onSeleccionarReporte 
 
       {/* Leyenda de colores flotante - Ajustada para mobile */}
       {showLegend && (
-        <div className="map-legend-card absolute bottom-16 left-2 z-[1000] max-w-[140px] sm:bottom-6 md:left-4 md:max-w-[160px]">
-          <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3">Leyenda</h4>
+        <div className="map-legend-card absolute bottom-[calc(6.75rem+env(safe-area-inset-bottom))] left-3 z-10 max-w-[140px] sm:left-5 md:max-w-[160px]">
+          <h4 className="font-semibold text-xs md:text-sm mb-2 md:mb-3">Prioridad</h4>
           <div className="space-y-1.5 md:space-y-2">
             <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs">
               <div 
@@ -104,9 +106,9 @@ export function MapContainer({ reports, showLegend = true, onSeleccionarReporte 
       )}
 
       {/* Instrucciones de uso del mapa - Oculta en mobile para no saturar */}
-      <div className="map-legend-card absolute right-4 top-4 hidden max-w-xs z-[1000] md:block">
+      <div className="map-legend-card absolute right-5 top-28 hidden max-w-xs z-10 md:block">
         <p className="text-xs text-muted-foreground flex items-center gap-2">
-          <span className="text-base">💡</span>
+          <MousePointer2 className="size-4" aria-hidden="true" />
           <span>Haz clic en los marcadores para ver detalles</span>
         </p>
       </div>

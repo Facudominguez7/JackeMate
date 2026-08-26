@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { LoadingState } from "@/components/loading-state"
 import { ZonaConReportes } from "@/database/queries/interesado"
 import { MapPin, ChevronDown, ChevronUp } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -168,10 +169,7 @@ const MapaDinamico = dynamic(
   () => Promise.resolve(MapaCalorInterno),
   { ssr: false, loading: () => (
     <div style={{ height: "400px", width: "100%" }} className="flex items-center justify-center bg-muted rounded-lg">
-      <div className="text-center">
-        <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-2 animate-pulse" />
-        <p className="text-sm text-muted-foreground">Cargando mapa...</p>
-      </div>
+      <LoadingState text="Cargando mapa..." className="h-full w-full" />
     </div>
   )}
 )

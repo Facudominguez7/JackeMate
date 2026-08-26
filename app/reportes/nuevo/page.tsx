@@ -21,12 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Camera, ArrowLeft, Send } from "lucide-react"
+import { MapPin, Camera, Send } from "lucide-react"
 import Link from "next/link"
 import { PUNTOS } from "@/database/queries/puntos"
-import { LoadingLogo } from "@/components/loading-logo"
+import { LoadingState } from "@/components/loading-state"
 import { REPORT_IMAGE_ACCEPT_ATTR } from "@/lib/media/report-images"
-import { optimizeReportImage } from "@/lib/media/optimize-report-image"
+import { createReportImageThumbnail, optimizeReportImage } from "@/lib/media/optimize-report-image"
 import { toast } from "sonner"
 import { 
   getCategorias, 
@@ -37,6 +37,30 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { useMounted } from "@/hooks/use-mounted"
 import dynamic from "next/dynamic"
 import { crearReporteAction } from "./actions"
+import { getCategoryIcon, getPriorityIcon } from "@/components/report-card"
+
+const getPriorityTone = (priority: string) => {
+  const normalizedPriority = priority
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+  if (normalizedPriority.includes("alta") || normalizedPriority.includes("high")) {
+    return "high" as const
+  }
+
+  if (normalizedPriority.includes("media") || normalizedPriority.includes("medium")) {
+    return "medium" as const
+  }
+
+  return "low" as const
+}
+
+const priorityToneClasses = {
+  high: "bg-priority-high text-card",
+  medium: "bg-priority-medium text-foreground",
+  low: "bg-priority-low text-card",
+} as const
 
 // Cargar el mapa dinámicamente solo en el cliente
 const LocationPickerMap = dynamic(
@@ -44,8 +68,8 @@ const LocationPickerMap = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="w-full h-[400px] bg-muted rounded-lg flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+      <div className="w-full h-[400px] bg-muted rounded-md flex items-center justify-center">
+        <LoadingState text="Cargando mapa..." />
       </div>
     )
   }
@@ -69,6 +93,7 @@ export default function NuevoReportePage() {
     category: "",
     priority: "",
     images: [] as File[],
+    imageThumbnail: null as File | null,
     lat: null as number | null,
     lon: null as number | null,
   })
@@ -169,10 +194,12 @@ export default function NuevoReportePage() {
 
     try {
       const optimizedImage = await optimizeReportImage(selectedFile)
+      const thumbnailImage = await createReportImageThumbnail(optimizedImage.file)
 
       setFormData((prev) => ({
         ...prev,
         images: [optimizedImage.file],
+        imageThumbnail: thumbnailImage,
       }))
 
     } catch (error) {
@@ -185,6 +212,7 @@ export default function NuevoReportePage() {
       setFormData((prev) => ({
         ...prev,
         images: [],
+        imageThumbnail: null,
       }))
     } finally {
       e.target.value = ""
@@ -196,6 +224,7 @@ export default function NuevoReportePage() {
     setFormData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
+      imageThumbnail: index === 0 ? null : prev.imageThumbnail,
     }))
   }
 
@@ -258,6 +287,10 @@ export default function NuevoReportePage() {
         payload.set("image", formData.images[0])
       }
 
+      if (formData.imageThumbnail) {
+        payload.set("imageThumbnail", formData.imageThumbnail)
+      }
+
       const result = await crearReporteAction(payload)
 
       if (!result.success) {
@@ -298,8 +331,8 @@ export default function NuevoReportePage() {
   // Mostrar mensaje de carga o error de autenticación
   if (loading) {
     return (
-      <div className="page-shell flex items-center justify-center">
-        <LoadingLogo size="lg" text="Preparando formulario..." />
+      <div className="page-shell flex flex-1 items-center justify-center">
+        <LoadingState text="Preparando formulario..." />
       </div>
     )
   }
@@ -362,16 +395,9 @@ export default function NuevoReportePage() {
   return (
     <div className="page-shell">
       <div className="page-container max-w-5xl space-y-6 py-6 md:space-y-8 md:py-8 lg:space-y-10 lg:py-10">
-        <div>
-          <Button variant="outline" asChild>
-            <Link href="/reportes">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver a reportes
-            </Link>
-          </Button>
-        </div>
-
-        <Card>
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Crear reporte</h2>
+          <Card>
           <CardHeader>
             <CardTitle>Información del Problema</CardTitle>
             <CardDescription>Completa todos los campos para crear un reporte detallado</CardDescription>
@@ -419,50 +445,68 @@ export default function NuevoReportePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 w-full">
                   <Label>Categoría *</Label>
-                  <div className="w-full">
-                    <Select
-                      disabled={loading}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
-                    >
+                  <Select
+                    disabled={loading}
+                    value={formData.category}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                  >
                     <SelectTrigger className="w-full">
-                        <SelectValue placeholder={categorias.length > 0 ? "Selecciona una categoría" : "Cargando categorías..."} />
-                      </SelectTrigger>
-                      <SelectContent className="w-full">
-                        {categorias.map((categoria) => (
-                          <SelectItem key={categoria.id} value={categoria.id.toString()}>
+                      <SelectValue placeholder={categorias.length > 0 ? "Selecciona una categoría" : "Cargando categorías..."} />
+                    </SelectTrigger>
+                    <SelectContent className="w-full">
+                      {categorias.map((categoria) => (
+                        <SelectItem key={categoria.id} value={categoria.id.toString()}>
+                          <span className="inline-flex items-center gap-2">
+                            {getCategoryIcon(categoria.nombre, "size-4")}
                             {categoria.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formData.category === "" && (
-                      <p className="text-xs text-destructive">Seleccioná una categoría.</p>
-                    )}
-                  </div>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.category === "" && (
+                    <p className="text-xs font-medium text-destructive">Seleccioná una categoría.</p>
+                  )}
                 </div>
 
                 <div className="space-y-2 w-full">
-                  <Label>Prioridad *</Label>
-                  <div className="w-full">
-                    <Select
-                      disabled={loading}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, priority: value }))}
-                    >
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder={prioridades.length > 0 ? "Nivel de urgencia" : "Cargando prioridades..."} />
-                      </SelectTrigger>
-                      <SelectContent className="w-full">
-                        {prioridades.map((prioridad) => (
-                          <SelectItem key={prioridad.id} value={prioridad.id.toString()}>
+                  <Label id="priority-label">Prioridad *</Label>
+                  <div
+                    role="group"
+                    aria-labelledby="priority-label"
+                    aria-busy={loading}
+                    className="flex w-full flex-row overflow-hidden rounded-full border border-border bg-card"
+                  >
+                    {prioridades.length > 0 ? (
+                      prioridades.map((prioridad, index) => {
+                        const tone = getPriorityTone(prioridad.nombre)
+                        const isSelected = formData.priority === prioridad.id.toString()
+
+                        return (
+                          <button
+                            key={prioridad.id}
+                            type="button"
+                            disabled={loading}
+                            aria-pressed={isSelected}
+                            onClick={() => setFormData((prev) => ({ ...prev, priority: prioridad.id.toString() }))}
+                            className={`flex min-h-11 min-w-0 flex-1 basis-0 items-center justify-center gap-1.5 whitespace-nowrap border-border px-2 py-2 text-xs font-semibold transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:gap-2 sm:px-3 sm:text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
+                              index > 0 ? "border-l" : ""
+                            } ${isSelected ? priorityToneClasses[tone] : "bg-card text-card-foreground hover:bg-background"}`}
+                          >
+                            {getPriorityIcon(prioridad.nombre, "size-4")}
                             {prioridad.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formData.priority === "" && (
-                      <p className="text-xs text-destructive">Seleccioná una prioridad.</p>
+                          </button>
+                        )
+                      })
+                    ) : (
+                      <span className="flex min-h-11 w-full items-center justify-center px-3 py-2 text-sm text-muted-foreground">
+                        Cargando prioridades...
+                      </span>
                     )}
                   </div>
+                  {formData.priority === "" && (
+                    <p className="text-xs font-medium text-destructive">Seleccioná una prioridad.</p>
+                  )}
                 </div>
               </div>
 
@@ -520,9 +564,9 @@ export default function NuevoReportePage() {
               {/* Image Upload */}
               <div className="space-y-4">
                 <Label>Fotografía</Label>
-                <div className="rounded-[var(--radius-lg)] border border-dashed border-border bg-[var(--surface-subtle)] p-6 text-center">
+                <div className="rounded-md border border-dashed border-border bg-card p-6 text-center">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-card">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-md border border-border bg-card">
                       <Camera className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
@@ -532,7 +576,7 @@ export default function NuevoReportePage() {
                     <div className="flex gap-2">
                       <Button type="button" size="sm" asChild>
                         <label htmlFor="images" className="cursor-pointer">
-                          <Camera className="w-4 h-4 mr-2" />
+                          <Camera className="w-4 h-4" />
                           Tomar Foto
                         </label>
                       </Button>
@@ -562,16 +606,17 @@ export default function NuevoReportePage() {
                         <img
                           src={URL.createObjectURL(image) || "/placeholder.svg"}
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
+                          className="w-full h-24 object-cover rounded-md"
                         />
                         <Button
                           type="button"
                           variant="destructive"
-                          size="sm"
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                          size="icon-sm"
+                          className="absolute -top-2 -right-2"
                           onClick={() => removeImage(index)}
+                          aria-label={`Eliminar imagen ${index + 1}`}
                         >
-                          ×
+                          <span aria-hidden="true">×</span>
                         </Button>
                       </div>
                     ))}
@@ -586,47 +631,59 @@ export default function NuevoReportePage() {
                   className="flex-1"
                   disabled={!canSubmitReport}
                 >
-                  <Send className="w-4 h-4 mr-2" />
+                  <Send className="w-4 h-4" />
                   {isSubmitting ? "Enviando..." : canSubmitReport ? "Enviar Reporte" : "Faltan datos"}
                 </Button>
-                <Button type="button" variant="outline" asChild disabled={loading || isSubmitting}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  asChild
+                  disabled={loading || isSubmitting}
+                >
                   <Link href="/reportes">Cancelar</Link>
                 </Button>
               </div>
 
               {!canSubmitReport && missingFields.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Te falta completar: <span className="font-medium text-foreground">{missingFields.join(", ")}</span>.
+                <p className="text-xs text-destructive">
+                  Te falta completar: <span className="font-medium">{missingFields.join(", ")}</span>.
                 </p>
               )}
             </form>
           </CardContent>
-        </Card>
+          </Card>
+        </section>
       </div>
 
       {/* Alert Dialog de Confirmación */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Confirmar envío del reporte?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Send className="size-4" aria-hidden="true" />
+              </span>
+              ¿Confirmar envío del reporte?
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                <p>Estás por crear un nuevo reporte con la siguiente información:</p>
-                <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
+                <p>Revisá la información antes de publicar el reporte.</p>
+                <div className="space-y-2 rounded-xl border border-border/70 bg-muted/60 p-3 text-sm">
                   <div>
-                    <span className="font-semibold">Título:</span> {formData.title}
+                  <span className="font-medium text-muted-foreground">Título:</span> {formData.title}
                   </div>
                   <div>
-                    <span className="font-semibold">Categoría:</span>{" "}
+                    <span className="font-medium text-muted-foreground">Categoría:</span>{" "}
                     {categorias.find(c => c.id === parseInt(formData.category))?.nombre}
                   </div>
                   <div>
-                    <span className="font-semibold">Prioridad:</span>{" "}
+                    <span className="font-medium text-muted-foreground">Prioridad:</span>{" "}
                     {prioridades.find(p => p.id === parseInt(formData.priority))?.nombre}
                   </div>
                   {formData.images.length > 0 && (
                    <div>
-                     <span className="font-semibold">Imagen:</span> Sí
+                      <span className="font-medium text-muted-foreground">Imagen:</span> Sí
                     </div>
                   )}
                 </div>

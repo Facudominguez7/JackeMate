@@ -6,10 +6,10 @@ import type { EstadoOperativo } from "@/lib/authz/catalog"
 import {
   AlertCircle,
   AlertTriangle,
+  ArrowDown,
   Calendar,
   CheckCircle,
   Construction,
-  Info,
   Lightbulb,
   MoreHorizontal,
   ShieldAlert,
@@ -53,6 +53,8 @@ export const getStatusIcon = (status: string, className = "w-3 h-3") => {
       return <CheckCircle className={className} />
     case "Rechazado":
       return <X className={className} />
+    case "Pendiente":
+      return <AlertCircle className={className} />
     default:
       return null
   }
@@ -74,11 +76,11 @@ export const getPriorityVariant = (priority: string): "alta" | "media" | "baja" 
 export const getPriorityIcon = (priority: string, className = "w-3 h-3") => {
   switch (priority) {
     case "Alta":
-      return <AlertTriangle className={className} />
+      return <AlertTriangle className={className} aria-hidden="true" />
     case "Media":
-      return <AlertCircle className={className} />
+      return <AlertCircle className={className} aria-hidden="true" />
     case "Baja":
-      return <Info className={className} />
+      return <ArrowDown className={className} aria-hidden="true" />
     default:
       return null
   }
@@ -119,11 +121,11 @@ export const getPriorityColor = (priority: string): string => {
 export const getStatusColor = (status: string): string => {
   switch (status) {
     case "Reparado":
-      return "var(--status-repaired)"
+      return "var(--semantic-success)"
     case "Pendiente":
-      return "var(--status-pending)"
+      return "var(--semantic-warning)"
     case "Rechazado":
-      return "var(--status-rejected)"
+      return "var(--semantic-danger)"
     default:
       return "var(--muted-foreground)"
   }
@@ -147,7 +149,7 @@ export function ReportCard({
   return (
     <Link key={id} href={`/reportes/${id}`} className="block h-full w-full min-w-0">
       <Card className="h-full w-full min-w-0 overflow-hidden transition-colors hover:border-foreground/20">
-        <div className="aspect-[4/3] overflow-hidden bg-[var(--surface-subtle)]">
+        <div className="aspect-[16/10] overflow-hidden bg-surface-subtle">
           <img
             src={imageUrl || "/placeholder.svg"}
             alt={titulo}
@@ -156,7 +158,7 @@ export function ReportCard({
           />
         </div>
 
-        <CardContent className="flex h-full min-w-0 flex-col gap-4 pt-5">
+        <CardContent className="flex h-full min-w-0 flex-col gap-3 pt-4">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Badge variant={getPriorityVariant(prioridad)} className="gap-1">
               {getPriorityIcon(prioridad)}
@@ -166,7 +168,7 @@ export function ReportCard({
               {getStatusIcon(estado)}
               {estado}
             </Badge>
-            <Badge variant="blue" className="gap-1">
+            <Badge variant="category" className="gap-1">
               {getCategoryIcon(categoria)}
               {categoria}
             </Badge>
@@ -174,10 +176,10 @@ export function ReportCard({
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold tracking-tight text-foreground line-clamp-2">
+            <h3 className="text-base font-semibold tracking-tight text-foreground line-clamp-2">
               {titulo}
             </h3>
-            <p className="text-sm leading-6 text-muted-foreground line-clamp-3">
+            <p className="text-sm leading-6 text-muted-foreground line-clamp-2">
               {descripcion || "Sin descripción adicional."}
             </p>
           </div>

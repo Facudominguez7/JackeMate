@@ -6,7 +6,7 @@ import Header from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "JackeMate",
+  title: "Reporty",
   description: "Plataforma ciudadana para reportar problemas urbanos en Posadas, Misiones.",
   icons: {
     icon: [
@@ -18,20 +18,14 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Renderiza la estructura raíz HTML de la aplicación incluyendo la cabecera y el contenido de la página.
- *
- * @param children - Contenido React que se renderizará dentro del <body> bajo la cabecera
- * @returns El elemento raíz HTML que envuelve el cuerpo de la aplicación con las fuentes y la cabecera aplicadas
- */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="es" data-scroll-behavior="smooth">
+      <body className={`flex min-h-dvh flex-col font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground"
@@ -39,7 +33,7 @@ export default function RootLayout({
           Saltar al contenido
         </a>
         <Header />
-        <main id="main-content">{children}</main>
+        <main id="main-content" className="app-main">{children}</main>
         <Toaster richColors position="top-center" />
       </body>
     </html>

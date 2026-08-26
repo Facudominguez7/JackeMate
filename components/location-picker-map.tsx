@@ -6,6 +6,7 @@ import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import { toast } from "sonner"
 import { useMounted } from "@/hooks/use-mounted"
+import { LoadingState } from "@/components/loading-state"
 
 // Configurar el ícono del marcador
 const markerIcon = new L.Icon({
@@ -100,8 +101,8 @@ export function LocationPickerMap({ onLocationSelect, initialLat, initialLon }: 
 
   if (!mounted) {
     return (
-      <div className="w-full h-[400px] bg-muted rounded-lg flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+      <div className="flex h-[400px] w-full items-center justify-center rounded-lg bg-muted">
+        <LoadingState text="Cargando mapa..." className="h-full w-full" />
       </div>
     )
   }

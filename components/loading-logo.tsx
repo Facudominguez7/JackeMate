@@ -5,38 +5,27 @@ interface LoadingLogoProps {
   text?: string
 }
 
-/**
- * Muestra un logo animado centrado con tamaño configurable y texto opcional.
- *
- * @param size - Tamaño del contenedor del logo: `"sm"`, `"md"` o `"lg"`. Valor por defecto: `"md"`.
- * @param text - Texto opcional que se muestra debajo del logo.
- * @returns Un elemento React que renderiza el logo con animaciones y, si se proporciona, una leyenda de texto.
- */
 export function LoadingLogo({ size = "md", text }: LoadingLogoProps) {
   const sizeClasses = {
     sm: "h-12 w-12",
     md: "h-20 w-20",
-    lg: "h-24 w-24"
+    lg: "h-24 w-24",
   }
 
   const frameClasses = {
     sm: "p-3",
     md: "p-4",
-    lg: "p-5"
+    lg: "p-5",
   }
 
   const textClasses = {
     sm: "text-xs",
     md: "text-sm",
-    lg: "text-base"
+    lg: "text-base",
   }
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="flex flex-col items-center justify-center gap-4 text-center"
-    >
+    <div role="status" aria-live="polite" className="flex flex-col items-center justify-center gap-4 text-center">
       <div className="relative">
         <div className="absolute inset-0 rounded-full bg-primary/10 blur-xl" />
         <div className={`relative rounded-full border border-primary/15 bg-card ${frameClasses[size]}`}>
@@ -57,11 +46,7 @@ export function LoadingLogo({ size = "md", text }: LoadingLogoProps) {
           </div>
         </div>
       </div>
-      {text && (
-        <p className={`${textClasses[size]} max-w-xs font-medium tracking-tight text-muted-foreground`}>
-          {text}
-        </p>
-      )}
+      {text && <p className={`${textClasses[size]} max-w-xs font-medium tracking-tight text-muted-foreground`}>{text}</p>}
       <span className="sr-only">Cargando contenido</span>
     </div>
   )

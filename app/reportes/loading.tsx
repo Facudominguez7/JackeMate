@@ -1,14 +1,9 @@
-import { LoadingLogo } from "@/components/loading-logo"
+import { LoadingState } from "@/components/loading-state"
 
-/**
- * Componente que muestra una pantalla de carga centrada en toda la ventana.
- *
- * @returns Un elemento JSX que renderiza una pantalla de carga centrada con el logotipo y el texto "Cargando reportes...".
- */
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <LoadingLogo size="lg" text="Cargando reportes..." />
+    <div className="flex min-h-screen w-full items-center justify-center bg-background">
+      <LoadingState text="Cargando reportes..." className="h-32 w-full max-w-sm" />
     </div>
   )
 }

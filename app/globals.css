@@ -5,10 +5,8 @@
 @import "leaflet.markercluster/dist/MarkerCluster.css";
 @import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
-  --background: oklch(0.988 0.008 155);
+  --background: oklch(94.463% 0.00213 14.416);
   --foreground: oklch(0.19 0.01 95);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.19 0.01 95);
@@ -17,69 +15,47 @@
 
   --primary: oklch(0.57 0.12 157);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.34 0.04 157);
-  --secondary-foreground: oklch(0.985 0 0);
+  --secondary: #000000;
+  --secondary-foreground: #ffffff;
 
-  --muted: oklch(0.965 0.012 157);
+  --muted: oklch(96.115% 0.00011 271.152);
   --muted-foreground: oklch(0.45 0.028 157);
   --accent: oklch(0.93 0.03 157);
   --accent-foreground: oklch(0.3 0.05 157);
   --destructive: oklch(0.57 0.18 25);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.88 0.015 157);
-  --input: oklch(0.955 0.012 157);
+  --input: oklch(96.416% 0.00011 271.152);
   --ring: oklch(0.62 0.08 230);
 
-  --radius: 0.75rem;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  --radius: 0.25rem;
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
   --radius-pill: 999px;
 
   --surface-subtle: oklch(0.972 0.014 157);
-  --surface-strong: oklch(0.945 0.022 157);
-
   --semantic-info: oklch(0.56 0.11 240);
-  --semantic-info-soft: oklch(0.95 0.02 240);
-  --semantic-info-border: oklch(0.88 0.03 240);
 
   --semantic-success: oklch(0.57 0.12 157);
-  --semantic-success-soft: oklch(0.95 0.02 157);
-  --semantic-success-border: oklch(0.88 0.03 157);
 
   --semantic-warning: oklch(0.72 0.13 85);
-  --semantic-warning-soft: oklch(0.97 0.03 90);
-  --semantic-warning-border: oklch(0.9 0.04 90);
 
   --semantic-danger: oklch(0.57 0.18 25);
-  --semantic-danger-soft: oklch(0.96 0.02 25);
-  --semantic-danger-border: oklch(0.89 0.04 25);
 
   --semantic-admin: oklch(0.5 0.1 285);
-  --semantic-admin-soft: oklch(0.95 0.02 285);
-  --semantic-admin-border: oklch(0.88 0.03 285);
 
-  --rank-gold: oklch(0.76 0.14 84);
-  --rank-gold-soft: oklch(0.96 0.03 88);
-  --rank-gold-border: oklch(0.9 0.05 86);
-  --rank-silver: oklch(0.66 0.01 250);
-  --rank-silver-soft: oklch(0.95 0.004 250);
-  --rank-silver-border: oklch(0.86 0.008 250);
-  --rank-bronze: oklch(0.61 0.09 50);
-  --rank-bronze-soft: oklch(0.95 0.02 55);
-  --rank-bronze-border: oklch(0.87 0.03 55);
+  --ranking-first: oklch(0.76 0.14 84);
+  --ranking-second: oklch(0.66 0.01 250);
+  --ranking-third: oklch(0.61 0.09 50);
+  --ranking-points: var(--semantic-info);
 
   --priority-high: var(--semantic-danger);
-  --priority-medium: var(--semantic-warning);
-  --priority-low: oklch(0.55 0.03 95);
-  --priority-low-soft: oklch(0.96 0.002 95);
-  --priority-low-border: oklch(0.88 0.004 95);
+  --priority-medium: oklch(0.72 0.16 55);
+  --priority-low: var(--semantic-info);
 
-  --status-pending: var(--semantic-warning);
-  --status-repaired: var(--semantic-success);
-  --status-rejected: var(--semantic-danger);
-  --category-accent: var(--semantic-info);
+  --category-accent: var(--ranking-third);
 
   --map-heat-high: var(--semantic-danger);
   --map-heat-medium: var(--semantic-warning);
@@ -87,57 +63,12 @@
   --map-heat-neutral: var(--muted-foreground);
   --map-marker-stroke: var(--card);
   --map-marker-foreground: var(--card);
+
   --elevation-soft: 0 10px 30px color-mix(in oklab, var(--foreground) 12%, transparent);
+  --card-shadow: 7px 7px 12px color-mix(in oklab, var(--foreground) 20%, transparent);
 
-}
+  --bottom-nav-space: calc(5.75rem + env(safe-area-inset-bottom));
 
-.dark {
-  --background: oklch(0.18 0.008 95);
-  --foreground: oklch(0.97 0.002 95);
-  --card: oklch(0.22 0.008 95);
-  --card-foreground: oklch(0.97 0.002 95);
-  --popover: oklch(0.22 0.008 95);
-  --popover-foreground: oklch(0.97 0.002 95);
-
-  --primary: oklch(0.66 0.11 157);
-  --primary-foreground: oklch(0.18 0.008 95);
-  --secondary: oklch(0.38 0.05 157);
-  --secondary-foreground: oklch(0.97 0.002 95);
-
-  --muted: oklch(0.24 0.02 157);
-  --muted-foreground: oklch(0.8 0.02 157);
-  --accent: oklch(0.3 0.04 157);
-  --accent-foreground: oklch(0.96 0.002 157);
-  --destructive: oklch(0.64 0.18 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.34 0.02 157);
-  --input: oklch(0.27 0.02 157);
-  --ring: oklch(0.72 0.08 230);
-
-  --surface-subtle: oklch(0.22 0.018 157);
-  --surface-strong: oklch(0.26 0.026 157);
-
-  --semantic-info-soft: oklch(0.27 0.03 240);
-  --semantic-info-border: oklch(0.4 0.04 240);
-  --semantic-success-soft: oklch(0.27 0.03 157);
-  --semantic-success-border: oklch(0.39 0.04 157);
-  --semantic-warning-soft: oklch(0.28 0.03 90);
-  --semantic-warning-border: oklch(0.42 0.04 90);
-  --semantic-danger-soft: oklch(0.27 0.03 25);
-  --semantic-danger-border: oklch(0.41 0.04 25);
-  --semantic-admin-soft: oklch(0.27 0.03 285);
-  --semantic-admin-border: oklch(0.41 0.04 285);
-
-  --rank-gold-soft: oklch(0.31 0.05 86);
-  --rank-gold-border: oklch(0.45 0.07 86);
-  --rank-silver-soft: oklch(0.3 0.01 250);
-  --rank-silver-border: oklch(0.42 0.012 250);
-  --rank-bronze-soft: oklch(0.3 0.03 55);
-  --rank-bronze-border: oklch(0.43 0.05 55);
-
-  --priority-low: oklch(0.74 0.01 95);
-  --priority-low-soft: oklch(0.25 0.004 95);
-  --priority-low-border: oklch(0.36 0.006 95);
 }
 
 @theme inline {
@@ -152,6 +83,9 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-priority-high: var(--priority-high);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-low: var(--priority-low);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -163,6 +97,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-surface-subtle: var(--surface-subtle);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
@@ -191,61 +126,59 @@
 
 @layer components {
   .page-shell {
-    @apply min-h-screen bg-background;
+    @apply min-h-full bg-background;
+  }
+
+  .app-main {
+    min-height: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--bottom-nav-space);
+  }
+
+  .auth-shell {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: safe center;
+    overflow-y: auto;
   }
 
   .page-container {
-    @apply mx-auto w-full max-w-[120rem] px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-[120rem] px-2 sm:px-6 lg:px-8;
   }
 
   .page-stack {
-    @apply space-y-8 py-6 md:space-y-12 md:py-8 lg:space-y-16 lg:py-10;
+    @apply space-y-8 py-2 md:space-y-12 md:py-8 lg:space-y-16 lg:py-10;
   }
 
   .section-stack {
     @apply space-y-4 md:space-y-5;
   }
 
+  .page-meta-label {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
   .page-hero-panel {
     @apply overflow-hidden rounded-[var(--radius-xl)] border border-border bg-card;
+  }
+
+  .card-shadow {
+    box-shadow: var(--card-shadow);
   }
 
   .page-hero-grid {
     @apply grid gap-6 p-6 md:gap-8 md:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:p-10;
   }
 
-  .page-kicker {
-    @apply text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground;
-  }
-
-  .page-meta-grid {
-    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
-  }
-
-  .page-meta-card {
-    @apply rounded-[var(--radius-lg)] border border-border bg-[var(--surface-subtle)] p-4;
-  }
-
-  .page-meta-label {
-    @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
-  }
-
-  .page-meta-value {
-    @apply mt-2 text-lg font-semibold tracking-tight md:text-xl;
-  }
-
-  .surface-subtle {
-    background: var(--surface-subtle);
-  }
-
-  .surface-strong {
-    background: var(--surface-strong);
-  }
-
   .section-eyebrow {
     @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em];
-    background: var(--semantic-success-soft);
-    border-color: var(--semantic-success-border);
+    background: color-mix(in oklab, var(--semantic-success) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-success) 25%, var(--border));
     color: var(--primary);
   }
 
@@ -257,84 +190,57 @@
     @apply max-w-2xl text-sm leading-6 text-muted-foreground md:text-base;
   }
 
-  .hero-title {
-    @apply text-balance text-4xl font-semibold leading-none tracking-[-0.05em] md:text-6xl lg:text-7xl xl:text-[5.5rem];
-  }
-
-  .hero-copy {
-    @apply max-w-2xl text-base leading-7 text-muted-foreground md:text-lg;
-  }
-
-  .kpi-card {
-    @apply rounded-[var(--radius-lg)] border border-border bg-card p-5 md:p-6;
-  }
-
-  .kpi-value {
-    @apply text-3xl font-semibold tracking-tight md:text-4xl;
-  }
-
   .tone-info-card {
-    background: var(--semantic-info-soft);
-    border-color: var(--semantic-info-border);
+    background: color-mix(in oklab, var(--semantic-info) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-info) 25%, var(--border));
   }
 
   .tone-success-card {
-    background: var(--semantic-success-soft);
-    border-color: var(--semantic-success-border);
+    background: color-mix(in oklab, var(--semantic-success) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-success) 25%, var(--border));
   }
 
   .tone-warning-card {
-    background: var(--semantic-warning-soft);
-    border-color: var(--semantic-warning-border);
+    background: color-mix(in oklab, var(--semantic-warning) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-warning) 25%, var(--border));
   }
 
   .tone-danger-card {
-    background: var(--semantic-danger-soft);
-    border-color: var(--semantic-danger-border);
+    background: color-mix(in oklab, var(--semantic-danger) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-danger) 25%, var(--border));
   }
 
-  .tone-admin-card {
-    background: var(--semantic-admin-soft);
-    border-color: var(--semantic-admin-border);
+  .ranking-points {
+    color: var(--ranking-points);
   }
 
   .tone-success-inline {
-    @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-success-soft);
-    border-color: var(--semantic-success-border);
-    color: var(--semantic-success);
+    @apply rounded-xl border border-transparent bg-primary px-3 py-2 text-primary-foreground transition-colors hover:bg-primary/90;
   }
 
   .tone-danger-inline {
+    @apply rounded-xl border border-transparent bg-destructive px-3 py-2 text-destructive-foreground transition-colors hover:bg-destructive/90;
+  }
+
+  .tone-success-soft-inline {
     @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-danger-soft);
-    border-color: var(--semantic-danger-border);
+    background: color-mix(in oklab, var(--semantic-success) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-success) 25%, var(--border));
+    color: var(--semantic-success);
+  }
+
+  .tone-danger-soft-inline {
+    @apply rounded-xl border px-3 py-2;
+    background: color-mix(in oklab, var(--semantic-danger) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-danger) 25%, var(--border));
     color: var(--semantic-danger);
-  }
-
-  .tone-admin-inline {
-    @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-admin-soft);
-    border-color: var(--semantic-admin-border);
-    color: var(--semantic-admin);
-  }
-
-  .tone-info-inline {
-    @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-info-soft);
-    border-color: var(--semantic-info-border);
-    color: var(--semantic-info);
   }
 
   .tone-warning-inline {
     @apply rounded-xl border px-3 py-2;
-    background: var(--semantic-warning-soft);
-    border-color: var(--semantic-warning-border);
+    background: color-mix(in oklab, var(--semantic-warning) 10%, var(--card));
+    border-color: color-mix(in oklab, var(--semantic-warning) 25%, var(--border));
     color: var(--semantic-warning);
-  }
-
-  .map-card-dot {
-    @apply inline-flex size-2.5 rounded-full border border-background;
   }
 
   .map-legend-card {
@@ -392,15 +298,9 @@
 }
 
 .leaflet-top .leaflet-control {
-  margin-top: 4.75rem !important;
+  margin-top: 7.5rem !important;
   margin-left: 1rem !important;
   margin-right: 1rem !important;
-}
-
-@media (min-width: 768px) {
-  .leaflet-top .leaflet-control {
-    margin-top: 1rem !important;
-  }
 }
 
 .leaflet-pane,

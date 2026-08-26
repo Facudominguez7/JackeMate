@@ -12,6 +12,8 @@ import { createClient } from "@/utils/supabase/server"
 import { getPublicProfilesByIds, indexPublicProfilesById } from "@/database/queries/profiles"
 import { obtenerEstadoOperativoPublicoPorReporte } from "@/database/queries/cuadrillas"
 import {
+  getPreferredReportListingImageUrl,
+  getPrimaryReportImageUrl,
   isMissingReportImageColumnsError,
   resolveReportImageRows,
   type ReportImageRow,
@@ -98,6 +100,8 @@ const STATE_FILTER_IDS = {
   rechazado: 3,
 } as const
 
+const FOLLOW_UP_FILTER = "seguimiento"
+
 function normalizeFilterValue(value: string) {
   return value
     .trim()
@@ -166,7 +170,8 @@ function mapReportToCardData(report: ReporteDB): ReportCardData {
     location: formatLocation(report.lat, report.lon),
     author: getSingleUsername(report.autor),
     createdAt: report.created_at,
-    image: report.fotos?.[0]?.publicUrl ?? report.fotos?.[0]?.url ?? null,
+    image: getPrimaryReportImageUrl(report.fotos),
+    thumbnailImage: getPreferredReportListingImageUrl(report.fotos),
   }
 }
 
@@ -200,13 +205,15 @@ function mapReportToDashboardItem(report: ReporteDB): DashboardUserReport {
     categoria: getSingleRelationName(report.categoria, "Sin categoría"),
     prioridad: getSingleRelationName(report.prioridad, "Sin prioridad"),
     estado: getSingleRelationName(report.estado, "Sin estado"),
-    imageUrl: report.fotos?.[0]?.publicUrl ?? report.fotos?.[0]?.url ?? null,
+    imageUrl: getPrimaryReportImageUrl(report.fotos),
     createdAt: report.created_at,
     autor: getSingleUsername(report.autor),
   }
 }
 
-const buildReportesSelect = (includeCanonicalImageFields: boolean) => `id,
+type ImageSelectMode = "thumbnail" | "canonical" | "legacy"
+
+const buildReportesSelect = (imageSelectMode: ImageSelectMode) => `id,
       usuario_id,
       titulo,
       descripcion,
@@ -216,12 +223,16 @@ const buildReportesSelect = (includeCanonicalImageFields: boolean) => `id,
       categoria:categorias!reportes_categoria_id_fkey(nombre),
       prioridad:prioridades!reportes_prioridad_id_fkey(nombre),
       estado:estados!reportes_estado_id_fkey(nombre),
-      fotos:fotos_reporte(${includeCanonicalImageFields ? "url,bucket,path" : "url"})`
+      fotos:fotos_reporte(${imageSelectMode === "thumbnail"
+        ? "url,bucket,path,thumbnail_url,thumbnail_bucket,thumbnail_path"
+        : imageSelectMode === "canonical"
+          ? "url,bucket,path"
+          : "url"})`
 
 async function fetchReportes(
   supabase: Awaited<ReturnType<typeof createClient>>,
   filtros: Required<Pick<FiltrosReportes, "soloConCoordenadas" | "limite" | "offset">> & FiltrosReportes,
-  includeCanonicalImageFields: boolean
+  imageSelectMode: ImageSelectMode,
 ) {
   const {
     search,
@@ -235,7 +246,7 @@ async function fetchReportes(
 
   let query = supabase
     .from("reportes")
-    .select(buildReportesSelect(includeCanonicalImageFields), { count: 'exact' })
+    .select(buildReportesSelect(imageSelectMode), { count: 'exact' })
     .is("deleted_at", null)
 
   if (search && search.trim() !== "") {
@@ -247,9 +258,13 @@ async function fetchReportes(
     query = query.eq("categoria_id", categoriaId)
   }
 
-  const estadoId = resolveLookupFilterId(STATE_FILTER_IDS, estado)
-  if (estadoId !== null) {
-    query = query.eq("estado_id", estadoId)
+  if (normalizeFilterValue(estado ?? "") === FOLLOW_UP_FILTER) {
+    query = query.not("estado_id", "in", "(1,2,3)")
+  } else {
+    const estadoId = resolveLookupFilterId(STATE_FILTER_IDS, estado)
+    if (estadoId !== null) {
+      query = query.eq("estado_id", estadoId)
+    }
   }
 
   const prioridadId = resolveLookupFilterId(PRIORITY_FILTER_IDS, prioridad)
@@ -301,10 +316,14 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     offset,
   }
 
-  let { data, error, count } = await fetchReportes(supabase, normalizedFilters, true)
+  let { data, error, count } = await fetchReportes(supabase, normalizedFilters, "thumbnail")
 
   if (error && isMissingReportImageColumnsError(error)) {
-    ;({ data, error, count } = await fetchReportes(supabase, normalizedFilters, false))
+    ;({ data, error, count } = await fetchReportes(supabase, normalizedFilters, "canonical"))
+  }
+
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error, count } = await fetchReportes(supabase, normalizedFilters, "legacy"))
   }
 
   // Calcular si hay más resultados
@@ -387,25 +406,50 @@ export async function getReportMapData(filtros: FiltrosReportes = {}) {
   }
 }
 
-export async function getDashboardUserReports(userId: string) {
+export async function getDashboardUserReports(
+  userId: string,
+  filtros: Pick<FiltrosReportes, "search" | "categoria" | "estado" | "prioridad"> = {},
+) {
   const supabase = await createClient()
+  const { search, categoria, estado, prioridad } = filtros
 
-  let { data, error } = await supabase
-    .from("reportes")
-    .select(buildReportesSelect(true))
-    .eq("usuario_id", userId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .returns<ReporteDBRaw[]>()
-
-  if (error && isMissingReportImageColumnsError(error)) {
-    ;({ data, error } = await supabase
+  const fetchDashboardReports = async (imageSelectMode: ImageSelectMode) => {
+    let query = supabase
       .from("reportes")
-      .select(buildReportesSelect(false))
+      .select(buildReportesSelect(imageSelectMode))
       .eq("usuario_id", userId)
       .is("deleted_at", null)
+
+    if (search && search.trim() !== "") {
+      query = query.or(`titulo.ilike.%${search}%,descripcion.ilike.%${search}%`)
+    }
+
+    const categoriaId = resolveLookupFilterId(CATEGORY_FILTER_IDS, categoria)
+    if (categoriaId !== null) query = query.eq("categoria_id", categoriaId)
+
+    if (normalizeFilterValue(estado ?? "") === FOLLOW_UP_FILTER) {
+      query = query.not("estado_id", "in", "(1,2,3)")
+    } else {
+      const estadoId = resolveLookupFilterId(STATE_FILTER_IDS, estado)
+      if (estadoId !== null) query = query.eq("estado_id", estadoId)
+    }
+
+    const prioridadId = resolveLookupFilterId(PRIORITY_FILTER_IDS, prioridad)
+    if (prioridadId !== null) query = query.eq("prioridad_id", prioridadId)
+
+    return query
       .order("created_at", { ascending: false })
-      .returns<ReporteDBRaw[]>())
+      .returns<ReporteDBRaw[]>()
+  }
+
+  let { data, error } = await fetchDashboardReports("thumbnail")
+
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error } = await fetchDashboardReports("canonical"))
+  }
+
+  if (error && isMissingReportImageColumnsError(error)) {
+    ;({ data, error } = await fetchDashboardReports("legacy"))
   }
 
   if (error || !data) {
@@ -424,7 +468,7 @@ export async function getDashboardUserReports(userId: string) {
 }
 
 /**
- * Recupera todas las categorías disponibles ordenadas por nombre.
+ * Recupera todas las categorías disponibles por nombre, dejando "Otros" al final.
  *
  * @returns Un objeto con `data` — arreglo de categorías (cada elemento tiene `id` y `nombre`) o `null` si no hay resultados — y `error` con la información del error si se produjo alguno.
  */
@@ -436,7 +480,18 @@ export async function getCategorias() {
     .select("id, nombre")
     .order("nombre")
 
-  return { data, error }
+  const sortedData = data?.sort((a, b) => {
+    const aIsOther = a.nombre.localeCompare("Otros", "es", { sensitivity: "base" }) === 0
+    const bIsOther = b.nombre.localeCompare("Otros", "es", { sensitivity: "base" }) === 0
+
+    if (aIsOther !== bIsOther) {
+      return aIsOther ? 1 : -1
+    }
+
+    return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+  })
+
+  return { data: sortedData, error }
 }
 
 /**
@@ -456,7 +511,7 @@ export async function getEstados() {
 }
 
 /**
- * Obtiene la lista de prioridades disponibles ordenadas por nombre.
+ * Obtiene la lista de prioridades disponibles en el orden Baja, Media y Alta.
  *
  * @returns `data` — Array de objetos con `id` y `nombre` de cada prioridad; `error` — objeto de error de la consulta si se produjo, `null` en caso contrario.
  */
@@ -466,7 +521,7 @@ export async function getPrioridades() {
   const { data, error } = await supabase
     .from("prioridades")
     .select("id, nombre")
-    .order("nombre")
+    .order("id", { ascending: false })
 
   return { data, error }
 }
