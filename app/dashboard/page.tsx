@@ -1,6 +1,10 @@
+/**
+ * Módulo de dashboard que presenta analíticas o cuenta personal según el rol autenticado.
+ */
+
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Calendar, CheckCircle, Clock, FileText, LogOut, Plus, Star, Timer, TrendingUp, Trophy, Users } from "lucide-react"
+import { Calendar, CheckCircle, Clock, FileText, Plus, Star, Timer, TrendingUp, Trophy, Users } from "lucide-react"
 
 import { GraficoReportesPorCategoria, GraficoZonasCalientes, MapaCalorZonas } from "@/components/dashboard"
 import { ReportCompactCard } from "@/components/report-compact-card"
@@ -24,6 +28,9 @@ type DashboardPageProps = {
   }>
 }
 
+/**
+ * Renderiza el dashboard correspondiente al usuario autenticado y habilita el cierre de sesión desde el título principal.
+ */
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const params = await searchParams
   const data = await getDashboardPageData(params)
@@ -37,7 +44,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       <div className="page-shell">
         <div className="page-container space-y-4 md:space-y-6 lg:space-y-8">
           <section className="space-y-3">
-            <PageTitleBar title="Analíticas de reportes" />
+            <PageTitleBar title="Analíticas de reportes" mostrarCerrarSesion cerrarSesionAction={signout} />
             <div className="grid gap-3 md:grid-cols-2">
               {data.tiempoResolucion && (
                 <Card className="border-[var(--semantic-admin)]/25 bg-[var(--semantic-admin)]/10">
@@ -133,17 +140,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <div className="page-shell">
       <div className="page-container page-stack">
         <section className="space-y-2">
-          <PageTitleBar
-            title="Mi cuenta"
-            actions={
-              <form action={signout}>
-                <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground">
-                  <LogOut className="size-3.5" aria-hidden="true" />
-                  Cerrar sesión
-                </Button>
-              </form>
-            }
-          />
+          <PageTitleBar title="Mi cuenta" mostrarCerrarSesion cerrarSesionAction={signout} />
           <section className="page-hero-panel">
           <div className="page-hero-grid lg:items-center">
             <div className="flex items-start gap-4 md:gap-6">
