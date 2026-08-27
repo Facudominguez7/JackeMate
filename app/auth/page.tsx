@@ -1,5 +1,9 @@
 "use client"
 
+/**
+ * Pantalla de autenticación con email/contraseña y proveedores OAuth soportados.
+ */
+
 import type React from "react"
 
 import { useActionState, useState } from "react"
@@ -8,7 +12,8 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react"
 
-import { login, signup, type AuthFormState } from "./actions"
+import { iniciarSesionOAuth, login, signup, type AuthFormState } from "./actions"
+import { obtenerRutaInternaSegura } from "./rutas-seguras"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +21,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+/**
+ * Renderiza la experiencia principal de ingreso y registro de usuarios.
+ *
+ * @returns UI cliente para autenticación con formularios tradicionales y OAuth.
+ */
 export default function AuthPage() {
   const searchParams = useSearchParams()
   const [showPassword, setShowPassword] = useState(false)
@@ -23,7 +33,8 @@ export default function AuthPage() {
   const initialState: AuthFormState = { error: undefined, message: undefined }
   const [loginState, loginAction] = useActionState(login, initialState)
   const [signupState, signupAction] = useActionState(signup, initialState)
-  const nextPath = searchParams.get("next") ?? "/mapa"
+  const nextPath = obtenerRutaInternaSegura(searchParams.get("next"))
+  const oauthError = searchParams.get("error") === "oauth"
 
   return (
     <div className="auth-shell bg-background px-4 py-6">
@@ -33,7 +44,28 @@ export default function AuthPage() {
             <CardTitle className="text-xl">Tu cuenta Reporty</CardTitle>
             <CardDescription>Necesitás loguearte o registrarte para visualizar o crear reportes.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-5">
+            {oauthError && (
+              <Alert variant="destructive">
+                <AlertTitle>No se pudo iniciar sesión</AlertTitle>
+                <AlertDescription>Intentá nuevamente con Google.</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-3">
+              <form action={iniciarSesionOAuth}>
+                <input type="hidden" name="provider" value="google" />
+                <input type="hidden" name="next" value={nextPath} />
+                <BotonOAuth proveedor="Google" />
+              </form>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              o continuá con email
+              <span className="h-px flex-1 bg-border" />
+            </div>
+
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Ingresar</TabsTrigger>
@@ -235,6 +267,12 @@ export default function AuthPage() {
   )
 }
 
+/**
+ * Agrupa una etiqueta accesible con su control de formulario.
+ *
+ * @param props - Propiedades con texto de etiqueta, id del control y contenido.
+ * @returns Campo de formulario con estructura visual consistente.
+ */
 function Field({
   label,
   htmlFor,
@@ -252,11 +290,39 @@ function Field({
   )
 }
 
+/**
+ * Botón de envío que refleja el estado pendiente del formulario actual.
+ *
+ * @param props - Textos a mostrar según el estado de envío.
+ * @returns Botón deshabilitado durante el envío del formulario.
+ */
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" className="w-full" disabled={pending}>
       {pending ? pendingLabel : label}
+    </Button>
+  )
+}
+
+/**
+ * Botón accesible para iniciar sesión con un proveedor OAuth soportado.
+ *
+ * @param props - Proveedor mostrado al usuario.
+ * @returns Botón de formulario con estado pendiente y etiqueta explícita.
+ */
+function BotonOAuth({ proveedor }: { proveedor: "Google" }) {
+  const { pending } = useFormStatus()
+
+  return (
+    <Button
+      type="submit"
+      variant="outline"
+      className="w-full"
+      disabled={pending}
+      aria-label={`Continuar con ${proveedor}`}
+    >
+      {pending ? "Redirigiendo..." : `Continuar con ${proveedor}`}
     </Button>
   )
 }

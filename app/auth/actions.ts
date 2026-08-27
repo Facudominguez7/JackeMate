@@ -1,30 +1,55 @@
 "use server"
 
+/**
+ * Acciones de servidor para iniciar, crear y cerrar sesiones de autenticación.
+ */
+
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { createClient } from "@/utils/supabase/server"
+import { obtenerOrigenAutenticacion, obtenerRutaInternaSegura } from "./rutas-seguras"
 
 export type AuthFormState = {
   error?: string
   message?: string
 }
 
-const getSafeNextPath = (formData: FormData) => {
-  const next = formData.get('next')
+type ProveedorOAuth = "google"
 
-  if (typeof next !== 'string' || !next.startsWith('/') || next.startsWith('//')) {
-    return '/mapa'
+/**
+ * Obtiene una ruta interna segura desde el formulario de autenticación.
+ *
+ * @param formData - FormData que puede incluir el campo `next`.
+ * @returns Ruta interna validada para redirigir dentro de la aplicación.
+ */
+const obtenerSiguienteRutaSegura = (formData: FormData) => obtenerRutaInternaSegura(formData.get("next"))
+
+/**
+ * Valida que el proveedor OAuth enviado desde la UI esté permitido por la app.
+ *
+ * @param proveedor - Valor recibido desde el formulario OAuth.
+ * @returns Proveedor OAuth soportado o `null` cuando el valor no es seguro.
+ */
+const obtenerProveedorOAuth = (proveedor: FormDataEntryValue | null): ProveedorOAuth | null => {
+  if (proveedor === "google") {
+    return proveedor
   }
 
-  return next
+  return null
 }
 
+/**
+ * Inicia sesión con correo y contraseña conservando un destino interno seguro.
+ *
+ * @param _prevState - Estado anterior del formulario.
+ * @param formData - FormData con `email`, `password` y opcionalmente `next`.
+ * @returns Estado con error controlado o redirección al destino seguro.
+ */
 export async function login(_prevState: AuthFormState | void, formData: FormData): Promise<AuthFormState> {
   const supabase = await createClient()
 
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
@@ -33,14 +58,45 @@ export async function login(_prevState: AuthFormState | void, formData: FormData
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    // Inline error: return a message instead of redirecting
     return { error: error.message || "Credenciales inválidas" }
   }
 
   revalidatePath("/", "layout")
-  redirect(getSafeNextPath(formData))
-  // Unreachable, but satisfies return type for TypeScript
+  redirect(obtenerSiguienteRutaSegura(formData))
   return {}
+}
+
+/**
+ * Inicia el flujo OAuth de Supabase para Google desde el servidor.
+ *
+ * @param formData - FormData con `provider` y opcionalmente `next`.
+ * @returns Redirección a Supabase o al formulario con error controlado.
+ */
+export async function iniciarSesionOAuth(formData: FormData): Promise<void> {
+  const proveedor = obtenerProveedorOAuth(formData.get("provider"))
+  const next = obtenerSiguienteRutaSegura(formData)
+
+  if (!proveedor) {
+    redirect(`/auth?error=oauth&next=${encodeURIComponent(next)}`)
+  }
+
+  const cabeceras = await headers()
+  const redirectTo = new URL("/auth/callback", obtenerOrigenAutenticacion(cabeceras))
+  redirectTo.searchParams.set("next", next)
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: proveedor,
+    options: {
+      redirectTo: redirectTo.toString(),
+    },
+  })
+
+  if (error || !data.url) {
+    redirect(`/auth?error=oauth&next=${encodeURIComponent(next)}`)
+  }
+
+  redirect(data.url)
 }
 
 /**
@@ -57,8 +113,6 @@ export async function login(_prevState: AuthFormState | void, formData: FormData
 export async function signup(_prevState: AuthFormState | void, formData: FormData): Promise<AuthFormState> {
   const supabase = await createClient()
 
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
   const name = formData.get('name') as string
   const lastname = formData.get('lastname') as string
   const phone = (formData.get('phone') as string | null)?.trim() ?? ''
@@ -89,7 +143,6 @@ export async function signup(_prevState: AuthFormState | void, formData: FormDat
     return { error: error.message || 'No se pudo crear la cuenta' }
   }
 
-  // If email confirmation is enabled, session will be null and Supabase will send a verification email.
   if (!signUpData?.session) {
     return {
       message:
@@ -97,12 +150,16 @@ export async function signup(_prevState: AuthFormState | void, formData: FormDat
     }
   }
 
-  // If a session is returned (confirmation disabled), log in and redirect.
   revalidatePath('/', 'layout')
-  redirect(getSafeNextPath(formData))
+  redirect(obtenerSiguienteRutaSegura(formData))
   return {}
 }
 
+/**
+ * Cierra la sesión actual y refresca el layout autenticado.
+ *
+ * @returns Redirección a la página inicial tras cerrar sesión.
+ */
 export async function signout() {
   const supabase = await createClient()
   await supabase.auth.signOut()
