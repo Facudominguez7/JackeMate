@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ListaReportesClient } from "@/components/lista-reportes-client"
 import { EstadoReportes } from "./estado-reportes"
 import { ReportesClientWrapper } from "./reportes-client"
+import { PageTitleBar } from "@/components/page-title-bar"
 import { getCategorias, getEstados, getPrioridades, getReportCardData } from "@/database/queries/reportes/get-reportes"
 
 export const dynamic = "force-dynamic"
@@ -47,14 +48,16 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
         )}
 
         <section className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">Incidentes reportados</h2>
-            <ReportesClientWrapper
-              categorias={categorias ?? []}
-              estados={estados ?? []}
-              prioridades={prioridades ?? []}
-            />
-          </div>
+          <PageTitleBar
+            title="Incidentes reportados"
+            actions={
+              <ReportesClientWrapper
+                categorias={categorias ?? []}
+                estados={estados ?? []}
+                prioridades={prioridades ?? []}
+              />
+            }
+          />
           <EstadoReportes searchParams={params} />
 
           {reports.length > 0 ? (

@@ -13,6 +13,7 @@ import { getDashboardPageData } from "@/database/queries/dashboard"
 import { signout } from "@/app/auth/actions"
 import { puedeOperarCuadrillas } from "@/lib/authz/roles"
 import { getUserInitials } from "@/lib/identity/display"
+import { PageTitleBar } from "@/components/page-title-bar"
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -34,9 +35,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   if (data.isAnalyticsDashboard) {
     return (
       <div className="page-shell">
-        <div className="page-container space-y-4 py-2 md:space-y-6 md:py-8 lg:space-y-8 lg:py-10">
+        <div className="page-container space-y-4 md:space-y-6 lg:space-y-8">
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">Analíticas de reportes</h2>
+            <PageTitleBar title="Analíticas de reportes" />
             <div className="grid gap-3 md:grid-cols-2">
               {data.tiempoResolucion && (
                 <Card className="border-[var(--semantic-admin)]/25 bg-[var(--semantic-admin)]/10">
@@ -132,15 +133,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <div className="page-shell">
       <div className="page-container page-stack">
         <section className="space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">Mi cuenta</h2>
-            <form action={signout}>
-              <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground">
-                <LogOut className="size-3.5" aria-hidden="true" />
-                Cerrar sesión
-              </Button>
-            </form>
-          </div>
+          <PageTitleBar
+            title="Mi cuenta"
+            actions={
+              <form action={signout}>
+                <Button type="submit" variant="ghost" size="sm" className="h-8 gap-1.5 px-2 text-xs text-muted-foreground">
+                  <LogOut className="size-3.5" aria-hidden="true" />
+                  Cerrar sesión
+                </Button>
+              </form>
+            }
+          />
           <section className="page-hero-panel">
           <div className="page-hero-grid lg:items-center">
             <div className="flex items-start gap-4 md:gap-6">
@@ -196,14 +199,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         </section>
 
         <section className="section-stack">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="section-title">Mis reportes</h2>
-            <ReportesClientWrapper
-              categorias={categorias ?? []}
-              estados={estados ?? []}
-              prioridades={prioridades ?? []}
-            />
-          </div>
+          <PageTitleBar
+            title="Mis reportes"
+            actions={
+              <ReportesClientWrapper
+                categorias={categorias ?? []}
+                estados={estados ?? []}
+                prioridades={prioridades ?? []}
+              />
+            }
+          />
 
           {data.userReports.length === 0 ? (
             <Card className="border-dashed">

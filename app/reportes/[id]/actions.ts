@@ -55,6 +55,11 @@ export async function votarNoExisteAction(reporteId: number) {
       return { success: false as const, error: "Tenés que iniciar sesión para votar." }
     }
 
+    const { data: contextoRol } = await getUserRoleContext(supabase, user.id)
+    if (puedeOperarCuadrillas(contextoRol?.roleId)) {
+      return { success: false as const, error: "Los operadores y administradores no pueden votar." }
+    }
+
     return await votarNoExisteWorkflow(createAdminClient(), parsedReportId, user.id)
   } catch (error) {
     return { success: false as const, error: mutationErrorMessage(error, "No pudimos registrar tu voto.") }
@@ -71,6 +76,11 @@ export async function votarReparadoAction(reporteId: number) {
 
     if (!user) {
       return { success: false as const, error: "Tenés que iniciar sesión para votar." }
+    }
+
+    const { data: contextoRol } = await getUserRoleContext(supabase, user.id)
+    if (puedeOperarCuadrillas(contextoRol?.roleId)) {
+      return { success: false as const, error: "Los operadores y administradores no pueden votar." }
     }
 
     return await votarReparadoWorkflow(createAdminClient(), parsedReportId, user.id)

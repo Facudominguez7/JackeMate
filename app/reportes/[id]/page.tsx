@@ -57,6 +57,8 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import dynamic from "next/dynamic";
 import { LoadingState } from "@/components/loading-state";
+import { BackButton } from "@/components/back-button";
+import { PageTitleBar } from "@/components/page-title-bar";
 import { toast } from "sonner";
 import {
   getReporteDetalle,
@@ -107,6 +109,16 @@ type HistorialEstadoItem = {
   created_at: string;
   estado_nuevo_id: number | null;
 };
+
+function formatRepairDuration(createdAt: string, repairedAt: string) {
+  const durationInMinutes = Math.max(
+    0,
+    Math.floor((new Date(repairedAt).getTime() - new Date(createdAt).getTime()) / 60000),
+  );
+  const days = Math.floor(durationInMinutes / (60 * 24));
+
+  return days > 0 ? `${days} ${days === 1 ? "día" : "días"}` : "menos de 1 día";
+}
 
 /**
  * Página que muestra el detalle completo de un reporte: estado, prioridad, ubicación, descripción, imágenes, comentarios y controles de interacción.
@@ -159,6 +171,8 @@ export default function ReporteDetallePage({
     reporte.estado_id === REPORT_STATE_IDS.REPARADO ||
     reporte.estado_id === REPORT_STATE_IDS.RECHAZADO
   );
+
+  const puedeVotar = Boolean(currentUser && gestionOperativa && !isAdmin && !gestionOperativa.puedeOperar);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -447,9 +461,17 @@ export default function ReporteDetallePage({
     );
   }
 
+  const tiempoReparacion = fechaCambioEstado && reporte.estado_id === REPORT_STATE_IDS.REPARADO
+    ? formatRepairDuration(reporte.created_at, fechaCambioEstado)
+    : null;
+
   return (
     <div className="page-shell">
-      <div className="page-container page-stack">
+      <div className="page-container space-y-4 md:space-y-6 lg:space-y-8">
+        <section className="space-y-2">
+          <PageTitleBar leading={<BackButton />} title="Detalle del reporte" />
+        </section>
+
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
           {/* Contenido Principal */}
           <div className="space-y-4 lg:col-span-8">
@@ -479,7 +501,7 @@ export default function ReporteDetallePage({
                 <div className="flex min-w-0 items-start gap-3">
                   <CardTitle className="min-w-0 flex-1 break-words text-xl font-bold tracking-tight md:text-2xl">{reporte.titulo}</CardTitle>
                   <div className="flex shrink-0 items-center gap-1.5">
-                  {currentUser && !isReporteCerrado && (
+                   {currentUser && puedeVotar && !isReporteCerrado && (
                     <>
                       <Button
                         variant={hasVotedReparado ? "secondary" : "default"}
@@ -586,12 +608,19 @@ export default function ReporteDetallePage({
                     : 'tone-danger-inline'
                   }`}>
                     <Clock className="size-3.5 shrink-0" />
-                    <span>
-                      {getNameFromRelation(reporte.estados)} el{" "}
-                      {dayjs
-                        .utc(fechaCambioEstado)
-                        .tz("America/Argentina/Buenos_Aires")
-                        .format("DD/MM/YYYY [a las] HH:mm")}
+                    <span className="flex flex-col">
+                      <span>
+                        {getNameFromRelation(reporte.estados)} el{" "}
+                        {dayjs
+                          .utc(fechaCambioEstado)
+                          .tz("America/Argentina/Buenos_Aires")
+                          .format("DD/MM/YYYY [a las] HH:mm")}
+                      </span>
+                      {tiempoReparacion && (
+                        <span className="border-t border-current/20">
+                          Arreglado en {tiempoReparacion}
+                        </span>
+                      )}
                     </span>
                   </div>
                 )}
@@ -690,7 +719,7 @@ export default function ReporteDetallePage({
                 gestionOperativa.estadoOperativo !== null ||
                 gestionOperativa.eventos.length > 0) && (
                 <Card className="gap-0">
-                  <CardHeader className="gap-2 p-5 md:p-6 md:pb-5">
+                  <CardHeader className="gap-2">
                     <div className="flex items-center gap-2">
                       <Users className="size-5 text-muted-foreground md:size-6" />
                       <CardTitle className="text-lg font-semibold tracking-tight">Seguimiento de la cuadrilla</CardTitle>
@@ -724,71 +753,6 @@ export default function ReporteDetallePage({
                   </CardContent>
                 </Card>
               )}
-
-            {currentUser && !isReporteCerrado && (
-              <Card className="hidden lg:block">
-                <CardContent className="space-y-4 pt-5 md:space-y-5 md:pt-6">
-                  <div className="space-y-1">
-                    <h3 className="text-base font-semibold tracking-tight md:text-lg">Validación comunitaria</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Marcá si el problema ya fue reparado o si el reporte fue cargado por error.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--semantic-success-border)] bg-[var(--semantic-success-soft)] p-3 md:p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="size-4 text-[var(--semantic-success)]" />
-                            <p className="text-sm font-semibold text-[var(--semantic-success)]">Ya está reparado</p>
-                          </div>
-                          <p className="text-xs leading-5 text-muted-foreground">Con 1 voto, el reporte se marca como reparado.</p>
-                        </div>
-                        <Badge variant="reparado">{votosReparadoCount} / 1</Badge>
-                      </div>
-
-                      <Button
-                        variant={hasVotedReparado ? "secondary" : "default"}
-                        size="sm"
-                        className={`w-full ${hasVotedReparado ? "bg-muted text-muted-foreground hover:bg-muted" : ""}`}
-                        onClick={handleVoteReparado}
-                        disabled={hasVotedReparado || isVotingReparado}
-                      >
-                        <CheckCircle2 className="size-4" />
-                        {hasVotedReparado ? "Ya votaste" : "Votar reparado"}
-                      </Button>
-                    </div>
-
-                    {currentUser.id !== reporte.usuario_id && (
-                      <div className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-[var(--semantic-danger-border)] bg-[var(--semantic-danger-soft)] p-3 md:p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <ThumbsDown className="size-4 text-[var(--semantic-danger)]" />
-                              <p className="text-sm font-semibold text-[var(--semantic-danger)]">No existe</p>
-                            </div>
-                            <p className="text-xs leading-5 text-muted-foreground">Usalo si el reporte fue cargado por error o el problema nunca existió.</p>
-                          </div>
-                          <Badge variant="rechazado">{votosCount} / 1</Badge>
-                        </div>
-
-                        <Button
-                          variant={hasVoted ? "secondary" : "destructive"}
-                          size="sm"
-                          className={`w-full ${hasVoted ? "bg-muted text-muted-foreground hover:bg-muted" : ""}`}
-                          onClick={handleVoteNoExiste}
-                          disabled={hasVoted || isVoting}
-                        >
-                          <ThumbsDown className="size-4" />
-                          {hasVoted ? "Ya votaste" : "Votar no existe"}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Marcador de Posición del Mapa */}
             <Card>

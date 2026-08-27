@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PageTitleBar } from "@/components/page-title-bar"
 
 const rankingVariants = ["ranking-first", "ranking-second", "ranking-third"] as const
 const rankingIcons = [Trophy, Medal, Award] as const
@@ -28,7 +29,7 @@ export default async function ComunidadPage() {
     <div className="page-shell">
       <div className="page-container page-stack">
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">Comunidad</h2>
+          <PageTitleBar title="Comunidad" />
           <Tabs defaultValue="ranking" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="ranking">Ranking</TabsTrigger>

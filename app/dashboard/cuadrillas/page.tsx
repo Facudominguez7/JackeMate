@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
 
 import { PanelCuadrillas } from "@/components/cuadrillas/panel-cuadrillas"
+import { BackButton } from "@/components/back-button"
+import { PageTitleBar } from "@/components/page-title-bar"
 import {
   listarAsignacionesAbiertasConReporte,
   listarCuadrillas,
@@ -91,7 +93,7 @@ export default async function CuadrillasPage() {
     <div className="page-shell">
       <div className="page-container page-stack">
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">Gestionar cuadrillas</h2>
+          <PageTitleBar leading={<BackButton />} title="Gestionar cuadrillas" />
           <PanelCuadrillas
             cuadrillas={cuadrillas}
             abiertasPorCuadrilla={Object.fromEntries(abiertasPorCuadrilla)}

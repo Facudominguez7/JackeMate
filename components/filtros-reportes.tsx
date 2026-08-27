@@ -265,7 +265,7 @@ export function FiltrosReportes({
   ].filter(Boolean).length
 
   return (
-    <div className={isSheet ? "bg-background text-foreground" : "rounded-xl border border-border bg-card"}>
+    <div className={isSheet ? "bg-card text-foreground" : "rounded-xl border border-border bg-card"}>
       <div className={cn("border-b border-border", isSheet ? "px-3 pb-3" : "px-4 py-4 md:px-6")}>
         <div className={cn("flex justify-between gap-3", isSheet ? "items-start" : "flex-wrap items-center")}>
         <div className="flex items-center gap-3">
@@ -295,14 +295,14 @@ export function FiltrosReportes({
 
         <div className="flex items-center gap-2">
           {isSheet && hayFiltrosActivos && (
-            <Button variant="ghost" size="sm" onClick={limpiarFiltros} disabled={isPending}>
+            <Button variant="secondary" size="sm" onClick={limpiarFiltros} disabled={isPending}>
               <X className="size-4" aria-hidden="true" />
               Limpiar
             </Button>
           )}
 
           {!isSheet && hayFiltrosActivos && (
-            <Button variant="ghost" size="sm" onClick={limpiarFiltros} disabled={isPending}>
+            <Button variant="secondary" size="sm" onClick={limpiarFiltros} disabled={isPending}>
               <X className="size-4" aria-hidden="true" />
               Limpiar
             </Button>
@@ -446,8 +446,8 @@ export function FiltrosReportes({
         </div>
 
         {isSheet && (
-          <div className="sticky bottom-0 z-10 mt-1 border-t border-border bg-background px-3 pb-[calc(max(env(safe-area-inset-bottom),1rem))] pt-3 shadow-[0_-10px_30px_rgba(15,23,42,0.12)]">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-5 -translate-y-full bg-gradient-to-t from-background via-background/90 to-transparent" aria-hidden="true" />
+          <div className="sticky bottom-0 z-10 mt-1 border-t border-border bg-card px-3 pb-[calc(max(env(safe-area-inset-bottom),1rem))] pt-3 shadow-[0_-10px_30px_rgba(15,23,42,0.12)]">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-5 -translate-y-full bg-gradient-to-t from-card via-card/90 to-transparent" aria-hidden="true" />
             <Button type="button" size="lg" onClick={aplicarFiltros} disabled={isPending} className="w-full">
               Aplicar filtros
             </Button>

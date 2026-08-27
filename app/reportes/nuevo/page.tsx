@@ -38,6 +38,7 @@ import { useMounted } from "@/hooks/use-mounted"
 import dynamic from "next/dynamic"
 import { crearReporteAction } from "./actions"
 import { getCategoryIcon, getPriorityIcon } from "@/components/report-card"
+import { PageTitleBar } from "@/components/page-title-bar"
 
 const getPriorityTone = (priority: string) => {
   const normalizedPriority = priority
@@ -394,9 +395,9 @@ export default function NuevoReportePage() {
 
   return (
     <div className="page-shell">
-      <div className="page-container max-w-5xl space-y-6 py-6 md:space-y-8 md:py-8 lg:space-y-10 lg:py-10">
+      <div className="page-container max-w-5xl space-y-6 md:space-y-8 lg:space-y-10">
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">Crear reporte</h2>
+          <PageTitleBar title="Crear reporte" />
           <Card>
           <CardHeader>
             <CardTitle>Información del Problema</CardTitle>

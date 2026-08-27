@@ -63,7 +63,7 @@ export function ReportesClientWrapper({ categorias, estados, prioridades }: Repo
             <span>{showFilters ? "Cerrar" : activeFiltersLabel}</span>
           </Button>
         </DrawerTrigger>
-        <DrawerContent className="max-h-[85dvh]">
+        <DrawerContent className="max-h-[85dvh] bg-card">
           <div className="flex-1 min-h-0 overflow-y-auto">
             <FiltrosReportes
               categorias={categorias}
