@@ -158,7 +158,7 @@ export function ListaReportesClient({
                             className="min-w-56"
                         >
                             {isLoading ? (
-                                <LoadingState text="Cargando reportes..." className="h-10 w-auto flex-row gap-2 px-4" />
+                                <LoadingState text="Cargando reportes..." className="h-10 w-auto flex-row gap-2 px-4" showSkeleton={false} />
                             ) : (
                                 "Cargar Más Reportes"
                             )}

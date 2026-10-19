@@ -46,7 +46,7 @@ export function ReportesClientWrapper({ categorias, estados, prioridades }: Repo
     <>
       {isPending && (
         <div className="flex min-h-12 w-full items-center justify-center">
-          <LoadingState text="Cargando reportes..." className="h-12 w-auto flex-row gap-2 px-4" />
+          <LoadingState text="Cargando reportes..." className="h-12 w-auto flex-row gap-2 px-4" showSkeleton={false} />
         </div>
       )}
 

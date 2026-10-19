@@ -67,7 +67,7 @@
   --elevation-soft: 0 10px 30px color-mix(in oklab, var(--foreground) 12%, transparent);
   --card-shadow: 7px 7px 12px color-mix(in oklab, var(--foreground) 20%, transparent);
 
-  --bottom-nav-space: calc(5.75rem + env(safe-area-inset-bottom));
+  --bottom-nav-space: calc(4.75rem + env(safe-area-inset-bottom));
 
 }
 

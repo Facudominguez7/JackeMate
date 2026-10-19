@@ -127,7 +127,7 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
         </div>
       )}
 
-      <div className="absolute bottom-[calc(6.75rem+env(safe-area-inset-bottom))] right-4 z-30 flex flex-col items-end gap-3 sm:right-6">
+      <div className="absolute bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-4 z-30 flex flex-col items-end gap-3 sm:right-6">
         {showActions && (
           <div className="flex flex-col items-end gap-2">
             <Link href="/reportes" className={mapActionLinkClassName}>
