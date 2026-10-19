@@ -12,7 +12,7 @@ import { z } from "zod"
 import { MIN_PASSWORD_LENGTH, PASSWORD_PENDING_METADATA_KEY } from "@/lib/authz/guest-account"
 import { isAnonymousUser } from "@/lib/authz/roles"
 import { createClient } from "@/utils/supabase/server"
-import { obtenerOrigenAutenticacion, obtenerRutaInternaSegura } from "./rutas-seguras"
+import { obtenerOrigenAutenticacion, obtenerRutaInternaSegura, RUTA_NUEVA_CONTRASENA } from "./rutas-seguras"
 
 export type AuthFormState = {
   error?: string
@@ -251,9 +251,10 @@ export async function vincularCorreoInvitado(
 }
 
 /**
- * Sets the password of a guest account that already verified its linked email (Supabase
- * only lets anonymous users add a password after the email is verified). Once set, the
- * account signs in with the regular email + password form on `/auth`.
+ * Sets the password of the signed-in permanent account. It serves two flows: a guest that
+ * just verified its linked email (Supabase only lets anonymous users add a password after
+ * the email is verified), and a recovery session opened from the reset-password email.
+ * Once set, the account signs in with the regular email + password form on `/auth`.
  *
  * @param _prevState - Previous form state.
  * @param formData - FormData with `password` and `confirm_password`.
@@ -280,7 +281,7 @@ export async function crearContrasenaCuenta(
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return { error: "Tu sesión expiró. Ingresá nuevamente para continuar." }
+    return { error: "Tu sesión expiró. Pedí un enlace nuevo desde «¿Olvidaste tu contraseña?» para crear tu contraseña." }
   }
 
   if (isAnonymousUser(user) || !user.email) {
@@ -298,7 +299,7 @@ export async function crearContrasenaCuenta(
     }
 
     if (error.code === "reauthentication_needed") {
-      return { error: "Por seguridad, ingresá nuevamente y volvé a crear tu contraseña." }
+      return { error: "Por seguridad, pedí un enlace nuevo desde «¿Olvidaste tu contraseña?» y creá tu contraseña desde ahí." }
     }
 
     return { error: "No pudimos guardar tu contraseña. Intentá nuevamente." }
@@ -308,4 +309,39 @@ export async function crearContrasenaCuenta(
   // Redirect instead of returning a message: once the flag is cleared the password card
   // unmounts on revalidation, so the confirmation lives on the page itself.
   redirect(RUTA_CUENTA_LISTA)
+}
+
+/**
+ * Sends a password recovery email. The link goes through `/auth/callback` (PKCE) to the
+ * new-password page, so it must be opened in the same browser. It also unblocks accounts
+ * that never had a password, such as converted guests whose session expired. The answer
+ * is the same whether the account exists or not.
+ *
+ * @param _prevState - Previous form state.
+ * @param formData - FormData with `email`.
+ * @returns Form state with a neutral confirmation message or a controlled error.
+ */
+export async function solicitarRecuperacionContrasena(
+  _prevState: AuthFormState | void,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const email = emailSchema.safeParse(formData.get("email"))
+
+  if (!email.success) {
+    return { error: "Ingresá un correo electrónico válido." }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.auth.resetPasswordForEmail(email.data, {
+    redirectTo: await obtenerRedireccionCallback(RUTA_NUEVA_CONTRASENA),
+  })
+
+  if (error?.status === 429) {
+    return { error: "Enviamos demasiados correos. Probá de nuevo en unos minutos." }
+  }
+
+  return {
+    message:
+      "Si existe una cuenta con ese correo, te enviamos un enlace para crear una nueva contraseña. Abrilo desde este mismo navegador.",
+  }
 }

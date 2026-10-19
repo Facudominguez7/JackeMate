@@ -24,8 +24,8 @@ Settings that cannot be changed through SQL/MCP and must be reviewed in the Supa
 2. **Authentication → Sign In / Providers → Allow manual linking**: enable it so guests can link an email (`updateUser({ email })`) or OAuth identity.
 3. **Authentication → Attack Protection → CAPTCHA**: enable Cloudflare Turnstile and paste the Turnstile **secret key**. Then set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` in the app. Enable both together: with CAPTCHA on and no site key, guest sign-ins fail.
 4. **Authentication → Rate Limits → Anonymous sign-ins**: default 30/hour per IP; adjust if needed.
-5. **Authentication → URL Configuration → Redirect URLs**: must include `<site>/auth/callback` (the email-linking confirmation lands there).
-6. **Authentication → Emails → Change email address** template: the default `{{ .ConfirmationURL }}` works with `/auth/callback`; custom `token_hash` templates work with `/auth/confirm`.
+5. **Authentication → URL Configuration → Redirect URLs**: must include `<site>/auth/callback` (the email-linking confirmation and the password recovery link land there).
+6. **Authentication → Emails → Change email address / Reset password** templates: the default `{{ .ConfirmationURL }}` works with `/auth/callback`; custom `token_hash` templates work with `/auth/confirm`.
 7. **Authentication → Sign In / Providers → Email → Secure password change**: if enabled, a converted guest whose session is older than 24 h must sign in again before creating the password (the form reports it).
 
 Environment variables (no secrets in the repo):
