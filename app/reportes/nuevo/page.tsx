@@ -301,7 +301,9 @@ export default function NuevoReportePage() {
     formData.lat !== null &&
     formData.lon !== null &&
     !loading &&
-    !isSubmitting
+    !isSubmitting &&
+    // Submitting mid-optimization would silently send the report without its photo.
+    !isOptimizingImage
 
   const missingFields = [
     formData.title.trim().length >= 3 ? null : "título",
@@ -765,7 +767,13 @@ export default function NuevoReportePage() {
                   disabled={!canSubmitReport}
                 >
                   <Send className="w-4 h-4" />
-                  {isSubmitting ? "Enviando..." : canSubmitReport ? "Enviar Reporte" : "Faltan datos"}
+                  {isSubmitting
+                    ? "Enviando..."
+                    : isOptimizingImage
+                      ? "Optimizando imagen..."
+                      : canSubmitReport
+                        ? "Enviar Reporte"
+                        : "Faltan datos"}
                 </Button>
                 <Button
                   type="button"
