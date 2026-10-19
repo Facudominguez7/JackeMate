@@ -60,4 +60,4 @@ Supabase anonymous users use the `authenticated` Postgres role, so a valid user 
 | Dashboard / crew operations | No | By role | Role checks (role 5 is in no staff list); guests are redirected to `/mis-reportes` |
 
 - `private.sync_profile_from_auth_user()` gives anonymous users `rol_id = 5` and promotes `5 → 2` only when `auth.users.is_anonymous` becomes false (verified email or linked identity). Other roles are never changed.
-- The anonymous session is created only in `crearReporteAction`, after validation and only without an existing session.
+- The anonymous session is created only by the browser on the new-report page (`signInAnonymously`), at submit time and only without an existing session, so Supabase's per-IP anonymous sign-in limit and CAPTCHA apply to the visitor's IP. `crearReporteAction` never creates identities: it requires a validated session.

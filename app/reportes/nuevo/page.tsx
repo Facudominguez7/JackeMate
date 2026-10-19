@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import type { User } from "@supabase/supabase-js"
+import type { AuthError, User } from "@supabase/supabase-js"
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
@@ -41,6 +41,23 @@ import { crearReporteAction } from "./actions"
 import { getCategoryIcon, getPriorityIcon } from "@/components/report-card"
 import { PageTitleBar } from "@/components/page-title-bar"
 import { TURNSTILE_SITE_KEY, TurnstileWidget } from "@/components/turnstile-widget"
+
+/** Maps Supabase Auth errors from the guest sign-in to user-facing messages. */
+function getGuestSessionErrorMessage(error: AuthError | null) {
+  if (error?.code === "over_request_rate_limit" || error?.status === 429) {
+    return "Demasiados intentos desde tu conexión. Probá de nuevo en unos minutos."
+  }
+
+  if (error?.code === "anonymous_provider_disabled") {
+    return "Los reportes como invitado no están disponibles. Iniciá sesión para reportar."
+  }
+
+  if (error?.message?.toLowerCase().includes("captcha")) {
+    return "Completá la verificación de seguridad e intentá nuevamente."
+  }
+
+  return "No pudimos preparar tu sesión de invitado. Intentá nuevamente."
+}
 
 type CreatedReport = {
   reportId: number
@@ -89,7 +106,7 @@ const LocationPickerMap = dynamic(
 /**
  * Componente de página que muestra un formulario para crear y enviar un nuevo reporte.
  *
- * Funciona sin cuenta: si no hay sesión, el servidor crea una sesión de invitado recién al confirmar el envío.
+ * Funciona sin cuenta: si no hay sesión, el navegador crea la sesión de invitado recién al confirmar el envío.
  * Carga las categorías y prioridades disponibles,
  * obtiene la geolocalización automáticamente en móviles o permite la selección manual en escritorio,
  * permite adjuntar una única imagen, muestra un diálogo de confirmación y realiza el envío final
@@ -301,6 +318,28 @@ export default function NuevoReportePage() {
     setCaptchaResetSignal((signal) => signal + 1)
   }
 
+  /**
+   * Creates the anonymous guest session from the browser, only at submit time and only
+   * when there is no session. Running it client-side makes Supabase Auth apply its
+   * per-IP anonymous sign-in limit and CAPTCHA to the visitor, not to the server.
+   */
+  const ensureGuestSession = async () => {
+    const { data, error } = await supabase.auth.signInAnonymously(
+      captchaToken ? { options: { captchaToken } } : undefined,
+    )
+
+    if (error || !data.user) {
+      requestNewCaptcha()
+      toast.error("Error al crear el reporte", {
+        description: getGuestSessionErrorMessage(error),
+      })
+      return null
+    }
+
+    setUser(data.user)
+    return data.user
+  }
+
   const startNewReport = () => {
     setFormData((prev) => ({
       ...prev,
@@ -322,6 +361,11 @@ export default function NuevoReportePage() {
     try {
       setIsSubmitting(true)
 
+      // Reuse the current session; create a guest one only if there is none.
+      if (!user && !(await ensureGuestSession())) {
+        return
+      }
+
       const payload = new FormData()
       payload.set("titulo", formData.title)
       payload.set("descripcion", formData.description)
@@ -330,10 +374,6 @@ export default function NuevoReportePage() {
       payload.set("lat", String(formData.lat))
       payload.set("lon", String(formData.lon))
       payload.set("submissionId", submissionId)
-
-      if (captchaToken) {
-        payload.set("captchaToken", captchaToken)
-      }
 
       if (formData.images[0]) {
         payload.set("image", formData.images[0])
@@ -346,8 +386,6 @@ export default function NuevoReportePage() {
       const result = await crearReporteAction(payload)
 
       if (!result.success) {
-        // Turnstile tokens are single-use: ask for a fresh one before retrying.
-        requestNewCaptcha()
         toast.error("Error al crear el reporte", {
           description: result.error,
         })
@@ -379,7 +417,6 @@ export default function NuevoReportePage() {
 
     } catch (error) {
       console.error("Error inesperado:", error)
-      requestNewCaptcha()
       toast.error("Error al crear el reporte", {
         description: "Por favor, intenta nuevamente."
       })

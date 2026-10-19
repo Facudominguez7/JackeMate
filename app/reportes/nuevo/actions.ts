@@ -28,7 +28,6 @@ const createReportSchema = z.object({
   lat: z.coerce.number().min(-90, "Seleccioná una ubicación en el mapa." ).max(90, "Seleccioná una ubicación en el mapa."),
   lon: z.coerce.number().min(-180, "Seleccioná una ubicación en el mapa.").max(180, "Seleccioná una ubicación en el mapa."),
   submissionId: z.string().uuid("No pudimos identificar el envío. Recargá la página e intentá nuevamente."),
-  captchaToken: z.string().trim().max(4096).optional(),
 })
 
 type ReportActorResult =
@@ -36,44 +35,25 @@ type ReportActorResult =
   | { success: false; error: string }
 
 /**
- * Resolves who is creating the report. This is the ONLY place where JackeMate creates
- * an anonymous identity: after the submission was validated and only when the request
- * carries no valid session. Existing sessions (anonymous or permanent) are always reused,
- * so visiting pages or opening "Mis reportes" never creates users.
+ * Resolves who is creating the report from the validated session. The anonymous guest
+ * session is created by the browser (`signInAnonymously` in the new-report page) right
+ * before calling this action, so Supabase Auth applies its per-IP anonymous sign-in
+ * limit and CAPTCHA to the visitor's own IP instead of the server's shared egress IP.
+ * This action never creates identities.
  */
-async function resolveReportActor(
-  sessionClient: SupabaseClient,
-  captchaToken: string | undefined,
-): Promise<ReportActorResult> {
+async function resolveReportActor(sessionClient: SupabaseClient): Promise<ReportActorResult> {
   const {
     data: { user },
   } = await sessionClient.auth.getUser()
 
-  if (user) {
-    return { success: true, user }
+  if (!user) {
+    return {
+      success: false,
+      error: "No encontramos tu sesión. Recargá la página e intentá enviar el reporte nuevamente.",
+    }
   }
 
-  const { data, error } = await sessionClient.auth.signInAnonymously(
-    captchaToken ? { options: { captchaToken } } : undefined,
-  )
-
-  if (error || !data.user) {
-    if (error?.code === "over_request_rate_limit" || error?.status === 429) {
-      return { success: false, error: "Demasiados intentos desde tu conexión. Probá de nuevo en unos minutos." }
-    }
-
-    if (error?.code === "anonymous_provider_disabled") {
-      return { success: false, error: "Los reportes como invitado no están disponibles. Iniciá sesión para reportar." }
-    }
-
-    if (error?.message?.toLowerCase().includes("captcha")) {
-      return { success: false, error: "Completá la verificación de seguridad e intentá nuevamente." }
-    }
-
-    return { success: false, error: "No pudimos preparar tu sesión de invitado. Intentá nuevamente." }
-  }
-
-  return { success: true, user: data.user }
+  return { success: true, user }
 }
 
 async function getOptionalImage(formData: FormData) {
@@ -114,7 +94,6 @@ export async function crearReporteAction(formData: FormData) {
       lat: formData.get("lat"),
       lon: formData.get("lon"),
       submissionId: formData.get("submissionId"),
-      captchaToken: formData.get("captchaToken") || undefined,
     })
 
     const image = await getOptionalImage(formData)
@@ -139,10 +118,8 @@ export async function crearReporteAction(formData: FormData) {
       }
     }
 
-    // Identity is resolved only after the payload is valid, to avoid minting
-    // anonymous users for submissions that would be rejected anyway.
     const sessionClient = await createClient()
-    const actor = await resolveReportActor(sessionClient, parsedInput.captchaToken)
+    const actor = await resolveReportActor(sessionClient)
 
     if (!actor.success) {
       return { success: false as const, error: actor.error }

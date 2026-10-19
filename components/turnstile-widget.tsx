@@ -33,9 +33,9 @@ type TurnstileWidgetProps = {
 }
 
 /**
- * Cloudflare Turnstile challenge for Supabase Auth CAPTCHA protection. The token is
- * forwarded to `signInAnonymously({ options: { captchaToken } })` and verified by
- * Supabase Auth with the secret configured in the dashboard.
+ * Cloudflare Turnstile challenge for Supabase Auth CAPTCHA protection. The browser passes
+ * the token to `signInAnonymously({ options: { captchaToken } })` and Supabase Auth
+ * verifies it with the secret configured in the dashboard.
  */
 export function TurnstileWidget({ onTokenChange, resetSignal }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
