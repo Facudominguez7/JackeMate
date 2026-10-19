@@ -1,6 +1,6 @@
 # Supabase access matrix — `project-hygiene-supabase-boundaries`
 
-Compatibility-first rollout target for the current JackeMate flows.
+Compatibility-first rollout target for the current Reporty flows.
 
 ## Evidence captured from live project
 

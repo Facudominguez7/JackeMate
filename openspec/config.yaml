@@ -1,6 +1,6 @@
 strict_tdd: false
 context: |
-  jackemate is a Node.js/TypeScript, React, Next.js project.
+  reporty is a Node.js/TypeScript, React, Next.js project.
   Detected markers: package.json, tsconfig.json, pnpm package manager.
   Package managers: pnpm.
   No reliable test runner was detected; verify testing manually before enabling strict TDD.

@@ -1,4 +1,4 @@
-# 🧉 JackeMate
+# 🧉 Reporty
 
 <div align="center">
 
@@ -18,7 +18,7 @@
 
 ## 📋 Descripción
 
-JackeMate es una plataforma web creada **por vecinos, para vecinos**. Permite a los ciudadanos de Posadas reportar problemas urbanos (baches, luminarias rotas, basura, etc.) y visualizarlos en un mapa interactivo. Sin intermediarios políticos, con total transparencia.
+Reporty es una plataforma web creada **por vecinos, para vecinos**. Permite a los ciudadanos de Posadas reportar problemas urbanos (baches, luminarias rotas, basura, etc.) y visualizarlos en un mapa interactivo. Sin intermediarios políticos, con total transparencia.
 
 ### ✨ Características Principales
 
@@ -255,7 +255,7 @@ Los usuarios ganan (o pierden) puntos por sus acciones en la comunidad:
 
 ## 📧 Sistema de Notificaciones
 
-JackeMate envía notificaciones por email en los siguientes casos:
+Reporty envía notificaciones por email en los siguientes casos:
 
 - **Nuevo comentario**: Cuando alguien comenta en tu reporte
 - **Cambio de estado**: Cuando un administrador cambia el estado de tu reporte
