@@ -20,6 +20,12 @@ function isMissingPublicProfilesProjectionError(error: Pick<PostgrestError, "cod
   return error?.code === "42P01" || error?.code === "PGRST205" || error?.message?.includes("public_profiles") || false;
 }
 
+/**
+ * PostgREST filter that keeps rows whose role is not the guest role (5). Guests keep a
+ * profile so their reports resolve an author, but never count as community members.
+ */
+const NON_GUEST_ROLE_FILTER = "rol_id.is.null,rol_id.neq.5";
+
 function dedupeUserIds(userIds: string[]) {
   return Array.from(new Set(userIds.filter(Boolean)));
 }
@@ -78,12 +84,14 @@ export async function getPublicProfilesCount(
 ): Promise<{ count: number; error: PostgrestError | null }> {
   let { count, error } = await supabase
     .from("public_profiles")
-    .select("id", { count: "exact", head: true });
+    .select("id", { count: "exact", head: true })
+    .or(NON_GUEST_ROLE_FILTER);
 
   if (error && isMissingPublicProfilesProjectionError(error)) {
     ({ count, error } = await supabase
       .from("profiles")
-      .select("id", { count: "exact", head: true }));
+      .select("id", { count: "exact", head: true })
+      .or(NON_GUEST_ROLE_FILTER));
   }
 
   if (error) {
@@ -101,6 +109,7 @@ export async function getTopPublicProfiles(
   let { data, error } = await supabase
     .from("public_profiles")
     .select("id, username, puntos")
+    .or(NON_GUEST_ROLE_FILTER)
     .order("puntos", { ascending: false })
     .limit(limite)
     .returns<Array<Pick<PublicProfile, "id" | "username" | "puntos">>>();
@@ -109,6 +118,7 @@ export async function getTopPublicProfiles(
     ({ data, error } = await supabase
       .from("profiles")
       .select("id, username, puntos")
+      .or(NON_GUEST_ROLE_FILTER)
       .order("puntos", { ascending: false })
       .limit(limite)
       .returns<Array<Pick<PublicProfile, "id" | "username" | "puntos">>>());

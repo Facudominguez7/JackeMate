@@ -1,0 +1,43 @@
+# Feature: anonymous-auth
+
+Objective: let citizens report incidents without registering (Supabase Anonymous Sign-Ins), return from the same browser to see their reports, and optionally link an email.
+Branch: `feat/anonymous-auth` (from `main`). Delivery: `ask-on-risk`. Test runner: none in repo (no `test` script) — checks are `pnpm lint`, `tsc --noEmit`, `pnpm build`, plus SQL probes against the live project inside rolled-back transactions.
+
+## Specs
+
+- S1 Session creation point. "No crear usuarios anónimos automáticamente al visitar la página principal." The session is created only by the browser in the new-report page at submit confirmation, after client validation and only when there is no session ("Reutilizar una sesión existente, sea anónima o permanente."); `crearReporteAction` only reads the validated session. "Evitar crear múltiples usuarios por clics repetidos o llamadas concurrentes." Superseded by L14: visitors without a session go through `/auth` first — "que pase por la pantalla de login asi el usuario decide si quiere loguearse o hacerlo como invitado" — and the guest choice ("Continuar como invitado") opens `/reportes/nuevo?modo=invitado` without creating an identity.
+- S2 Profiles. "Los reportes anónimos deben quedar asociados al UUID real de `auth.users`." Anonymous profiles get a dedicated `invitado` role (id 5), never `ciudadano`; conversion promotes `invitado` → `ciudadano`. "No inventar emails para usuarios anónimos." "No otorgar privilegios de administrador, operador o interesado."
+- S3 Authorization. Distinguish via `user.is_anonymous` / JWT `is_anonymous`. Guest: view, create reports, attach photos, see own reports = Sí; points, ranking, comment, vote, admin = No. RLS restrictive policies for anonymous on direct vote inserts and storage uploads. "Auditar también los triggers o RPC de puntos, para garantizar que una identidad anónima no acumule puntos indirectamente."
+- S4 "Mis reportes": Server Component, own reports only (title, category, photo, date, state, link to detail), info state without session, never creates an identity.
+- S5 Email linking via `updateUser({ email })` (not `signUp()`), verification required, UUID preserved, email-exists case handled without merging. Passwordless OTP/magic-link login on `/auth` for converted accounts.
+- S6 Abuse: optional Cloudflare Turnstile (Supabase Auth CAPTCHA), report rate limit by actor and hashed IP (not UUID only), duplicate submission guard, bucket size/MIME limits, guests blocked from notification route.
+- S7 UX: confirmation with link to "Mis reportes"; guest banner verbatim: "Estás usando Reporty como invitado. Tus reportes están vinculados a este navegador. Si eliminás los datos del sitio, podrías perder el acceso. Vinculá tu correo para conservar tu cuenta."
+- S8 Incremental, non-destructive migration in `supabase/migrations`; docs updated (`access-matrix.md`, README).
+
+## Tasks
+
+| ID | Specs | Route | Status | Evidence |
+|---|---|---|---|---|
+| T1 | S2 S3 S6 S8 | inline | done | migration applied; rolled-back probes P1–P7 + RLS probes pass |
+| T2 | S1 S3 S6 | inline | done | E2E via HTTP server action: T0–T7 pass |
+| T3 | S4 S5 S7 | inline | done | /mis-reportes, link email, magic link, guest form |
+| T4 | all | delegated verifier | done | tsc 0 errors, lint 0 errors, build OK; verifier: no blockers; RDD 4-lens review approved and acknowledged (lineage review-2fc2e50bfd4fc19e) |
+| T5 | S1 S7 | inline | done | RED: `/reportes/nuevo` without session returned 200; GREEN: 307 to `/auth?next=%2Freportes%2Fnuevo`, `?modo=invitado` 200; tsc 0, lint 0, build OK; Playwright headed 15/15; test data hard-deleted |
+
+## Log
+
+- L1 (2026-10-19) User: "no esta desplegado en vercel, hace una rama desde main para esto" + full prompt "Implementar autenticación anónima con Supabase Auth en JackeMate" (sections 1–12), ending "Definí el punto exacto de creación de sesiónSepará requisitos obligatorios de opcionales".
+- L2 Audit: 8 anonymous users already exist (2026-04-25), created in pairs (double-creation), all with `rol_id = 2`, two with points (15, 11). `on_auth_user_profile_sync` inserts profiles with default role 2. `votos_*_owner_insert` and `reportes_authenticated_upload` accept any `authenticated` JWT, anonymous included. Bucket `reportes` has no size/MIME limit.
+- L3 Session creation point decided: inside `crearReporteAction`, after zod + image validation, only when `getUser()` is empty; client adds a synchronous submit lock + idempotency `submissionId`.
+- L4 E2E (prod build on :3100, live DB): visiting `/mapa`, `/reportes/nuevo`, `/mis-reportes` sets no auth cookie; invalid payload creates no session; first valid submit creates exactly one anonymous user (cookie ~400 days), report #36 with photo, role 5, 0 points; resubmit same id -> "duplicate"; second submit reuses same UUID (#37); `/mis-reportes` shows both + exact banner; other browser sees info state; guest comment/vote rejected; guest cannot delete report #1; test reports soft-deleted by the guest action, storage objects removed.
+- L5 Found and fixed: middleware detail regex also matched `/reportes/nuevo`, still redirecting guests to `/auth`.
+- L6 Not E2E-tested: email linking and magic link (need a real inbox); concurrent cookieless submissions can still mint two guests server-side (client lock prevents it in the UI).
+- L7 Verifier: no blockers, 8 advisories. RDD review (risk, resilience, readability, reliability) approved with 16 non-blocking findings; acknowledged, authority burned.
+- L8 Open follow-up (confirmed in Supabase docs, rate-limits guide): server-side `signInAnonymously` makes Supabase count the 30/h anonymous sign-in limit against the app server IP (shared by all visitors on Vercel). Options: move sign-in to the browser right before the action, or `Sb-Forwarded-For` with an `sb_secret_` key + dashboard toggle. Awaiting user decision.
+- L9 (2026-10-19) User chose "Mover al navegador (Recommended)" for the anonymous sign-in rate-limit finding (RDD correction R3-server-side-anon-signin-shared-ip-limit). S1 rewritten: browser creates the guest session; server action never creates identities.
+- L10 Correction verified: tsc 0 errors, lint 0 errors, build OK. E2E (prod build on :3100, live DB): action without session -> "No encontramos tu sesión. Recargá la página e intentá enviar el reporte nuevamente." and no auth cookie set; browser-created guest session -> report #38 with photo, role 5, 0 points, `isGuest: true`. Test report #38 soft-deleted by the guest action, storage objects removed.
+- L11 (2026-10-19) User: "chequealo con playwright abriendo una sesion en el navegador". Browser E2E (Playwright + system Chrome, prod build on :3100, live DB): 11/11 pass — browsing `/`, `/mapa`, `/reportes/nuevo`, `/mis-reportes` creates no session; double-click confirm creates exactly one guest (1 signup call, cookie 400 days); second report reuses the session; `/mis-reportes` after reload shows exact banner, both reports and "Guardar mi cuenta"; guest detail page has no comment form and no `/auth` redirect; another browser sees the info state. Run twice headless and once headed (slowMo) with identical results. Test reports #39–#44 soft-deleted by the guest action, 0 points, no storage objects left.
+- L12 Fix commit `b04a5a9`. RDD correction (lineage review-9a810fe23733ca0b): targeted validator approved (first capture attempt killed by transport, same slot reoffered and relaunched once); acknowledged, authority burned.
+- L13 (2026-10-19) User: "los datos de test que crees siempre borralos luego de probar". Hard-deleted test reports #36–#44 and the 5 anonymous test users (cascade: photos, history, profiles, submission attempts); only the 8 pre-existing April guests remain. Full-branch RDD review (lineage review-4be076b07ad739e9, 4 lenses) approved with 15 non-blocking advisories (XFF-spoofable IP limit, default salt, claim release after partial create, no automated guest-authz tests, Turnstile load failure blocks guests, stale role copy, magic number 5); acknowledged, authority burned.
+- L14 (2026-10-19) User: "que pase por la pantalla de login asi el usuario decide si quiere loguearse o hacerlo como invitado". Decision: middleware redirects `/reportes/nuevo` without session to `/auth?next=/reportes/nuevo`; `/auth` adds "Continuar como invitado" -> `/reportes/nuevo?modo=invitado`; the anonymous identity is still created only on submit, so abandoned guest choices create no users.
+- L15 (2026-10-19) User: "ahora se llama Reporty no jackemate, te digo por los mensajes". S7 banner and the email-exists linking error now say "Reporty". Pre-existing JackeMate strings outside this feature (notification email, mailto, logo) left unchanged.

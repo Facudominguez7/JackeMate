@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  FileText,
   LayoutDashboard,
   List,
   LogIn,
@@ -24,6 +25,19 @@ type NavItem = {
   icon: LucideIcon;
 };
 
+/** Last nav slot: visitors sign in, guests open their reports, permanent users their account. */
+function getAccountNavItem(user: User | null | undefined): NavItem {
+  if (!user) {
+    return { href: "/auth", label: "Ingresar", icon: LogIn };
+  }
+
+  if (user.is_anonymous) {
+    return { href: "/mis-reportes", label: "Mis reportes", icon: FileText };
+  }
+
+  return { href: "/dashboard", label: "Cuenta", icon: LayoutDashboard };
+}
+
 export function HeaderClient({ user }: HeaderClientProps) {
   const pathname = usePathname();
   const bottomItems: NavItem[] = [
@@ -31,7 +45,7 @@ export function HeaderClient({ user }: HeaderClientProps) {
     { href: "/reportes", label: "Reportes", icon: List },
     { href: "/reportes/nuevo", label: "Crear", icon: Plus },
     { href: "/comunidad", label: "Comunidad", icon: Users },
-    { href: user ? "/dashboard" : "/auth", label: user ? "Cuenta" : "Ingresar", icon: user ? LayoutDashboard : LogIn },
+    getAccountNavItem(user),
   ];
 
   const isActive = (href: string) => {
@@ -40,6 +54,7 @@ export function HeaderClient({ user }: HeaderClientProps) {
     if (href === "/reportes/nuevo") return pathname.startsWith("/reportes/nuevo");
     if (href === "/dashboard") return pathname.startsWith("/dashboard");
     if (href === "/auth") return pathname.startsWith("/auth");
+    if (href === "/mis-reportes") return pathname.startsWith("/mis-reportes");
     return pathname === href;
   };
 

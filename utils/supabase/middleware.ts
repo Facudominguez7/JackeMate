@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { canCreateReports, puedeOperarCuadrillas } from '@/lib/authz/roles'
+import { GUEST_MODE_PARAM, GUEST_MODE_VALUE, NEW_REPORT_PATH } from '@/lib/routes/guest-report'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -47,12 +48,17 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Define which paths require authentication
-  // /reportes y /mapa son públicas para que usuarios anónimos puedan ver reportes
-  // /reportes/nuevo y el detalle de reporte requieren sesión
-  const protectedPaths = ['/dashboard', '/reportes/nuevo']
-  const isReportDetail = /^\/reportes\/[^/]+$/.test(pathname)
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p)) || isReportDetail
+  // Define which paths require authentication.
+  // /reportes, /mapa and /mis-reportes stay public. /reportes/nuevo sends visitors without
+  // a session to /auth so they choose between signing in and continuing as a guest; the
+  // guest choice returns with ?modo=invitado and the browser opens the anonymous session
+  // only on submit. The report detail still requires a session (guest or permanent).
+  const protectedPaths = ['/dashboard']
+  const isReportDetail = /^\/reportes\/[^/]+$/.test(pathname) && pathname !== NEW_REPORT_PATH
+  const isNewReportWithoutGuestChoice =
+    pathname === NEW_REPORT_PATH && request.nextUrl.searchParams.get(GUEST_MODE_PARAM) !== GUEST_MODE_VALUE
+  const isProtected =
+    protectedPaths.some((p) => pathname.startsWith(p)) || isReportDetail || isNewReportWithoutGuestChoice
 
   if (!user && isProtected) {
     // no user and trying to access a protected route -> redirect to login

@@ -1,4 +1,4 @@
-import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient, User } from "@supabase/supabase-js";
 
 import {
   CREW_MANAGEMENT_ROLE_IDS,
@@ -93,6 +93,30 @@ export function puedeGestionarCuadrillas(roleId: number | null | undefined) {
 /** Indica si el rol puede operar cuadrillas: asignar reportes, observar y cerrar intervenciones. */
 export function puedeOperarCuadrillas(roleId: number | null | undefined) {
   return CREW_OPERATION_ROLE_IDS.includes(roleId as (typeof CREW_OPERATION_ROLE_IDS)[number]);
+}
+
+/** Whether the role is the anonymous guest role assigned to Supabase anonymous users. */
+export function isGuestRole(roleId: number | null | undefined) {
+  return roleId === ROLE_IDS.INVITADO;
+}
+
+/**
+ * Whether the user is a Supabase anonymous identity. Only trust users returned by
+ * `auth.getUser()`, which validates the session against Supabase Auth.
+ */
+export function isAnonymousUser(user: Pick<User, "is_anonymous"> | null | undefined) {
+  return user?.is_anonymous === true;
+}
+
+/**
+ * Community features (comments, votes, points, ranking) require a permanent identity:
+ * both the verified auth flag and the DB role must say the user is not a guest.
+ */
+export function canParticipateInCommunity(
+  user: Pick<User, "is_anonymous"> | null | undefined,
+  roleId: number | null | undefined,
+) {
+  return Boolean(user) && !isAnonymousUser(user) && !isGuestRole(roleId);
 }
 
 /** Indica si el rol es exactamente OPERADOR municipal. */

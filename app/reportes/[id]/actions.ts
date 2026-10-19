@@ -22,7 +22,7 @@ import {
   obtenerEstadoOperativoPublicoPorReporte,
 } from "@/database/queries/cuadrillas"
 import type { EstadoOperativo } from "@/lib/authz/catalog"
-import { getUserRoleContext, puedeOperarCuadrillas } from "@/lib/authz/roles"
+import { canParticipateInCommunity, getUserRoleContext, puedeOperarCuadrillas } from "@/lib/authz/roles"
 import { createAdminClient } from "@/utils/supabase/admin"
 import { createClient } from "@/utils/supabase/server"
 
@@ -30,6 +30,8 @@ const reportIdSchema = z.coerce.number().int().positive()
 const commentIdSchema = z.coerce.number().int().positive()
 const commentSchema = z.string().trim().min(1).max(1000)
 const stateIdSchema = z.coerce.number().int().positive()
+
+const GUEST_COMMUNITY_ERROR = "Vinculá tu correo para comentar y votar. Como invitado podés crear y seguir tus reportes."
 
 /**
  * Datos de seguimiento de cuadrilla (solo lectura) que el detalle de un reporte necesita
@@ -56,6 +58,10 @@ export async function votarNoExisteAction(reporteId: number) {
     }
 
     const { data: contextoRol } = await getUserRoleContext(supabase, user.id)
+    if (!canParticipateInCommunity(user, contextoRol?.roleId)) {
+      return { success: false as const, error: GUEST_COMMUNITY_ERROR }
+    }
+
     if (puedeOperarCuadrillas(contextoRol?.roleId)) {
       return { success: false as const, error: "Los operadores y administradores no pueden votar." }
     }
@@ -79,6 +85,10 @@ export async function votarReparadoAction(reporteId: number) {
     }
 
     const { data: contextoRol } = await getUserRoleContext(supabase, user.id)
+    if (!canParticipateInCommunity(user, contextoRol?.roleId)) {
+      return { success: false as const, error: GUEST_COMMUNITY_ERROR }
+    }
+
     if (puedeOperarCuadrillas(contextoRol?.roleId)) {
       return { success: false as const, error: "Los operadores y administradores no pueden votar." }
     }
@@ -100,6 +110,11 @@ export async function crearComentarioAction(reporteId: number, contenido: string
 
     if (!user) {
       return { success: false as const, error: "Tenés que iniciar sesión para comentar." }
+    }
+
+    const { data: contextoRol } = await getUserRoleContext(supabase, user.id)
+    if (!canParticipateInCommunity(user, contextoRol?.roleId)) {
+      return { success: false as const, error: GUEST_COMMUNITY_ERROR }
     }
 
     return await crearComentarioWorkflow(createAdminClient(), parsedReportId, user.id, parsedComment)

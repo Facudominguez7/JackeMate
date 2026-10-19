@@ -10,10 +10,11 @@ import { useActionState, useState } from "react"
 import { useFormStatus } from "react-dom"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react"
+import { Eye, EyeOff, Lock, Mail, Phone, User, UserRound } from "lucide-react"
 
-import { iniciarSesionOAuth, login, signup, type AuthFormState } from "./actions"
+import { enviarEnlaceAcceso, iniciarSesionOAuth, login, signup, type AuthFormState } from "./actions"
 import { obtenerRutaInternaSegura } from "./rutas-seguras"
+import { GUEST_REPORT_PATH } from "@/lib/routes/guest-report"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -33,6 +34,7 @@ export default function AuthPage() {
   const initialState: AuthFormState = { error: undefined, message: undefined }
   const [loginState, loginAction] = useActionState(login, initialState)
   const [signupState, signupAction] = useActionState(signup, initialState)
+  const [magicLinkState, magicLinkAction] = useActionState(enviarEnlaceAcceso, initialState)
   const nextPath = obtenerRutaInternaSegura(searchParams.get("next"))
   const oauthError = searchParams.get("error") === "oauth"
 
@@ -42,7 +44,7 @@ export default function AuthPage() {
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-xl">Tu cuenta Reporty</CardTitle>
-            <CardDescription>Necesitás loguearte o registrarte para visualizar o crear reportes.</CardDescription>
+            <CardDescription>Ingresá o registrate para comentar, votar y sumar puntos. Para reportar también podés continuar como invitado.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {oauthError && (
@@ -125,6 +127,41 @@ export default function AuthPage() {
                   </div>
 
                   <SubmitButton label="Ingresar" pendingLabel="Ingresando..." />
+                </form>
+
+                <form action={magicLinkAction} className="space-y-3 border-t border-border pt-5">
+                  <input type="hidden" name="next" value={nextPath} />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">Ingresar sin contraseña</p>
+                    <p className="text-xs text-muted-foreground">
+                      Te enviamos un enlace de acceso a tu correo. Ideal si guardaste tu cuenta de invitado.
+                    </p>
+                  </div>
+                  {magicLinkState?.message && (
+                    <Alert>
+                      <AlertTitle>Revisá tu correo</AlertTitle>
+                      <AlertDescription>{magicLinkState.message}</AlertDescription>
+                    </Alert>
+                  )}
+                  {magicLinkState?.error && (
+                    <Alert variant="destructive">
+                      <AlertTitle>No pudimos enviar el enlace</AlertTitle>
+                      <AlertDescription>{magicLinkState.error}</AlertDescription>
+                    </Alert>
+                  )}
+                  <Field label="Correo electrónico" htmlFor="magic-link-email">
+                    <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="magic-link-email"
+                      name="email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      className="pl-10"
+                      autoComplete="email"
+                      required
+                    />
+                  </Field>
+                  <SubmitButton label="Enviarme un enlace" pendingLabel="Enviando..." variant="outline" />
                 </form>
               </TabsContent>
 
@@ -260,6 +297,21 @@ export default function AuthPage() {
                 </form>
               </TabsContent>
             </Tabs>
+
+            <div className="space-y-3 border-t border-border pt-5">
+              <div className="space-y-1 text-center">
+                <p className="text-sm font-medium">¿Solo querés reportar un problema?</p>
+                <p className="text-xs text-muted-foreground">
+                  Podés hacerlo sin cuenta. Tus reportes quedan guardados en este navegador y después podés vincular tu correo.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="w-full">
+                <Link href={GUEST_REPORT_PATH}>
+                  <UserRound className="size-4" aria-hidden="true" />
+                  Continuar como invitado
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -296,10 +348,18 @@ function Field({
  * @param props - Textos a mostrar según el estado de envío.
  * @returns Botón deshabilitado durante el envío del formulario.
  */
-function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
+function SubmitButton({
+  label,
+  pendingLabel,
+  variant = "default",
+}: {
+  label: string
+  pendingLabel: string
+  variant?: "default" | "outline"
+}) {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button type="submit" variant={variant} className="w-full" disabled={pending}>
       {pending ? pendingLabel : label}
     </Button>
   )

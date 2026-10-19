@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Calendar } from "lucide-react"
 
 import {
+  getCategoryIcon,
   getPriorityColor,
   getPriorityIcon,
   getStatusIcon,
@@ -19,6 +20,8 @@ type ReportCompactCardProps = {
   status: string
   createdAt: string
   image: string | null
+  /** Optional category label; rendered only when provided. */
+  category?: string
 }
 
 export function ReportCompactCard({
@@ -29,6 +32,7 @@ export function ReportCompactCard({
   status,
   createdAt,
   image,
+  category,
 }: ReportCompactCardProps) {
   return (
     <Link href={`/reportes/${id}`} className="block">
@@ -63,6 +67,12 @@ export function ReportCompactCard({
               </div>
 
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                {category && (
+                  <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
+                    {getCategoryIcon(category, "size-3")}
+                    {category}
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1 font-medium" style={{ color: getPriorityColor(priority) }}>
                   {getPriorityIcon(priority, "size-3")}
                   {priority}

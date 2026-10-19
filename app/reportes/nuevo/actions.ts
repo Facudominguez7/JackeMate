@@ -1,5 +1,7 @@
 "use server"
 
+import type { SupabaseClient, User } from "@supabase/supabase-js"
+import { headers } from "next/headers"
 import { ZodError, z } from "zod"
 
 import { crearReporteWorkflow, mutationErrorMessage } from "@/lib/use-cases/reportes"
@@ -8,6 +10,13 @@ import {
   validateUploadedReportImage,
   validateUploadedReportThumbnail,
 } from "@/lib/media/report-image-validation.server"
+import { isAnonymousUser } from "@/lib/authz/roles"
+import {
+  claimReportSubmission,
+  hashClientIp,
+  releaseReportSubmission,
+  reportSubmissionClaimMessage,
+} from "@/lib/security/report-submission-guard.server"
 import { createAdminClient } from "@/utils/supabase/admin"
 import { createClient } from "@/utils/supabase/server"
 
@@ -18,7 +27,34 @@ const createReportSchema = z.object({
   prioridadId: z.coerce.number().int().positive("Seleccioná una prioridad."),
   lat: z.coerce.number().min(-90, "Seleccioná una ubicación en el mapa." ).max(90, "Seleccioná una ubicación en el mapa."),
   lon: z.coerce.number().min(-180, "Seleccioná una ubicación en el mapa.").max(180, "Seleccioná una ubicación en el mapa."),
+  submissionId: z.string().uuid("No pudimos identificar el envío. Recargá la página e intentá nuevamente."),
 })
+
+type ReportActorResult =
+  | { success: true; user: User }
+  | { success: false; error: string }
+
+/**
+ * Resolves who is creating the report from the validated session. The anonymous guest
+ * session is created by the browser (`signInAnonymously` in the new-report page) right
+ * before calling this action, so Supabase Auth applies its per-IP anonymous sign-in
+ * limit and CAPTCHA to the visitor's own IP instead of the server's shared egress IP.
+ * This action never creates identities.
+ */
+async function resolveReportActor(sessionClient: SupabaseClient): Promise<ReportActorResult> {
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser()
+
+  if (!user) {
+    return {
+      success: false,
+      error: "No encontramos tu sesión. Recargá la página e intentá enviar el reporte nuevamente.",
+    }
+  }
+
+  return { success: true, user }
+}
 
 async function getOptionalImage(formData: FormData) {
   const image = formData.get("image")
@@ -50,15 +86,6 @@ async function getOptionalThumbnail(formData: FormData) {
 
 export async function crearReporteAction(formData: FormData) {
   try {
-    const sessionClient = await createClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return { success: false as const, error: "Tenés que iniciar sesión para crear un reporte." }
-    }
-
     const parsedInput = createReportSchema.parse({
       titulo: formData.get("titulo"),
       descripcion: formData.get("descripcion"),
@@ -66,6 +93,7 @@ export async function crearReporteAction(formData: FormData) {
       prioridadId: formData.get("prioridadId"),
       lat: formData.get("lat"),
       lon: formData.get("lon"),
+      submissionId: formData.get("submissionId"),
     })
 
     const image = await getOptionalImage(formData)
@@ -90,19 +118,47 @@ export async function crearReporteAction(formData: FormData) {
       }
     }
 
-    const adminClient = createAdminClient()
+    const sessionClient = await createClient()
+    const actor = await resolveReportActor(sessionClient)
 
-    return await crearReporteWorkflow(adminClient, {
-      usuarioId: user.id,
-      titulo: parsedInput.titulo,
-      descripcion: parsedInput.descripcion,
-      categoriaId: parsedInput.categoriaId,
-      prioridadId: parsedInput.prioridadId,
-      lat: parsedInput.lat,
-      lon: parsedInput.lon,
-      image: image?.file ?? null,
-      imageThumbnail: imageThumbnail?.file ?? null,
+    if (!actor.success) {
+      return { success: false as const, error: actor.error }
+    }
+
+    const adminClient = createAdminClient()
+    const claim = await claimReportSubmission(adminClient, {
+      submissionId: parsedInput.submissionId,
+      actorId: actor.user.id,
+      ipHash: hashClientIp(await headers()),
     })
+
+    if (claim !== "ok") {
+      return { success: false as const, error: reportSubmissionClaimMessage(claim) }
+    }
+
+    try {
+      const result = await crearReporteWorkflow(adminClient, {
+        usuarioId: actor.user.id,
+        actorIsAnonymous: isAnonymousUser(actor.user),
+        titulo: parsedInput.titulo,
+        descripcion: parsedInput.descripcion,
+        categoriaId: parsedInput.categoriaId,
+        prioridadId: parsedInput.prioridadId,
+        lat: parsedInput.lat,
+        lon: parsedInput.lon,
+        image: image?.file ?? null,
+        imageThumbnail: imageThumbnail?.file ?? null,
+      })
+
+      if (!result.success) {
+        await releaseReportSubmission(adminClient, parsedInput.submissionId)
+      }
+
+      return result
+    } catch (workflowError) {
+      await releaseReportSubmission(adminClient, parsedInput.submissionId)
+      throw workflowError
+    }
   } catch (error) {
     if (error instanceof ZodError) {
       const messages = error.issues.map((issue) => {
