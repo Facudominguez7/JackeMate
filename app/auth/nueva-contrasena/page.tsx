@@ -1,6 +1,9 @@
 /**
  * New password page, opened from the recovery email through `/auth/callback`. It needs the
  * recovery session the callback creates; without it the user is sent back to request a link.
+ * Any permanent session can reach this page; the authorization for the change itself is
+ * Supabase "Secure password change" (see `supabase/README.md`), because the browser can call
+ * the Auth API directly with its own session and an app-side check would be bypassed.
  */
 
 import Link from "next/link"
