@@ -3,6 +3,8 @@ export const ROLE_IDS = {
   CIUDADANO: 2,
   INTERESADO: 3,
   OPERADOR: 4,
+  /** Anonymous guest identity (Supabase Anonymous Sign-Ins). Assigned and promoted by the DB trigger. */
+  INVITADO: 5,
 } as const;
 
 export type RoleId = (typeof ROLE_IDS)[keyof typeof ROLE_IDS];
@@ -21,6 +23,7 @@ export const REPORT_BUCKET = "reportes" as const;
 export const REPORT_CREATOR_ROLE_IDS = [
   ROLE_IDS.ADMIN,
   ROLE_IDS.CIUDADANO,
+  ROLE_IDS.INVITADO,
 ] as const;
 
 export const DASHBOARD_ROLE_IDS = [

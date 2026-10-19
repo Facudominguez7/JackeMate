@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import type { User } from "@supabase/supabase-js"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
@@ -56,7 +57,9 @@ export function CommentsSection({
   const [commentToDelete, setCommentToDelete] = useState<number | null>(null)
 
   const selectedComment = comments.find((comment) => comment.id === commentToDelete)
-  const willAwardPoints = Boolean(currentUser && currentUser.id !== reportOwnerId)
+  // Guests (anonymous identities) can read but not comment; the server enforces it too.
+  const isGuest = currentUser?.is_anonymous === true
+  const willAwardPoints = Boolean(currentUser && !isGuest && currentUser.id !== reportOwnerId)
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
@@ -133,7 +136,16 @@ export function CommentsSection({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-0">
-          {!isClosed && (
+          {!isClosed && isGuest && (
+            <p className="rounded-xl border border-border/70 bg-muted/60 p-3 text-xs text-muted-foreground">
+              Para comentar,{" "}
+              <Link href="/mis-reportes" className="font-medium text-primary hover:underline">
+                vinculá tu correo
+              </Link>{" "}
+              y guardá tu cuenta de invitado.
+            </p>
+          )}
+          {!isClosed && !isGuest && (
             <form onSubmit={handleSubmit} className="space-y-2 md:space-y-3 lg:space-y-4">
               <Textarea
                 placeholder="Ej: 'Llamé a la municipalidad', 'Vi personal trabajando en el lugar', etc."

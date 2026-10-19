@@ -47,11 +47,12 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Define which paths require authentication
-  // /reportes y /mapa son públicas para que usuarios anónimos puedan ver reportes
-  // /reportes/nuevo y el detalle de reporte requieren sesión
-  const protectedPaths = ['/dashboard', '/reportes/nuevo']
-  const isReportDetail = /^\/reportes\/[^/]+$/.test(pathname)
+  // Define which paths require authentication.
+  // /reportes, /mapa, /mis-reportes and /reportes/nuevo stay public: visitors can report
+  // as guests (the create action opens the anonymous session only on submit).
+  // The report detail still requires a session (guest or permanent).
+  const protectedPaths = ['/dashboard']
+  const isReportDetail = /^\/reportes\/[^/]+$/.test(pathname) && pathname !== '/reportes/nuevo'
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p)) || isReportDetail
 
   if (!user && isProtected) {

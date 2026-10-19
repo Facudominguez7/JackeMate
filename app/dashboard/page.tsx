@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 import { getDashboardPageData } from "@/database/queries/dashboard"
 import { signout } from "@/app/auth/actions"
-import { puedeOperarCuadrillas } from "@/lib/authz/roles"
+import { isGuestRole, puedeOperarCuadrillas } from "@/lib/authz/roles"
 import { getUserInitials } from "@/lib/identity/display"
 import { PageTitleBar } from "@/components/page-title-bar"
 
@@ -37,6 +37,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   if (!data.user) {
     redirect("/auth")
+  }
+
+  // Guests have no account page: their reports live in "Mis reportes".
+  if (isGuestRole(data.roleId)) {
+    redirect("/mis-reportes")
   }
 
   if (data.isAnalyticsDashboard) {

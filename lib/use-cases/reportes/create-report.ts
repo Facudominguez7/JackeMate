@@ -8,7 +8,7 @@ import {
   subirImagenReporte,
   type CrearReporteParams,
 } from "@/database/queries/reportes/nuevo"
-import { canCreateReports, getUserRoleContext } from "@/lib/authz/roles"
+import { canCreateReports, getUserRoleContext, isGuestRole } from "@/lib/authz/roles"
 
 type MutationResult<T> =
   | { success: true; data: T }
@@ -17,12 +17,15 @@ type MutationResult<T> =
 export type CreateReportWorkflowInput = CrearReporteParams & {
   image?: File | null
   imageThumbnail?: File | null
+  /** Verified `user.is_anonymous` from the session; combined with the DB role. */
+  actorIsAnonymous?: boolean
 }
 
 export type CreateReportWorkflowResult = {
   reportId: number
   imageUploaded: boolean
   pointsAwarded: number
+  isGuest: boolean
 }
 
 export async function crearReporteWorkflow(
@@ -42,15 +45,23 @@ export async function crearReporteWorkflow(
     imageUploaded = Boolean(await subirImagenReporte(supabase, reporte.id, input.image, input.imageThumbnail ?? null))
   }
 
-  const pointsResult = await sumarPuntos(
-    supabase,
-    input.usuarioId,
-    PUNTOS.CREAR_REPORTE,
-    "Crear nuevo reporte",
-  )
+  // Guests never earn points (the DB RPC enforces it too); only permanent identities do.
+  const isGuest = input.actorIsAnonymous === true || isGuestRole(roleResult.data?.roleId)
+  let pointsAwarded = 0
 
-  if (!pointsResult.success) {
-    console.error("No pudimos acreditar puntos tras crear el reporte:", pointsResult.error)
+  if (!isGuest) {
+    const pointsResult = await sumarPuntos(
+      supabase,
+      input.usuarioId,
+      PUNTOS.CREAR_REPORTE,
+      "Crear nuevo reporte",
+    )
+
+    if (pointsResult.success) {
+      pointsAwarded = PUNTOS.CREAR_REPORTE
+    } else {
+      console.error("No pudimos acreditar puntos tras crear el reporte:", pointsResult.error)
+    }
   }
 
   return {
@@ -58,7 +69,8 @@ export async function crearReporteWorkflow(
     data: {
       reportId: reporte.id,
       imageUploaded,
-      pointsAwarded: pointsResult.success ? PUNTOS.CREAR_REPORTE : 0,
+      pointsAwarded,
+      isGuest,
     },
   }
 }

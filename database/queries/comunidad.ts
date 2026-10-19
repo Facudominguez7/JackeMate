@@ -1,6 +1,7 @@
 import type { PostgrestError } from "@supabase/supabase-js"
 
 import { getEstadisticasInteresado } from "@/database/queries/interesado/estadisticas-interesado"
+import { isGuestRole } from "@/lib/authz/roles"
 import { getPublicProfilesByIds, getPublicProfilesCount, indexPublicProfilesById } from "@/database/queries/profiles"
 import { createClient } from "@/utils/supabase/server"
 
@@ -65,6 +66,8 @@ export async function getComunidadPageData(): Promise<CommunityPageData> {
     const profilesById = indexPublicProfilesById(profiles)
 
     const contributors = contributorIds
+      // Guests (role 5) report like anyone else but do not take part in the ranking.
+      .filter((id) => !isGuestRole(profilesById.get(id)?.rol_id))
       .map((id) => {
         const profile = profilesById.get(id)
         return {

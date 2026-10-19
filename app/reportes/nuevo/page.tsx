@@ -3,7 +3,8 @@
 import type React from "react"
 import type { User } from "@supabase/supabase-js"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Camera, Send } from "lucide-react"
+import { MapPin, Camera, Send, CheckCircle2, FileText, Info } from "lucide-react"
 import Link from "next/link"
 import { PUNTOS } from "@/database/queries/puntos"
 import { LoadingState } from "@/components/loading-state"
@@ -39,6 +40,14 @@ import dynamic from "next/dynamic"
 import { crearReporteAction } from "./actions"
 import { getCategoryIcon, getPriorityIcon } from "@/components/report-card"
 import { PageTitleBar } from "@/components/page-title-bar"
+import { TURNSTILE_SITE_KEY, TurnstileWidget } from "@/components/turnstile-widget"
+
+type CreatedReport = {
+  reportId: number
+  isGuest: boolean
+  pointsAwarded: number
+  imageFailed: boolean
+}
 
 const getPriorityTone = (priority: string) => {
   const normalizedPriority = priority
@@ -80,7 +89,8 @@ const LocationPickerMap = dynamic(
 /**
  * Componente de página que muestra un formulario para crear y enviar un nuevo reporte.
  *
- * Gestiona la autenticación del usuario, carga las categorías y prioridades disponibles,
+ * Funciona sin cuenta: si no hay sesión, el servidor crea una sesión de invitado recién al confirmar el envío.
+ * Carga las categorías y prioridades disponibles,
  * obtiene la geolocalización automáticamente en móviles o permite la selección manual en escritorio,
  * permite adjuntar una única imagen, muestra un diálogo de confirmación y realiza el envío final
  * del reporte (creación, subida de imagen si existe, asignación de puntos y redirección).
@@ -108,31 +118,39 @@ export default function NuevoReportePage() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isOptimizingImage, setIsOptimizingImage] = useState(false)
+  // Idempotency key for this form submission; the server rejects duplicates.
+  const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID())
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0)
+  const [createdReport, setCreatedReport] = useState<CreatedReport | null>(null)
+  // Synchronous guard against double clicks before React re-renders the disabled button.
+  const submitLockRef = useRef(false)
 
   const supabase = createClient()
+  const router = useRouter()
   const isMobile = useIsMobile()
   const mounted = useMounted()
   
   useEffect(() => {
     const checkUserAndLoadData = async () => {
       try {
-        // Verificar autenticación del usuario
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
-        if (userError || !user) {
-          setLoading(false)
-          return
-        }
+        // Reuse an existing session (guest or permanent). Without one, the visitor reports
+        // as a guest: no session is created here, only when the report is submitted.
+        const { data: { user } } = await supabase.auth.getUser()
 
-        setUser(user)
+        if (user) {
+          setUser(user)
 
-        // Verificar si el usuario puede crear reportes (Admin o Ciudadano)
-        const { puedeCrear: canCreate } = await verificarPuedeCrearReporte(supabase, user.id)
-        setPuedeCrear(canCreate)
+          // Verificar si el usuario puede crear reportes (Admin, Ciudadano o Invitado)
+          const { puedeCrear: canCreate } = await verificarPuedeCrearReporte(supabase, user.id)
+          setPuedeCrear(canCreate)
 
-        if (!canCreate) {
-          setLoading(false)
-          return
+          if (!canCreate) {
+            setLoading(false)
+            return
+          }
+        } else {
+          setPuedeCrear(true)
         }
 
         // Cargar categorías usando la query
@@ -254,7 +272,11 @@ export default function NuevoReportePage() {
     }))
   }
 
+  const isGuestMode = !user || user.is_anonymous === true
+  const needsCaptcha = !user && TURNSTILE_SITE_KEY !== ""
+
   const canSubmitReport =
+    (!needsCaptcha || captchaToken !== null) &&
     formData.title.trim().length >= 3 &&
     formData.description.trim().length >= 10 &&
     formData.category !== "" &&
@@ -270,9 +292,33 @@ export default function NuevoReportePage() {
     formData.category !== "" ? null : "categoría",
     formData.priority !== "" ? null : "prioridad",
     formData.lat !== null && formData.lon !== null ? null : "ubicación",
+    !needsCaptcha || captchaToken !== null ? null : "verificación de seguridad",
   ].filter(Boolean) as string[]
 
+  const requestNewCaptcha = () => {
+    if (!needsCaptcha) return
+    setCaptchaToken(null)
+    setCaptchaResetSignal((signal) => signal + 1)
+  }
+
+  const startNewReport = () => {
+    setFormData((prev) => ({
+      ...prev,
+      title: "",
+      description: "",
+      category: "",
+      priority: "",
+      images: [],
+      imageThumbnail: null,
+    }))
+    setSubmissionId(crypto.randomUUID())
+    setCreatedReport(null)
+  }
+
   const confirmSubmit = async () => {
+    if (submitLockRef.current) return
+    submitLockRef.current = true
+
     try {
       setIsSubmitting(true)
 
@@ -283,6 +329,11 @@ export default function NuevoReportePage() {
       payload.set("prioridadId", formData.priority)
       payload.set("lat", String(formData.lat))
       payload.set("lon", String(formData.lon))
+      payload.set("submissionId", submissionId)
+
+      if (captchaToken) {
+        payload.set("captchaToken", captchaToken)
+      }
 
       if (formData.images[0]) {
         payload.set("image", formData.images[0])
@@ -295,35 +346,45 @@ export default function NuevoReportePage() {
       const result = await crearReporteAction(payload)
 
       if (!result.success) {
+        // Turnstile tokens are single-use: ask for a fresh one before retrying.
+        requestNewCaptcha()
         toast.error("Error al crear el reporte", {
           description: result.error,
         })
         return
       }
 
-      if (formData.images.length > 0 && !result.data.imageUploaded) {
+      const imageFailed = formData.images.length > 0 && !result.data.imageUploaded
+
+      if (imageFailed) {
         toast.warning("Reporte creado, pero hubo un error al subir la imagen.", {
           description: "El reporte se creó correctamente pero sin imagen"
         })
       }
 
-      const puntosGanados = result.data.pointsAwarded || PUNTOS.CREAR_REPORTE
+      toast.success(
+        result.data.pointsAwarded > 0
+          ? `¡Reporte creado exitosamente! +${result.data.pointsAwarded} puntos`
+          : "¡Reporte creado exitosamente!",
+      )
 
-      toast.success(`¡Reporte creado exitosamente! +${puntosGanados} puntos`, {
-        description: "Redirigiendo a la lista de reportes..."
+      setCreatedReport({
+        reportId: result.data.reportId,
+        isGuest: result.data.isGuest,
+        pointsAwarded: result.data.pointsAwarded,
+        imageFailed,
       })
-
-      // Redirigir a la página de reportes
-      setTimeout(() => {
-        window.location.href = "/reportes"
-      }, 1500)
+      // Refresh server components so the navigation reflects the new guest session.
+      router.refresh()
 
     } catch (error) {
       console.error("Error inesperado:", error)
+      requestNewCaptcha()
       toast.error("Error al crear el reporte", {
         description: "Por favor, intenta nuevamente."
       })
     } finally {
+      submitLockRef.current = false
       setIsSubmitting(false)
       setShowConfirmDialog(false)
     }
@@ -334,33 +395,6 @@ export default function NuevoReportePage() {
     return (
       <div className="page-shell flex flex-1 items-center justify-center">
         <LoadingState text="Preparando formulario..." />
-      </div>
-    )
-  }
-
-  // Si no hay usuario, redirigir al login
-  if (!user) {
-    return (
-      <div className="page-shell flex items-center justify-center px-4">
-        <Card className="max-w-xl">
-          <CardHeader>
-            <CardTitle>Autenticación requerida</CardTitle>
-            <CardDescription>Debes iniciar sesión para crear reportes</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              Para crear reportes y contribuir a mejorar tu comunidad, necesitas tener una cuenta.
-            </p>
-            <div className="flex gap-3">
-              <Button asChild className="flex-1">
-                <Link href="/auth">Iniciar Sesión</Link>
-              </Button>
-              <Button asChild variant="outline" className="flex-1">
-                <Link href="/">Volver al Inicio</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     )
   }
@@ -393,11 +427,65 @@ export default function NuevoReportePage() {
     )
   }
 
+  if (createdReport) {
+    return (
+      <div className="page-shell flex items-center justify-center px-4">
+        <Card className="w-full max-w-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="size-5 text-primary" aria-hidden="true" />
+              ¡Reporte enviado!
+            </CardTitle>
+            <CardDescription>
+              {createdReport.pointsAwarded > 0
+                ? `Gracias por ayudar a tu ciudad. Sumaste ${createdReport.pointsAwarded} puntos.`
+                : "Gracias por ayudar a tu ciudad. Ya podés seguir su estado."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {createdReport.isGuest && (
+              <p className="rounded-xl border border-border/70 bg-muted/60 p-3 text-sm text-muted-foreground">
+                Reportaste como invitado. Podés volver a ver tus reportes desde este navegador en Mis reportes, o
+                guardar tu cuenta con tu correo para no perderlos.
+              </p>
+            )}
+            {createdReport.imageFailed && (
+              <p className="text-sm text-muted-foreground">El reporte se publicó sin la fotografía.</p>
+            )}
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="flex-1">
+                <Link href="/mis-reportes">
+                  <FileText className="size-4" aria-hidden="true" />
+                  Ver mis reportes
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="flex-1">
+                <Link href={`/reportes/${createdReport.reportId}`}>Ver el reporte</Link>
+              </Button>
+            </div>
+            <Button type="button" variant="ghost" className="w-full" onClick={startNewReport}>
+              Crear otro reporte
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="page-shell">
       <div className="page-container max-w-5xl space-y-6 md:space-y-8 lg:space-y-10">
         <section className="space-y-2">
           <PageTitleBar title="Crear reporte" />
+          {isGuestMode && (
+            <p className="flex items-start gap-2 rounded-xl border border-border/70 bg-muted/60 p-3 text-sm text-muted-foreground">
+              <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>
+                No necesitás cuenta para reportar. Tu reporte quedará vinculado a este navegador y lo vas a encontrar
+                en Mis reportes.
+              </span>
+            </p>
+          )}
           <Card>
           <CardHeader>
             <CardTitle>Información del Problema</CardTitle>
@@ -625,6 +713,13 @@ export default function NuevoReportePage() {
                 )}
               </div>
 
+              {needsCaptcha && (
+                <div className="space-y-2">
+                  <Label>Verificación de seguridad</Label>
+                  <TurnstileWidget onTokenChange={setCaptchaToken} resetSignal={captchaResetSignal} />
+                </div>
+              )}
+
               {/* Submit Button */}
               <div className="flex gap-4 pt-4">
                 <Button
@@ -688,9 +783,15 @@ export default function NuevoReportePage() {
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Al confirmar, ganarás <span className="font-bold text-primary">{PUNTOS.CREAR_REPORTE} puntos</span> por crear este reporte.
-                </p>
+                {isGuestMode ? (
+                  <p className="text-xs text-muted-foreground">
+                    Vas a reportar como invitado. Los puntos y el ranking son para cuentas guardadas con correo.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Al confirmar, ganarás <span className="font-bold text-primary">{PUNTOS.CREAR_REPORTE} puntos</span> por crear este reporte.
+                  </p>
+                )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>

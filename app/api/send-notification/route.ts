@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getPrivateProfileContact } from "@/database/queries/profiles";
+import { isAnonymousUser } from "@/lib/authz/roles";
 import { sendCommentNotificationEmail } from "@/lib/notifications/report-notifications";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -46,6 +47,11 @@ export async function POST(request: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    // Guests cannot comment, so they must not trigger comment notification emails either.
+    if (isAnonymousUser(user)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
     const { data: reporte, error: reporteError } = await supabase

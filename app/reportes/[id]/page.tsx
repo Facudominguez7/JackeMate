@@ -172,7 +172,10 @@ export default function ReporteDetallePage({
     reporte.estado_id === REPORT_STATE_IDS.RECHAZADO
   );
 
-  const puedeVotar = Boolean(currentUser && gestionOperativa && !isAdmin && !gestionOperativa.puedeOperar);
+  // Guests (anonymous identities) cannot vote; the server action and RLS enforce it too.
+  const puedeVotar = Boolean(
+    currentUser && !currentUser.is_anonymous && gestionOperativa && !isAdmin && !gestionOperativa.puedeOperar,
+  );
 
   useEffect(() => {
     const fetchData = async () => {

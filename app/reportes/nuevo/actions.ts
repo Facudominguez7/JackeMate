@@ -1,5 +1,7 @@
 "use server"
 
+import type { SupabaseClient, User } from "@supabase/supabase-js"
+import { headers } from "next/headers"
 import { ZodError, z } from "zod"
 
 import { crearReporteWorkflow, mutationErrorMessage } from "@/lib/use-cases/reportes"
@@ -8,6 +10,13 @@ import {
   validateUploadedReportImage,
   validateUploadedReportThumbnail,
 } from "@/lib/media/report-image-validation.server"
+import { isAnonymousUser } from "@/lib/authz/roles"
+import {
+  claimReportSubmission,
+  hashClientIp,
+  releaseReportSubmission,
+  reportSubmissionClaimMessage,
+} from "@/lib/security/report-submission-guard.server"
 import { createAdminClient } from "@/utils/supabase/admin"
 import { createClient } from "@/utils/supabase/server"
 
@@ -18,7 +27,54 @@ const createReportSchema = z.object({
   prioridadId: z.coerce.number().int().positive("Seleccioná una prioridad."),
   lat: z.coerce.number().min(-90, "Seleccioná una ubicación en el mapa." ).max(90, "Seleccioná una ubicación en el mapa."),
   lon: z.coerce.number().min(-180, "Seleccioná una ubicación en el mapa.").max(180, "Seleccioná una ubicación en el mapa."),
+  submissionId: z.string().uuid("No pudimos identificar el envío. Recargá la página e intentá nuevamente."),
+  captchaToken: z.string().trim().max(4096).optional(),
 })
+
+type ReportActorResult =
+  | { success: true; user: User }
+  | { success: false; error: string }
+
+/**
+ * Resolves who is creating the report. This is the ONLY place where JackeMate creates
+ * an anonymous identity: after the submission was validated and only when the request
+ * carries no valid session. Existing sessions (anonymous or permanent) are always reused,
+ * so visiting pages or opening "Mis reportes" never creates users.
+ */
+async function resolveReportActor(
+  sessionClient: SupabaseClient,
+  captchaToken: string | undefined,
+): Promise<ReportActorResult> {
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser()
+
+  if (user) {
+    return { success: true, user }
+  }
+
+  const { data, error } = await sessionClient.auth.signInAnonymously(
+    captchaToken ? { options: { captchaToken } } : undefined,
+  )
+
+  if (error || !data.user) {
+    if (error?.code === "over_request_rate_limit" || error?.status === 429) {
+      return { success: false, error: "Demasiados intentos desde tu conexión. Probá de nuevo en unos minutos." }
+    }
+
+    if (error?.code === "anonymous_provider_disabled") {
+      return { success: false, error: "Los reportes como invitado no están disponibles. Iniciá sesión para reportar." }
+    }
+
+    if (error?.message?.toLowerCase().includes("captcha")) {
+      return { success: false, error: "Completá la verificación de seguridad e intentá nuevamente." }
+    }
+
+    return { success: false, error: "No pudimos preparar tu sesión de invitado. Intentá nuevamente." }
+  }
+
+  return { success: true, user: data.user }
+}
 
 async function getOptionalImage(formData: FormData) {
   const image = formData.get("image")
@@ -50,15 +106,6 @@ async function getOptionalThumbnail(formData: FormData) {
 
 export async function crearReporteAction(formData: FormData) {
   try {
-    const sessionClient = await createClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return { success: false as const, error: "Tenés que iniciar sesión para crear un reporte." }
-    }
-
     const parsedInput = createReportSchema.parse({
       titulo: formData.get("titulo"),
       descripcion: formData.get("descripcion"),
@@ -66,6 +113,8 @@ export async function crearReporteAction(formData: FormData) {
       prioridadId: formData.get("prioridadId"),
       lat: formData.get("lat"),
       lon: formData.get("lon"),
+      submissionId: formData.get("submissionId"),
+      captchaToken: formData.get("captchaToken") || undefined,
     })
 
     const image = await getOptionalImage(formData)
@@ -90,19 +139,49 @@ export async function crearReporteAction(formData: FormData) {
       }
     }
 
-    const adminClient = createAdminClient()
+    // Identity is resolved only after the payload is valid, to avoid minting
+    // anonymous users for submissions that would be rejected anyway.
+    const sessionClient = await createClient()
+    const actor = await resolveReportActor(sessionClient, parsedInput.captchaToken)
 
-    return await crearReporteWorkflow(adminClient, {
-      usuarioId: user.id,
-      titulo: parsedInput.titulo,
-      descripcion: parsedInput.descripcion,
-      categoriaId: parsedInput.categoriaId,
-      prioridadId: parsedInput.prioridadId,
-      lat: parsedInput.lat,
-      lon: parsedInput.lon,
-      image: image?.file ?? null,
-      imageThumbnail: imageThumbnail?.file ?? null,
+    if (!actor.success) {
+      return { success: false as const, error: actor.error }
+    }
+
+    const adminClient = createAdminClient()
+    const claim = await claimReportSubmission(adminClient, {
+      submissionId: parsedInput.submissionId,
+      actorId: actor.user.id,
+      ipHash: hashClientIp(await headers()),
     })
+
+    if (claim !== "ok") {
+      return { success: false as const, error: reportSubmissionClaimMessage(claim) }
+    }
+
+    try {
+      const result = await crearReporteWorkflow(adminClient, {
+        usuarioId: actor.user.id,
+        actorIsAnonymous: isAnonymousUser(actor.user),
+        titulo: parsedInput.titulo,
+        descripcion: parsedInput.descripcion,
+        categoriaId: parsedInput.categoriaId,
+        prioridadId: parsedInput.prioridadId,
+        lat: parsedInput.lat,
+        lon: parsedInput.lon,
+        image: image?.file ?? null,
+        imageThumbnail: imageThumbnail?.file ?? null,
+      })
+
+      if (!result.success) {
+        await releaseReportSubmission(adminClient, parsedInput.submissionId)
+      }
+
+      return result
+    } catch (workflowError) {
+      await releaseReportSubmission(adminClient, parsedInput.submissionId)
+      throw workflowError
+    }
   } catch (error) {
     if (error instanceof ZodError) {
       const messages = error.issues.map((issue) => {
