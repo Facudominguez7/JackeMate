@@ -12,7 +12,7 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Lock, Mail, Phone, User, UserRound } from "lucide-react"
 
-import { enviarEnlaceAcceso, iniciarSesionOAuth, login, signup, type AuthFormState } from "./actions"
+import { iniciarSesionOAuth, login, signup, type AuthFormState } from "./actions"
 import { obtenerRutaInternaSegura } from "./rutas-seguras"
 import { GUEST_REPORT_PATH } from "@/lib/routes/guest-report"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -34,7 +34,6 @@ export default function AuthPage() {
   const initialState: AuthFormState = { error: undefined, message: undefined }
   const [loginState, loginAction] = useActionState(login, initialState)
   const [signupState, signupAction] = useActionState(signup, initialState)
-  const [magicLinkState, magicLinkAction] = useActionState(enviarEnlaceAcceso, initialState)
   const nextPath = obtenerRutaInternaSegura(searchParams.get("next"))
   const oauthError = searchParams.get("error") === "oauth"
 
@@ -129,40 +128,6 @@ export default function AuthPage() {
                   <SubmitButton label="Ingresar" pendingLabel="Ingresando..." />
                 </form>
 
-                <form action={magicLinkAction} className="space-y-3 border-t border-border pt-5">
-                  <input type="hidden" name="next" value={nextPath} />
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold">Ingresar sin contraseña</p>
-                    <p className="text-xs text-muted-foreground">
-                      Te enviamos un enlace de acceso a tu correo. Ideal si guardaste tu cuenta de invitado.
-                    </p>
-                  </div>
-                  {magicLinkState?.message && (
-                    <Alert>
-                      <AlertTitle>Revisá tu correo</AlertTitle>
-                      <AlertDescription>{magicLinkState.message}</AlertDescription>
-                    </Alert>
-                  )}
-                  {magicLinkState?.error && (
-                    <Alert variant="destructive">
-                      <AlertTitle>No pudimos enviar el enlace</AlertTitle>
-                      <AlertDescription>{magicLinkState.error}</AlertDescription>
-                    </Alert>
-                  )}
-                  <Field label="Correo electrónico" htmlFor="magic-link-email">
-                    <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="magic-link-email"
-                      name="email"
-                      type="email"
-                      placeholder="tu@email.com"
-                      className="pl-10"
-                      autoComplete="email"
-                      required
-                    />
-                  </Field>
-                  <SubmitButton label="Enviarme un enlace" pendingLabel="Enviando..." variant="outline" />
-                </form>
               </TabsContent>
 
               <TabsContent value="register" className="space-y-5 pt-2">
@@ -348,18 +313,10 @@ function Field({
  * @param props - Textos a mostrar según el estado de envío.
  * @returns Botón deshabilitado durante el envío del formulario.
  */
-function SubmitButton({
-  label,
-  pendingLabel,
-  variant = "default",
-}: {
-  label: string
-  pendingLabel: string
-  variant?: "default" | "outline"
-}) {
+function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" variant={variant} className="w-full" disabled={pending}>
+    <Button type="submit" className="w-full" disabled={pending}>
       {pending ? pendingLabel : label}
     </Button>
   )

@@ -4,15 +4,17 @@
  */
 
 import Link from "next/link"
-import { CheckCircle2, FileText, Info, Plus, ShieldCheck } from "lucide-react"
+import { CheckCircle2, FileText, Info, KeyRound, Plus, ShieldCheck } from "lucide-react"
 
 import { LinkEmailForm } from "@/components/guest-account/link-email-form"
+import { SetPasswordForm } from "@/components/guest-account/set-password-form"
 import { PageTitleBar } from "@/components/page-title-bar"
 import { ReportCompactCard } from "@/components/report-compact-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getDashboardUserReports } from "@/database/queries/reportes/get-reportes"
+import { needsPasswordSetup } from "@/lib/authz/guest-account"
 import { isAnonymousUser } from "@/lib/authz/roles"
 import { createClient } from "@/utils/supabase/server"
 
@@ -67,6 +69,7 @@ export default async function MisReportesPage({ searchParams }: MisReportesPageP
   }
 
   const isGuest = isAnonymousUser(user)
+  const passwordPending = needsPasswordSetup(user)
   const { data: reports } = await getDashboardUserReports(user.id)
 
   return (
@@ -74,7 +77,35 @@ export default async function MisReportesPage({ searchParams }: MisReportesPageP
       <div className="page-container max-w-3xl page-stack">
         <PageTitleBar title="Mis reportes" />
 
-        {cuenta === "vinculada" && !isGuest && (
+        {passwordPending && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <KeyRound className="size-5 text-primary" aria-hidden="true" />
+                Creá tu contraseña
+              </CardTitle>
+              <CardDescription>
+                Confirmaste {user.email}. Último paso: creá una contraseña para ingresar desde cualquier dispositivo con tu
+                correo.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SetPasswordForm />
+            </CardContent>
+          </Card>
+        )}
+
+        {cuenta === "lista" && !isGuest && !passwordPending && (
+          <Alert>
+            <CheckCircle2 className="size-4" aria-hidden="true" />
+            <AlertTitle>¡Cuenta lista!</AlertTitle>
+            <AlertDescription>
+              Desde ahora ingresás con {user.email} y tu contraseña desde cualquier dispositivo.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {cuenta === "vinculada" && !isGuest && !passwordPending && (
           <Alert>
             <CheckCircle2 className="size-4" aria-hidden="true" />
             <AlertTitle>¡Cuenta guardada!</AlertTitle>
@@ -133,8 +164,8 @@ export default async function MisReportesPage({ searchParams }: MisReportesPageP
                 Guardar mi cuenta
               </CardTitle>
               <CardDescription>
-                Vinculá tu correo para ver tus reportes desde cualquier dispositivo. Después podés ingresar con un enlace
-                por email, sin contraseña, y también comentar, votar y sumar puntos.
+                Vinculá tu correo para ver tus reportes desde cualquier dispositivo. Confirmás el correo, creás tu
+                contraseña y ya podés ingresar, comentar, votar y sumar puntos.
               </CardDescription>
             </CardHeader>
             <CardContent>
