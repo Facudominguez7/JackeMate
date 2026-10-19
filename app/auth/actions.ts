@@ -340,6 +340,16 @@ export async function solicitarRecuperacionContrasena(
     return { error: "Enviamos demasiados correos. Probá de nuevo en unos minutos." }
   }
 
+  if (error) {
+    // The user still gets the neutral answer, so log it server-side (without the email)
+    // to notice failures such as a broken SMTP setup.
+    console.error("No pudimos enviar el correo de recuperación:", {
+      status: error.status,
+      code: error.code,
+      message: error.message,
+    })
+  }
+
   return {
     message:
       "Si existe una cuenta con ese correo, te enviamos un enlace para crear una nueva contraseña. Abrilo desde este mismo navegador.",
