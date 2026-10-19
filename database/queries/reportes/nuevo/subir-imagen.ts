@@ -140,7 +140,7 @@ export async function subirImagenReporte(
     const imageKey = crypto.randomUUID()
     const imagePath = `${reporteId}/${imageKey}.${getFileExtension(image, "webp")}`
     const thumbnailPath = thumbnail
-      ? `${reporteId}/thumbnails/${imageKey}.${REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION}`
+      ? `${reporteId}/thumbnails/${imageKey}.${getFileExtension(thumbnail, REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION)}`
       : null
 
     const imageRef = await uploadReportImageObject(supabase, imagePath, image)

@@ -15,6 +15,11 @@ export const REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY = 0.74
 export const REPORT_IMAGE_FALLBACK_OUTPUT_TYPE = "image/jpeg" as const
 export const REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION = "jpg" as const
 export const REPORT_IMAGE_FALLBACK_OUTPUT_QUALITY = 0.8
+// Safari cannot encode WebP from a canvas, so thumbnails fall back to JPEG there.
+export const REPORT_IMAGE_THUMBNAIL_ACCEPTED_TYPES: readonly string[] = [
+  REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE,
+  REPORT_IMAGE_FALLBACK_OUTPUT_TYPE,
+]
 export const REPORT_IMAGE_MIN_QUALITY = 0.68
 export const REPORT_IMAGE_MAX_BYTES = Math.floor(2.5 * 1024 * 1024)
 export const REPORT_IMAGE_MAX_SOURCE_BYTES = 15 * 1024 * 1024

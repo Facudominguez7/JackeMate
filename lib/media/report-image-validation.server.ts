@@ -7,7 +7,7 @@ import {
   REPORT_IMAGE_MAX_DIMENSION,
   REPORT_IMAGE_THUMBNAIL_MAX_BYTES,
   REPORT_IMAGE_THUMBNAIL_MAX_DIMENSION,
-  REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE,
+  REPORT_IMAGE_THUMBNAIL_ACCEPTED_TYPES,
 } from "@/lib/media/report-images"
 
 type UploadedImageMetadata = {
@@ -169,8 +169,8 @@ function assertUploadedImageConstraints(file: File, metadata: UploadedImageMetad
     throw new Error("La imagen seleccionada no coincide con el formato real del archivo.")
   }
 
-  if (mode === "thumbnail" && metadata.type !== REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE) {
-    throw new Error("La miniatura debe enviarse en formato WebP.")
+  if (mode === "thumbnail" && !REPORT_IMAGE_THUMBNAIL_ACCEPTED_TYPES.includes(metadata.type)) {
+    throw new Error("La miniatura debe enviarse en formato WebP o JPG.")
   }
 
   if (file.size > maxBytes) {

@@ -79,6 +79,14 @@ function canvasToBlobWithType(canvas: HTMLCanvasElement, type: string, quality: 
   })
 }
 
+/**
+ * Safari ignores unsupported `toBlob` types (such as WebP) and returns PNG,
+ * so callers must skip a format whose blob does not match the requested type.
+ */
+function isBlobOfRequestedType(blob: Blob, type: string) {
+  return blob.type === type
+}
+
 function createOutputFormats(): OutputFormat[] {
   return [
     {
@@ -114,7 +122,7 @@ function getQualitySteps(initialQuality: number) {
 
 function buildOptimizedFile(blob: Blob, fileName: string) {
   return new File([blob], fileName, {
-    type: blob.type || REPORT_IMAGE_OUTPUT_TYPE,
+    type: blob.type,
     lastModified: Date.now(),
   })
 }
@@ -177,6 +185,11 @@ export async function optimizeReportImage(file: File): Promise<OptimizeReportIma
     for (const outputFormat of outputFormats) {
       for (const quality of getQualitySteps(outputFormat.quality)) {
         const blob = await canvasToBlobWithType(canvas, outputFormat.type, quality)
+
+        if (!isBlobOfRequestedType(blob, outputFormat.type)) {
+          break
+        }
+
         const attemptedFile = buildOptimizedFile(blob, `${originalBaseName}.${outputFormat.extension}`)
 
         if (!bestAttempt || attemptedFile.size < bestAttempt.size) {
@@ -250,15 +263,33 @@ export async function createReportImageThumbnail(file: File) {
   context.drawImage(image, 0, 0, width, height)
 
   const baseName = file.name.replace(/\.[^.]+$/, "") || "reporte"
+  const thumbnailFormats: OutputFormat[] = [
+    {
+      type: REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE,
+      extension: REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION,
+      quality: REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY,
+    },
+    {
+      type: REPORT_IMAGE_FALLBACK_OUTPUT_TYPE,
+      extension: REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION,
+      quality: REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY,
+    },
+  ]
 
-  for (const quality of getQualitySteps(REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY)) {
-    const blob = await canvasToBlobWithType(canvas, REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE, quality)
+  for (const outputFormat of thumbnailFormats) {
+    for (const quality of getQualitySteps(outputFormat.quality)) {
+      const blob = await canvasToBlobWithType(canvas, outputFormat.type, quality)
 
-    if (blob.size > REPORT_IMAGE_THUMBNAIL_MAX_BYTES) {
-      continue
+      if (!isBlobOfRequestedType(blob, outputFormat.type)) {
+        break
+      }
+
+      if (blob.size > REPORT_IMAGE_THUMBNAIL_MAX_BYTES) {
+        continue
+      }
+
+      return buildOptimizedFile(blob, `${baseName}-thumbnail.${outputFormat.extension}`)
     }
-
-    return buildOptimizedFile(blob, `${baseName}-thumbnail.${REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION}`)
   }
 
   throw new Error("No pudimos preparar una miniatura liviana para la imagen.")
