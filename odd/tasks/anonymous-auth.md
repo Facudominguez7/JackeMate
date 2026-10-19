@@ -21,7 +21,7 @@ Branch: `feat/anonymous-auth` (from `main`). Delivery: `ask-on-risk`. Test runne
 | T1 | S2 S3 S6 S8 | inline | done | migration applied; rolled-back probes P1–P7 + RLS probes pass |
 | T2 | S1 S3 S6 | inline | done | E2E via HTTP server action: T0–T7 pass |
 | T3 | S4 S5 S7 | inline | done | /mis-reportes, link email, magic link, guest form |
-| T4 | all | delegated verifier | pending | tsc 0 errors, lint 0 errors, build OK |
+| T4 | all | delegated verifier | done | tsc 0 errors, lint 0 errors, build OK; verifier: no blockers; RDD 4-lens review approved and acknowledged (lineage review-2fc2e50bfd4fc19e) |
 
 ## Log
 
@@ -31,3 +31,5 @@ Branch: `feat/anonymous-auth` (from `main`). Delivery: `ask-on-risk`. Test runne
 - L4 E2E (prod build on :3100, live DB): visiting `/mapa`, `/reportes/nuevo`, `/mis-reportes` sets no auth cookie; invalid payload creates no session; first valid submit creates exactly one anonymous user (cookie ~400 days), report #36 with photo, role 5, 0 points; resubmit same id -> "duplicate"; second submit reuses same UUID (#37); `/mis-reportes` shows both + exact banner; other browser sees info state; guest comment/vote rejected; guest cannot delete report #1; test reports soft-deleted by the guest action, storage objects removed.
 - L5 Found and fixed: middleware detail regex also matched `/reportes/nuevo`, still redirecting guests to `/auth`.
 - L6 Not E2E-tested: email linking and magic link (need a real inbox); concurrent cookieless submissions can still mint two guests server-side (client lock prevents it in the UI).
+- L7 Verifier: no blockers, 8 advisories. RDD review (risk, resilience, readability, reliability) approved with 16 non-blocking findings; acknowledged, authority burned.
+- L8 Open follow-up (confirmed in Supabase docs, rate-limits guide): server-side `signInAnonymously` makes Supabase count the 30/h anonymous sign-in limit against the app server IP (shared by all visitors on Vercel). Options: move sign-in to the browser right before the action, or `Sb-Forwarded-For` with an `sb_secret_` key + dashboard toggle. Awaiting user decision.
