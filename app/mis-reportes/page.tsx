@@ -88,7 +88,7 @@ export default async function MisReportesPage({ searchParams }: MisReportesPageP
           <Alert>
             <Info className="size-4" aria-hidden="true" />
             <AlertDescription>
-              Estás usando JackeMate como invitado. Tus reportes están vinculados a este navegador. Si eliminás los datos
+              Estás usando Reporty como invitado. Tus reportes están vinculados a este navegador. Si eliminás los datos
               del sitio, podrías perder el acceso. Vinculá tu correo para conservar tu cuenta.
             </AlertDescription>
           </Alert>

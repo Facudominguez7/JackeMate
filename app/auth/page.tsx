@@ -10,10 +10,11 @@ import { useActionState, useState } from "react"
 import { useFormStatus } from "react-dom"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react"
+import { Eye, EyeOff, Lock, Mail, Phone, User, UserRound } from "lucide-react"
 
 import { enviarEnlaceAcceso, iniciarSesionOAuth, login, signup, type AuthFormState } from "./actions"
 import { obtenerRutaInternaSegura } from "./rutas-seguras"
+import { GUEST_REPORT_PATH } from "@/lib/routes/guest-report"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -43,7 +44,7 @@ export default function AuthPage() {
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-xl">Tu cuenta Reporty</CardTitle>
-            <CardDescription>Ingresá o registrate para comentar, votar y sumar puntos. Para reportar no necesitás cuenta.</CardDescription>
+            <CardDescription>Ingresá o registrate para comentar, votar y sumar puntos. Para reportar también podés continuar como invitado.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {oauthError && (
@@ -296,6 +297,21 @@ export default function AuthPage() {
                 </form>
               </TabsContent>
             </Tabs>
+
+            <div className="space-y-3 border-t border-border pt-5">
+              <div className="space-y-1 text-center">
+                <p className="text-sm font-medium">¿Solo querés reportar un problema?</p>
+                <p className="text-xs text-muted-foreground">
+                  Podés hacerlo sin cuenta. Tus reportes quedan guardados en este navegador y después podés vincular tu correo.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="w-full">
+                <Link href={GUEST_REPORT_PATH}>
+                  <UserRound className="size-4" aria-hidden="true" />
+                  Continuar como invitado
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

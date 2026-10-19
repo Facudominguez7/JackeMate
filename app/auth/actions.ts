@@ -231,7 +231,7 @@ export async function vincularCorreoInvitado(
     if (error.code === "email_exists" || error.code === "user_already_exists" || /already/i.test(error.message)) {
       return {
         error:
-          "Ese correo ya pertenece a una cuenta de JackeMate. Podés iniciar sesión con esa cuenta, pero los reportes hechos como invitado no se transfieren automáticamente.",
+          "Ese correo ya pertenece a una cuenta de Reporty. Podés iniciar sesión con esa cuenta, pero los reportes hechos como invitado no se transfieren automáticamente.",
       }
     }
 
