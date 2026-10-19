@@ -26,7 +26,7 @@ Settings that cannot be changed through SQL/MCP and must be reviewed in the Supa
 4. **Authentication → Rate Limits → Anonymous sign-ins**: default 30/hour per IP; adjust if needed.
 5. **Authentication → URL Configuration → Redirect URLs**: must include `<site>/auth/callback` (the email-linking confirmation and the password recovery link land there).
 6. **Authentication → Emails → Change email address / Reset password** templates: the default `{{ .ConfirmationURL }}` works with `/auth/callback`; custom `token_hash` templates work with `/auth/confirm`.
-7. **Authentication → Sign In / Providers → Email → Secure password change**: if enabled, a converted guest whose session is older than 24 h must sign in again before creating the password (the form reports it).
+7. **Authentication → Sign In / Providers → Email → Secure password change**: **must be enabled** (enabled on 2026-10-19). It is the only enforcement point for password changes: the session cookies are readable by JavaScript (`@supabase/ssr` uses `httpOnly: false`), so anyone holding a session can call `PUT /auth/v1/user` directly and skip any check in our server actions. With it, a session older than 24 h gets `reauthentication_needed` (the form tells the user to request a recovery link, whose fresh session can set the password). Verified on 2026-10-19: a recent session changed the password, and a session aged to 25 h was refused both through `/auth/nueva-contrasena` and through a direct Auth API call. Sessions younger than 24 h can still change the password without the current one; requiring the current password would break recovery.
 
 Environment variables (no secrets in the repo):
 
