@@ -65,10 +65,33 @@ const createClusterIconHTML = (count: number): string => {
   `
 }
 
-const escapeHtml = (text: string): string => {
-  const div = document.createElement("div")
-  div.textContent = text
-  return div.innerHTML
+const HTML_ESCAPES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+}
+
+/**
+ * Escapes text for both HTML content and quoted attribute values. Popups are built as
+ * HTML strings, so quotes must be escaped too: a report title lands inside `alt="..."`.
+ */
+const escapeHtml = (text: string | null | undefined): string =>
+  (text ?? "").replace(/[&<>"']/g, (char) => HTML_ESCAPES[char])
+
+/** Only http(s) image URLs may reach the popup `<img src>`; anything else is dropped. */
+const toSafeImageUrl = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null
+  }
+
+  try {
+    const url = new URL(value, window.location.origin)
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null
+  } catch {
+    return null
+  }
 }
 
 const createLucideIconMarkup = (innerMarkup: string): string => `
@@ -133,15 +156,18 @@ const createPopupContent = (
 ): string => {
   const safeTitle = escapeHtml(report.title)
   const safeLocation = escapeHtml(report.location)
-  const safeDescription = escapeHtml(report.description)
   const safeCategory = escapeHtml(report.category)
   const safePriority = escapeHtml(report.priority)
   const safeStatus = escapeHtml(report.status)
   const safeAuthor = escapeHtml(report.author)
-  const safeImage = report.image ? escapeHtml(report.image) : null
+  const imageUrl = toSafeImageUrl(report.image)
+  const safeImage = imageUrl ? escapeHtml(imageUrl) : null
   const safeDate = escapeHtml(new Date(report.createdAt).toLocaleDateString("es-AR"))
-  const truncatedDescription =
-    safeDescription.length > 110 ? `${safeDescription.substring(0, 110)}...` : safeDescription
+  // Truncate before escaping so the cut never splits an HTML entity.
+  const description = report.description ?? ""
+  const truncatedDescription = escapeHtml(
+    description.length > 110 ? `${description.substring(0, 110)}...` : description
+  )
 
   const statusTone: PopupChipTone = {
     background: statusColor,
