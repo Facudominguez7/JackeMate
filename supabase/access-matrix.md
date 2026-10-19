@@ -16,8 +16,8 @@ Compatibility-first rollout target for the current JackeMate flows.
 | `public.profiles` | Owner reads own full row; shared identity reads go through `public.public_profiles`; trusted/server boundaries read private contact data | No browser-owned writes in current app flow; server-owned points/notifications keep using trusted clients | `public.public_profiles` + server-fetched role/identity helpers + service-role boundaries | Authorization MUST use DB role data, never `user_metadata`. `email` stays out of the public projection and remains trusted-only. |
 | `public.comentarios_reporte` | Public read for non-deleted comments on visible reports | Trusted server insert/update(delete-soft) only | Trusted comment workflow + notification route + service-role server client | Browser writes were removed from detail flows, so read-only RLS is now safe here. |
 | `public.historial_estados` | Public/admin read on visible report history | Trusted server inserts only | Trusted admin/state-change workflow + service-role server client | Insert path now lives behind server-only mutations, so read-only RLS is now safe here. |
-| `public.votos_no_existe` | Authenticated user reads own vote existence; aggregate counts for visible reports | Authenticated user inserts at most one own vote | Trusted vote workflow | Requires duplicate-prevention and later atomic points handling. |
-| `public.votos_reparado` | Authenticated user reads own vote existence; aggregate counts for visible reports | Authenticated user inserts at most one own vote | Trusted vote workflow | Same rollout notes as `votos_no_existe`. |
+| `public.votos_no_existe` | Authenticated user reads own vote existence; aggregate counts for visible reports | Permanent authenticated user inserts at most one own vote (restrictive policy denies `is_anonymous` JWTs) | Trusted vote workflow | Requires duplicate-prevention and later atomic points handling. |
+| `public.votos_reparado` | Authenticated user reads own vote existence; aggregate counts for visible reports | Permanent authenticated user inserts at most one own vote (restrictive policy denies `is_anonymous` JWTs) | Trusted vote workflow | Same rollout notes as `votos_no_existe`. |
 | `public.reportes_vote_summary` | Public/authenticated aggregate counts for visible reports only | No direct client writes; rows are maintained by DB triggers/functions | `private.refresh_report_vote_summary_row()` plus vote/report visibility triggers | Summary rows must exist for every visible report, even with zero votes, and be removed when a report becomes hidden. |
 | `public.fotos_reporte` | Public read for visible report images | Trusted report creation/image workflow inserts metadata | Server-owned image metadata writes with dual-read compatibility | Canonical reference moves to `{ bucket, path }` while legacy `url` remains readable during backfill. |
 | `public.roles` | Read-only lookup for server and presentation role labels | No client writes | Shared authz constants + DB lookup fallback | Prefer constants in app code, keep DB as persisted source. Row 4 = `operador` (municipal crew operator), added for the `cuadrillas-municipales` change; see `lib/authz/catalog.ts` `ROLE_IDS.OPERADOR`. |
@@ -27,7 +27,8 @@ Compatibility-first rollout target for the current JackeMate flows.
 | `public.reportes_estado_operativo_publico` | Public (`anon` + `authenticated`) | No writes; plain view | Column allowlist (`reporte_id`, `estado_operativo`, `cuadrilla_nombre`, `actualizado_at`) + `security_invoker = false` | Only shows the current open operational state of a still-open report (`estado_id = 1`); a report already closed administratively never surfaces a stale chip. |
 | `public.reportes_linea_tiempo_operativa_publica` | Public (`anon` + `authenticated`) | No writes; plain view | Column allowlist (`reporte_id`, `tipo_evento`, `ocurrido_at`, `cuadrilla_nombre`, `estado_operativo`, `motivo_cierre`, `contenido`) + `security_invoker = false` | Only surfaces observations flagged `observacion_publica = true`; base tables stay staff-only. |
 | `public.estados` | Read-only lookup for report state labels | No client writes | Shared state constants + DB lookup fallback | Admin transitions must validate against canonical state IDs. |
-| `storage.objects` bucket `reportes` | Public object URL reads; avoid broad object listing policies | Authenticated upload only in the current app path | Trusted image workflow + minimal storage policies | Current upload flow uses `upsert: false`, so only `INSERT` is required in this batch. |
+| `storage.objects` bucket `reportes` | Public object URL reads; avoid broad object listing policies | Permanent authenticated users only (restrictive `reportes_permanent_users_only_upload` blocks anonymous JWTs); the app uploads through the service-role workflow | Trusted image workflow + minimal storage policies | Bucket limited to 2.5 MB and `image/jpeg`, `image/png`, `image/webp` (migration `20261019120000`). |
+| `public.report_submission_attempts` | No client access (RLS on, no policies) | Service role only, through `public.claim_report_submission()` | `lib/security/report-submission-guard.server.ts` | Rate limit per actor and per hashed IP plus idempotency key per submission. |
 
 ## Route trust boundaries in this batch
 
@@ -44,3 +45,19 @@ Compatibility-first rollout target for the current JackeMate flows.
 4. Keep legacy image URL reads active until canonical `{ bucket, path }` reads and backfill land.
 5. Since `reportes` is a public bucket, remove `storage.objects` listing policies before tightening table RLS any further.
 6. `public.public_profiles` runs with `security_invoker = false` (set explicitly by migration `20260422170000_restore_public_profiles_public_projection.sql`, confirmed on the live database). This corrects an earlier version of this note that claimed the opposite. With `security_invoker = true` and `public.profiles` under owner-only RLS, the view would evaluate RLS as the caller: anonymous visitors and other users would see zero rows instead of the public author/ranking columns, breaking home ranking, comments, and report authors for everyone but the row owner. Safety instead comes from the view's column allowlist (no `email`), the same pattern followed by `public.reportes_estado_operativo_publico` and `public.reportes_linea_tiempo_operativa_publica` below.
+
+## Anonymous guest identities (migration `20261019120000_anonymous_guest_identities.sql`)
+
+Supabase anonymous users use the `authenticated` Postgres role, so a valid user is never proof of a permanent account.
+
+| Capability | Guest (anonymous, `rol_id = 5`) | Registered | Enforced by |
+|---|---|---|---|
+| View map and public reports | Yes | Yes | Public RLS reads |
+| Create reports and attach a photo | Yes | Yes (admin, ciudadano) | `crearReporteAction` + `REPORT_CREATOR_ROLE_IDS` + rate limit |
+| See own reports (`/mis-reportes`) | Yes, same browser | Yes | Server Component filtered by `auth.getUser()` id |
+| Earn points / appear in ranking or member count | No | Yes | `adjust_profile_points_atomic` skips role 5; ranking/count queries exclude role 5 |
+| Comment and vote | No | Yes | `canParticipateInCommunity` in server actions + restrictive vote RLS |
+| Dashboard / crew operations | No | By role | Role checks (role 5 is in no staff list); guests are redirected to `/mis-reportes` |
+
+- `private.sync_profile_from_auth_user()` gives anonymous users `rol_id = 5` and promotes `5 → 2` only when `auth.users.is_anonymous` becomes false (verified email or linked identity). Other roles are never changed.
+- The anonymous session is created only in `crearReporteAction`, after validation and only without an existing session.
