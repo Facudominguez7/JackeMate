@@ -9,6 +9,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 
+import { MIN_PASSWORD_LENGTH, PASSWORD_PENDING_METADATA_KEY } from "@/lib/authz/guest-account"
 import { isAnonymousUser } from "@/lib/authz/roles"
 import { createClient } from "@/utils/supabase/server"
 import { obtenerOrigenAutenticacion, obtenerRutaInternaSegura } from "./rutas-seguras"
@@ -24,6 +25,7 @@ const emailSchema = z.string().trim().toLowerCase().email().max(254)
 
 /** Internal destination after a guest verifies the email linked to their account. */
 const RUTA_CUENTA_VINCULADA = "/mis-reportes?cuenta=vinculada"
+const RUTA_CUENTA_LISTA = "/mis-reportes?cuenta=lista"
 
 /**
  * Builds the Supabase Auth redirect URL that lands on the PKCE callback route.
@@ -223,7 +225,7 @@ export async function vincularCorreoInvitado(
   }
 
   const { error } = await supabase.auth.updateUser(
-    { email: email.data },
+    { email: email.data, data: { [PASSWORD_PENDING_METADATA_KEY]: true } },
     { emailRedirectTo: await obtenerRedireccionCallback(RUTA_CUENTA_VINCULADA) },
   )
 
@@ -244,42 +246,66 @@ export async function vincularCorreoInvitado(
 
   revalidatePath("/mis-reportes")
   return {
-    message: `Te enviamos un enlace a ${email.data}. Abrilo desde este mismo navegador para terminar de guardar tu cuenta.`,
+    message: `Te enviamos un enlace a ${email.data}. Abrilo desde este mismo navegador y después creá tu contraseña para terminar de guardar tu cuenta.`,
   }
 }
 
 /**
- * Sends a passwordless sign-in link (email OTP) to an existing account. It never creates
- * users and answers the same way whether the account exists or not.
+ * Sets the password of a guest account that already verified its linked email (Supabase
+ * only lets anonymous users add a password after the email is verified). Once set, the
+ * account signs in with the regular email + password form on `/auth`.
  *
  * @param _prevState - Previous form state.
- * @param formData - FormData with `email` and optionally `next`.
- * @returns Form state with a neutral confirmation message or a controlled error.
+ * @param formData - FormData with `password` and `confirm_password`.
+ * @returns A controlled error; on success it redirects to "Mis reportes" with a confirmation.
  */
-export async function enviarEnlaceAcceso(
+export async function crearContrasenaCuenta(
   _prevState: AuthFormState | void,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const email = emailSchema.safeParse(formData.get("email"))
+  const password = String(formData.get("password") ?? "")
+  const confirmPassword = String(formData.get("confirm_password") ?? "")
 
-  if (!email.success) {
-    return { error: "Ingresá un correo electrónico válido." }
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.` }
+  }
+
+  if (password !== confirmPassword) {
+    return { error: "Las contraseñas no coinciden" }
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithOtp({
-    email: email.data,
-    options: {
-      shouldCreateUser: false,
-      emailRedirectTo: await obtenerRedireccionCallback(obtenerSiguienteRutaSegura(formData)),
-    },
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: "Tu sesión expiró. Ingresá nuevamente para continuar." }
+  }
+
+  if (isAnonymousUser(user) || !user.email) {
+    return { error: "Primero confirmá tu correo desde el enlace que te enviamos." }
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password,
+    data: { [PASSWORD_PENDING_METADATA_KEY]: false },
   })
 
-  if (error?.status === 429) {
-    return { error: "Enviamos demasiados correos. Probá de nuevo en unos minutos." }
+  if (error) {
+    if (error.code === "weak_password") {
+      return { error: "Elegí una contraseña más segura." }
+    }
+
+    if (error.code === "reauthentication_needed") {
+      return { error: "Por seguridad, ingresá nuevamente y volvé a crear tu contraseña." }
+    }
+
+    return { error: "No pudimos guardar tu contraseña. Intentá nuevamente." }
   }
 
-  return {
-    message: "Si existe una cuenta con ese correo, te enviamos un enlace para ingresar. Abrilo desde este mismo navegador.",
-  }
+  revalidatePath("/", "layout")
+  // Redirect instead of returning a message: once the flag is cleared the password card
+  // unmounts on revalidation, so the confirmation lives on the page itself.
+  redirect(RUTA_CUENTA_LISTA)
 }

@@ -30,7 +30,8 @@ export function LinkEmailForm({ pendingEmail }: LinkEmailFormProps) {
         <Alert>
           <AlertTitle>Verificación pendiente</AlertTitle>
           <AlertDescription>
-            Enviamos un enlace a {pendingEmail}. Abrilo desde este navegador para terminar, o ingresá otro correo.
+            Enviamos un enlace a {pendingEmail}. Abrilo desde este navegador y después creá tu contraseña, o ingresá
+            otro correo.
           </AlertDescription>
         </Alert>
       )}

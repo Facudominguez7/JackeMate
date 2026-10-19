@@ -14,6 +14,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { buttonVariants } from "@/components/ui/button";
+import { needsPasswordSetup } from "@/lib/authz/guest-account";
 
 interface HeaderClientProps {
   user: User | null | undefined;
@@ -31,7 +32,8 @@ function getAccountNavItem(user: User | null | undefined): NavItem {
     return { href: "/auth", label: "Ingresar", icon: LogIn };
   }
 
-  if (user.is_anonymous) {
+  // Guests and converted guests that still have to create their password land on "Mis reportes".
+  if (user.is_anonymous || needsPasswordSetup(user)) {
     return { href: "/mis-reportes", label: "Mis reportes", icon: FileText };
   }
 
