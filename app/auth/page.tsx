@@ -13,7 +13,7 @@ import { useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Lock, Mail, Phone, User, UserRound } from "lucide-react"
 
 import { iniciarSesionOAuth, login, signup, type AuthFormState } from "./actions"
-import { obtenerRutaInternaSegura } from "./rutas-seguras"
+import { obtenerRutaInternaSegura, RUTA_RECUPERAR_CONTRASENA } from "./rutas-seguras"
 import { GUEST_REPORT_PATH } from "@/lib/routes/guest-report"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -120,7 +120,7 @@ export default function AuthPage() {
                   </Field>
 
                   <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-                    <Link href="mailto:hola@reporty.com.ar" className="text-primary hover:underline">
+                    <Link href={RUTA_RECUPERAR_CONTRASENA} className="text-primary hover:underline">
                       ¿Olvidaste tu contraseña?
                     </Link>
                   </div>

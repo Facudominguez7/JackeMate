@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache"
 import { type NextRequest } from "next/server"
 
 import { createClient } from "@/utils/supabase/server"
-import { obtenerRutaInternaSegura } from "../rutas-seguras"
+import { obtenerRutaInternaSegura, RUTA_NUEVA_CONTRASENA, RUTA_RECUPERAR_CONTRASENA } from "../rutas-seguras"
 
 /**
  * Completa el flujo OAuth intercambiando el `code` por una sesión y usando un `next` seguro.
@@ -28,6 +28,11 @@ export async function GET(request: NextRequest) {
       revalidatePath("/", "layout")
       redirect(next)
     }
+  }
+
+  // An expired or reused recovery link goes back to the recovery form, not to the OAuth error.
+  if (next === RUTA_NUEVA_CONTRASENA) {
+    redirect(`${RUTA_RECUPERAR_CONTRASENA}?error=enlace`)
   }
 
   redirect(`/auth?error=oauth&next=${encodeURIComponent(next)}`)

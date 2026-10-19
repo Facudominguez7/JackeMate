@@ -5,6 +5,12 @@
 
 const RUTA_AUTENTICADA_PREDETERMINADA = "/mapa"
 
+/** Page where users request a password recovery link. */
+export const RUTA_RECUPERAR_CONTRASENA = "/auth/recuperar"
+
+/** Page opened from the recovery email (through `/auth/callback`) to choose a new password. */
+export const RUTA_NUEVA_CONTRASENA = "/auth/nueva-contrasena"
+
 /**
  * Normaliza un destino `next` para evitar redirecciones abiertas fuera de la app.
  *
