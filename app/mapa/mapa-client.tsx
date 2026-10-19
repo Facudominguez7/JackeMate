@@ -10,17 +10,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 import { FiltrosReportes } from "@/components/filtros-reportes"
-import { LoadingState } from "@/components/loading-state"
+import { MapLoadingSkeleton } from "@/components/loading-skeletons"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
 
 const MapContainer = dynamic(() => import("@/components/map-container").then((m) => m.MapContainer), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-background">
-      <LoadingState text="Cargando mapa..." />
-    </div>
-  ),
+  loading: () => <MapLoadingSkeleton />,
 })
 
 type MapaClientProps = {

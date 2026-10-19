@@ -25,7 +25,7 @@ import {
 import { MapPin, Camera, Send, CheckCircle2, FileText, Info } from "lucide-react"
 import Link from "next/link"
 import { PUNTOS } from "@/database/queries/puntos"
-import { LoadingState } from "@/components/loading-state"
+import { MapLoadingSkeleton, NuevoReporteLoadingSkeleton } from "@/components/loading-skeletons"
 import { REPORT_IMAGE_ACCEPT_ATTR } from "@/lib/media/report-images"
 import { createReportImageThumbnail, optimizeReportImage } from "@/lib/media/optimize-report-image"
 import { toast } from "sonner"
@@ -94,11 +94,7 @@ const LocationPickerMap = dynamic(
   () => import("@/components/location-picker-map").then(mod => mod.LocationPickerMap),
   { 
     ssr: false,
-    loading: () => (
-      <div className="w-full h-[400px] bg-muted rounded-md flex items-center justify-center">
-        <LoadingState text="Cargando mapa..." />
-      </div>
-    )
+    loading: () => <MapLoadingSkeleton className="rounded-md" />
   }
 )
 
@@ -431,11 +427,7 @@ export default function NuevoReportePage() {
 
   // Mostrar mensaje de carga o error de autenticación
   if (loading) {
-    return (
-      <div className="page-shell flex flex-1 items-center justify-center">
-        <LoadingState text="Preparando formulario..." />
-      </div>
-    )
+    return <NuevoReporteLoadingSkeleton />
   }
 
   // Si el usuario no tiene permisos para crear reportes

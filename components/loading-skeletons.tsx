@@ -17,6 +17,10 @@ function ReportCardSkeleton() {
   )
 }
 
+export function MapLoadingSkeleton({ className }: { className?: string }) {
+  return <Skeleton className={`h-full w-full rounded-lg ${className ?? ""}`} />
+}
+
 export function ReportesLoadingSkeleton() {
   return (
     <div className="page-shell">
@@ -64,6 +68,53 @@ export function CuadrillasLoadingSkeleton() {
             ))}
           </div>
         </section>
+      </div>
+    </div>
+  )
+}
+
+export function NuevoReporteLoadingSkeleton() {
+  return (
+    <div className="page-shell">
+      <div className="page-container max-w-5xl space-y-6 md:space-y-8">
+        <Skeleton className="mx-auto h-7 w-44" />
+        <div className="space-y-6 rounded-[var(--radius)] border border-border bg-card p-5 shadow-[var(--card-shadow)] md:p-8">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-64" />
+            <Skeleton className="h-4 w-96 max-w-full" />
+          </div>
+          <div className="space-y-5">
+            <Skeleton className="h-11 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <div className="grid gap-5 md:grid-cols-2">
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-11 w-full" />
+            </div>
+            <Skeleton className="h-[280px] w-full rounded-lg" />
+            <div className="flex justify-end">
+              <Skeleton className="h-11 w-40 rounded-[var(--radius-pill)]" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ReporteDetalleLoadingSkeleton() {
+  return (
+    <div className="page-shell">
+      <div className="page-container space-y-6">
+        <Skeleton className="h-7 w-40" />
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <Skeleton className="aspect-video w-full rounded-lg" />
+          <div className="space-y-4 rounded-[var(--radius)] border border-border bg-card p-5 shadow-[var(--card-shadow)]">
+            <Skeleton className="h-7 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        </div>
       </div>
     </div>
   )

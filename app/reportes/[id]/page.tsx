@@ -56,7 +56,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import dynamic from "next/dynamic";
-import { LoadingState } from "@/components/loading-state";
+import { MapLoadingSkeleton, ReporteDetalleLoadingSkeleton } from "@/components/loading-skeletons";
 import { BackButton } from "@/components/back-button";
 import { PageTitleBar } from "@/components/page-title-bar";
 import { toast } from "sonner";
@@ -98,11 +98,7 @@ dayjs.extend(timezone);
 // Importar el MiniMap de forma dinámica solo en el cliente para evitar errores de SSR con Leaflet
 const MiniMap = dynamic(() => import("@/components/mini-map").then((m) => m.MiniMap), {
   ssr: false,
-  loading: () => (
-    <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-      <LoadingState text="Cargando mapa..." />
-    </div>
-  ),
+  loading: () => <MapLoadingSkeleton />,
 });
 
 type HistorialEstadoItem = {
@@ -444,11 +440,7 @@ export default function ReporteDetallePage({
   };
 
   if (loading) {
-    return (
-      <div className="page-shell flex flex-1 items-center justify-center">
-        <LoadingState text="Cargando reporte..." />
-      </div>
-    );
+    return <ReporteDetalleLoadingSkeleton />;
   }
 
   if (!reporte) {

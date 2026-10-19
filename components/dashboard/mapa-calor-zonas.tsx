@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LoadingState } from "@/components/loading-state"
+import { MapLoadingSkeleton } from "@/components/loading-skeletons"
 import { ZonaConReportes } from "@/database/queries/interesado"
 import { MapPin, ChevronDown, ChevronUp } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -167,11 +167,7 @@ function MapaCalorInterno({ zonas, height }: { zonas: ZonaConReportes[], height:
 // Importar dinámicamente para evitar SSR
 const MapaDinamico = dynamic(
   () => Promise.resolve(MapaCalorInterno),
-  { ssr: false, loading: () => (
-    <div style={{ height: "400px", width: "100%" }} className="flex items-center justify-center bg-muted rounded-lg">
-      <LoadingState text="Cargando mapa..." className="h-full w-full" />
-    </div>
-  )}
+  { ssr: false, loading: () => <MapLoadingSkeleton className="h-[400px]" /> }
 )
 
 /**

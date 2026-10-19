@@ -15,7 +15,7 @@ import { MousePointer2 } from "lucide-react"
 
 import { getPriorityColor } from "@/components/report-card"
 import type { EstadoOperativo } from "@/lib/authz/catalog"
-import { LoadingState } from "@/components/loading-state"
+import { MapLoadingSkeleton } from "@/components/loading-skeletons"
 
 /**
  * Interfaz que representa un reporte con sus datos para visualizar en el mapa
@@ -54,11 +54,7 @@ const LeafletMap = dynamic<LeafletMapProps>(
   () => import("@/components/leaflet-map").then((m) => m.default),
   {
     ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex items-center justify-center">
-        <LoadingState text="Cargando mapa..." />
-      </div>
-    ),
+    loading: () => <MapLoadingSkeleton />,
   }
 )
 

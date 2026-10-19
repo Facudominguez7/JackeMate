@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 
-import { LoadingState } from "@/components/loading-state"
+import { MapLoadingSkeleton } from "@/components/loading-skeletons"
 
 import { DialogoConfirmacionOperativa } from "@/components/cuadrillas/dialogo-confirmacion-operativa"
 import { FormularioCuadrilla } from "@/components/cuadrillas/formulario-cuadrilla"
@@ -37,9 +37,7 @@ import type { AccionOperativa } from "@/lib/use-cases/cuadrillas"
  */
 const MapContainer = dynamic(() => import("@/components/map-container").then((m) => m.MapContainer), {
   ssr: false,
-  loading: () => (
-    <LoadingState text="Cargando mapa..." />
-  ),
+  loading: () => <MapLoadingSkeleton />,
 })
 
 type PanelCuadrillasProps = {
