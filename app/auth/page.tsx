@@ -119,7 +119,7 @@ export default function AuthPage() {
                   </Field>
 
                   <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-                    <Link href="mailto:hola@jackemate.app" className="text-primary hover:underline">
+                    <Link href="mailto:hola@reporty.com.ar" className="text-primary hover:underline">
                       ¿Olvidaste tu contraseña?
                     </Link>
                   </div>

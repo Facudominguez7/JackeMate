@@ -4,13 +4,13 @@
 
 **Plataforma ciudadana independiente para reportar problemas urbanos en Posadas**
 
-[![Demo](https://img.shields.io/badge/Demo-Ver%20en%20Vivo-success?style=for-the-badge&logo=vercel)](https://jacke-mate.vercel.app/)
+[![Demo](https://img.shields.io/badge/Demo-Ver%20en%20Vivo-success?style=for-the-badge&logo=vercel)](https://reporty.com.ar/)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 
-🔗 **[Ver Demo en Vivo](https://jacke-mate.vercel.app/)**
+🔗 **[Ver Demo en Vivo](https://reporty.com.ar/)**
 
 </div>
 
@@ -85,7 +85,7 @@ flowchart LR
 ## 📁 Estructura del Proyecto
 
 ```
-JackeMate/
+Reporty/
 ├── app/                          # App Router de Next.js
 │   ├── api/                      # API Routes
 │   │   ├── reportes/             # Paginación de reportes
@@ -191,7 +191,7 @@ sequenceDiagram
 1. **Clonar el repositorio**
    ```bash
    git clone https://github.com/Facudominguez7/JackeMate.git
-   cd JackeMate
+   cd Reporty
    ```
 
 2. **Instalar dependencias**
