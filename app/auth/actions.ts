@@ -5,6 +5,7 @@
  */
 
 import { revalidatePath } from "next/cache"
+import { isAuthSessionMissingError } from "@supabase/supabase-js"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { z } from "zod"
@@ -177,23 +178,50 @@ export async function signup(_prevState: AuthFormState | void, formData: FormDat
 }
 
 /**
- * Cierra la sesión en todos los dispositivos (el alcance por defecto de Supabase, explícito
- * acá porque la interfaz lo comunica) y refresca el layout autenticado. No redirige: el
- * cliente confirma el cierre al usuario y después navega al mapa.
+ * Resultado de `signout`. La acción no redirige ni arma textos: el cliente decide qué
+ * mostrar y adónde navegar.
+ * - `guest`: la sesión es de invitado y no se cierra, porque perdería sus reportes.
+ * - `failed`: Supabase no pudo cerrar la sesión y el usuario sigue conectado.
  */
-export async function signout(): Promise<{ error?: string }> {
+export type SignOutResult = { ok: true } | { ok: false; reason: 'guest' | 'failed' }
+
+/**
+ * Cierra la sesión en todos los dispositivos (el alcance por defecto de Supabase, explícito
+ * acá porque la interfaz lo comunica) y refresca el layout autenticado.
+ *
+ * Las sesiones de invitado se rechazan acá y no solo en la interfaz: una identidad anónima
+ * no se puede recuperar, así que cerrarla deja sus reportes sin dueño accesible.
+ */
+export async function signout(): Promise<SignOutResult> {
   const supabase = await createClient()
-  const { error } = await supabase.auth.signOut({ scope: 'global' })
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-  // El layout se refresca igual ante un error: si Supabase ya invalidó la sesión (401, 403 o
-  // 404), la interfaz deja de mostrarla; si no, el usuario sigue conectado y puede reintentar.
-  revalidatePath('/', 'layout')
-
-  if (error) {
-    return { error: 'Por favor, intenta nuevamente' }
+  // Sin poder leer la sesión no se sabe si es de invitado, así que no se cierra. Un
+  // AuthSessionMissingError solo indica que no hay sesión, y cerrarla no tiene riesgo.
+  if (userError && !isAuthSessionMissingError(userError)) {
+    return { ok: false, reason: 'failed' }
   }
 
-  return {}
+  if (isAnonymousUser(user)) {
+    return { ok: false, reason: 'guest' }
+  }
+
+  const { error } = await supabase.auth.signOut({ scope: 'global' })
+  revalidatePath('/', 'layout')
+
+  if (!error) {
+    return { ok: true }
+  }
+
+  // Supabase pudo invalidar la sesión antes de fallar. Solo un AuthSessionMissingError prueba
+  // que la sesión ya no existe; cualquier otro error (caída, timeout) deja el estado en duda y
+  // la sesión puede seguir activa, así que se informa el fallo.
+  const { error: sessionError } = await supabase.auth.getUser()
+
+  return isAuthSessionMissingError(sessionError) ? { ok: true } : { ok: false, reason: 'failed' }
 }
 
 /**
