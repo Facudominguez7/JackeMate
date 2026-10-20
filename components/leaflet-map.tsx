@@ -13,6 +13,15 @@ import "leaflet.markercluster"
 
 import { getCategoryColor, getPriorityColor, getStatusColor } from "@/components/report-card"
 import { ETIQUETAS_ESTADO_OPERATIVO, type EstadoOperativo } from "@/lib/authz/catalog"
+import {
+  computeInitialMapView,
+  getMapBounds,
+  INITIAL_MAP_VIEW_CONFIG,
+  MAP_MAX_ZOOM,
+  MAP_TILE_URL,
+  POSADAS_BOUNDS,
+  POSADAS_MIN_ZOOM,
+} from "@/lib/map/initial-view"
 
 interface Report {
   id: number
@@ -36,9 +45,6 @@ export interface LeafletMapProps {
 }
 
 type LeafletContainer = HTMLDivElement & { _leaflet_id?: number }
-
-const DEFAULT_CENTER: L.LatLngTuple = [-27.3676, -55.8961]
-const DEFAULT_ZOOM = 13
 
 const createClusterIconHTML = (count: number): string => {
   const size = count > 10 ? 50 : count > 5 ? 40 : 30
@@ -250,6 +256,7 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
   const mapRef = useRef<L.Map | null>(null)
   const tileLayerRef = useRef<L.TileLayer | null>(null)
   const clusterGroupRef = useRef<L.MarkerClusterGroup | null>(null)
+  const hasInitialViewRef = useRef(false)
 
   const iconsByPriority = useMemo(() => {
     const mk = (color: string, hasCrew = false) =>
@@ -315,14 +322,21 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
 
     container.innerHTML = ""
 
+    // No center yet: Leaflet adds layers and requests tiles only once the first view is set,
+    // so the effect below requests the tiles of the final view and nothing else.
+    // Reports only exist in Posadas, so panning and zooming out stop at the city, as in the
+    // location picker of new reports.
+    const [south, west, north, east] = POSADAS_BOUNDS
     const map = L.map(container, {
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
       scrollWheelZoom: true,
       zoomControl: true,
+      maxBounds: L.latLngBounds([south, west], [north, east]),
+      maxBoundsViscosity: 1,
+      minZoom: POSADAS_MIN_ZOOM,
+      maxZoom: MAP_MAX_ZOOM,
     })
 
-    const tileLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    const tileLayer = L.tileLayer(MAP_TILE_URL, {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     })
 
@@ -358,6 +372,7 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
 
       map.remove()
       mapRef.current = null
+      hasInitialViewRef.current = false
 
       if (container._leaflet_id) {
         delete container._leaflet_id
@@ -396,8 +411,19 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
       clusterGroup.addLayer(marker)
     }
 
+    if (!hasInitialViewRef.current) {
+      // Same computation as the tile preload script of /mapa, so the preloaded tile is the
+      // first one Leaflet requests.
+      const size = map.getSize()
+      const bounds = getMapBounds(reports.map((report) => report.coordinates))
+      const { center, zoom } = computeInitialMapView(bounds, size.x, size.y, INITIAL_MAP_VIEW_CONFIG)
+      map.setView(center, zoom)
+      hasInitialViewRef.current = true
+      return
+    }
+
     if (reports.length === 0) {
-      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM)
+      map.setView(INITIAL_MAP_VIEW_CONFIG.defaultCenter, INITIAL_MAP_VIEW_CONFIG.defaultZoom)
       return
     }
 

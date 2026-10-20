@@ -1,11 +1,11 @@
 "use client"
 
-import { useCallback, useState, useTransition } from "react"
+import { useCallback, useRef, useState, useTransition } from "react"
 import { preconnect } from "react-dom"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { AlertCircle, FilePlus2, List, Plus, Search, SlidersHorizontal, X } from "lucide-react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useServerInsertedHTML } from "next/navigation"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import { FiltrosReportes } from "@/components/filtros-reportes"
 import { MapLoadingSkeleton } from "@/components/loading-skeletons"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
+import { getInitialMapTilePreloadScript, getMapBounds } from "@/lib/map/initial-view"
 
 const loadMapContainer = () => import("@/components/map-container").then((m) => m.MapContainer)
 
@@ -28,6 +29,9 @@ const MapContainer = dynamic(loadMapContainer, {
   loading: () => <MapLoadingSkeleton />,
 })
 
+// Matches `min-h-[32rem]` on the map wrapper below.
+const MAP_MIN_HEIGHT_PX = 512
+
 type MapaClientProps = {
   reportes: ReportMapItem[]
   categorias: { id: number; nombre: string }[]
@@ -40,6 +44,16 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
   // The map tiles are the largest paint of this page. Rendering this hint during SSR
   // puts it in the document head, so the tile connection opens while the map code downloads.
   preconnect("https://tile.openstreetmap.org")
+
+  // The tile itself still waits for Leaflet. This script, sent only in the server HTML,
+  // computes the first map view for the viewport and preloads its center tile meanwhile.
+  const tilePreloadInsertedRef = useRef(false)
+  useServerInsertedHTML(() => {
+    if (error || tilePreloadInsertedRef.current) return null
+    tilePreloadInsertedRef.current = true
+    const script = getInitialMapTilePreloadScript(getMapBounds(reportes.map((r) => r.coordinates)), MAP_MIN_HEIGHT_PX)
+    return <script dangerouslySetInnerHTML={{ __html: script }} />
+  })
 
   const searchParams = useSearchParams()
   const [showFilters, setShowFilters] = useState(false)

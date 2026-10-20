@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css"
 import { toast } from "sonner"
 import { useMounted } from "@/hooks/use-mounted"
 import { MapLoadingSkeleton } from "@/components/loading-skeletons"
+import { MAP_MAX_ZOOM, POSADAS_BOUNDS as POSADAS_AREA, POSADAS_MIN_ZOOM } from "@/lib/map/initial-view"
 
 // Configurar el ícono del marcador
 const markerIcon = new L.Icon({
@@ -19,11 +20,10 @@ const markerIcon = new L.Icon({
   shadowSize: [41, 41],
 })
 
-// Límites geográficos de Posadas, Misiones, Argentina
-// Coordenadas aproximadas que cubren toda el área urbana y suburbana de Posadas
+// Límites geográficos de Posadas, Misiones, Argentina (compartidos con el mapa de reportes)
 const POSADAS_BOUNDS: L.LatLngBoundsExpression = [
-  [-27.45, -55.98],  // Suroeste (límite inferior izquierdo)
-  [-27.35, -55.88],  // Noreste (límite superior derecho)
+  [POSADAS_AREA[0], POSADAS_AREA[1]], // Suroeste
+  [POSADAS_AREA[2], POSADAS_AREA[3]], // Noreste
 ]
 
 // Verificar si una coordenada está dentro de los límites de Posadas
@@ -122,8 +122,8 @@ export function LocationPickerMap({ onLocationSelect, initialLat, initialLon }: 
         zoomControl={true}
         maxBounds={POSADAS_BOUNDS}
         maxBoundsViscosity={1.0}
-        minZoom={13}
-        maxZoom={18}
+        minZoom={POSADAS_MIN_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
