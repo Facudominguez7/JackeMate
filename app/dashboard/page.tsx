@@ -6,7 +6,8 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Calendar, CheckCircle, Clock, FileText, Plus, Star, Timer, TrendingUp, Trophy, Users } from "lucide-react"
 
-import { GraficoReportesPorCategoria, GraficoZonasCalientes, MapaCalorZonas } from "@/components/dashboard"
+import { GraficoReportesPorCategoriaDiferido, GraficoZonasCalientesDiferido } from "@/components/dashboard/graficos-diferidos"
+import { MapaCalorZonas } from "@/components/dashboard/mapa-calor-zonas"
 import { ReportCompactCard } from "@/components/report-compact-card"
 import { ReportesClientWrapper } from "@/app/reportes/reportes-client"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -121,8 +122,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </section>
 
           <section className="grid gap-4 xl:grid-cols-2">
-            <GraficoReportesPorCategoria data={data.reportesPorCategoria} />
-            <GraficoZonasCalientes zonas={data.zonasCalientes} />
+            <GraficoReportesPorCategoriaDiferido data={data.reportesPorCategoria} />
+            <GraficoZonasCalientesDiferido zonas={data.zonasCalientes} />
           </section>
 
           <section className="section-stack">

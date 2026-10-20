@@ -119,3 +119,86 @@ export function ReporteDetalleLoadingSkeleton() {
     </div>
   )
 }
+
+export function MapaLoadingSkeleton() {
+  return (
+    <div className="relative h-[100dvh] min-h-[32rem] overflow-hidden bg-background">
+      <Skeleton className="h-full w-full rounded-none" />
+    </div>
+  )
+}
+
+export function ComunidadLoadingSkeleton() {
+  return (
+    <div className="page-shell">
+      <div className="page-container page-stack">
+        <section className="space-y-2">
+          <Skeleton className="mx-auto h-7 w-40" />
+          <div className="grid grid-cols-2 gap-1 rounded-[var(--radius-pill)] bg-muted p-1">
+            <Skeleton className="h-9 rounded-[var(--radius-pill)]" />
+            <Skeleton className="h-9 rounded-[var(--radius-pill)]" />
+          </div>
+          <div className="space-y-3 rounded-[var(--radius)] border border-border bg-card p-4 shadow-[var(--card-shadow)]">
+            <Skeleton className="h-5 w-56" />
+            <div className="grid grid-cols-3 gap-2 py-2">
+              {Array.from({ length: 3 }, (_, index) => (
+                <div key={index} className="flex flex-col items-center gap-2">
+                  <Skeleton className="size-14 rounded-full sm:size-16" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-3 w-14" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="divide-y divide-border rounded-[var(--radius)] border border-border bg-card shadow-[var(--card-shadow)]">
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className="flex items-center gap-3 px-5 py-3">
+                <Skeleton className="size-8 shrink-0 rounded-full" />
+                <Skeleton className="size-10 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+export function DashboardLoadingSkeleton() {
+  return (
+    <div className="page-shell">
+      <div className="page-container page-stack">
+        <Skeleton className="mx-auto h-7 w-48" />
+        <div className="divide-y divide-border rounded-[var(--radius)] border border-border bg-card shadow-[var(--card-shadow)]">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div key={index} className="flex items-center gap-3 px-5 py-4">
+              <Skeleton className="size-9 shrink-0 rounded-md" />
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="ml-auto h-5 w-12" />
+            </div>
+          ))}
+        </div>
+        <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }, (_, index) => <ReportCardSkeleton key={index} />)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function MisReportesLoadingSkeleton() {
+  return (
+    <div className="page-shell">
+      <div className="page-container max-w-3xl page-stack">
+        <Skeleton className="mx-auto h-7 w-40" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }, (_, index) => <ReportCardSkeleton key={index} />)}
+        </div>
+      </div>
+    </div>
+  )
+}
