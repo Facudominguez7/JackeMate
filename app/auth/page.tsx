@@ -77,7 +77,7 @@ export default function AuthPage() {
                 {loginState?.error && (
                   <Alert variant="destructive">
                     <AlertTitle>Error al iniciar sesión</AlertTitle>
-                    <AlertDescription>Revisá por favor tus credenciales.</AlertDescription>
+                    <AlertDescription>{loginState.error}</AlertDescription>
                   </Alert>
                 )}
 
