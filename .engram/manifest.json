@@ -72,6 +72,14 @@
       "sessions": 3,
       "memories": 5,
       "prompts": 0
+    },
+    {
+      "id": "001bb613",
+      "created_by": "facu",
+      "created_at": "2026-10-20T15:39:57.67287542Z",
+      "sessions": 2,
+      "memories": 4,
+      "prompts": 0
     }
   ]
 }
