@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useState, useTransition } from "react"
+import { preconnect } from "react-dom"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { AlertCircle, FilePlus2, List, Plus, Search, SlidersHorizontal, X } from "lucide-react"
@@ -14,7 +15,15 @@ import { MapLoadingSkeleton } from "@/components/loading-skeletons"
 import { OnboardingModal } from "@/components/onboarding-modal"
 import type { ReportMapItem } from "@/database/queries/reportes/get-reportes"
 
-const MapContainer = dynamic(() => import("@/components/map-container").then((m) => m.MapContainer), {
+const loadMapContainer = () => import("@/components/map-container").then((m) => m.MapContainer)
+
+// next/dynamic with ssr: false only requests the chunk once hydration renders it.
+// Starting the download when this module runs in the browser overlaps it with hydration.
+if (typeof window !== "undefined") {
+  void loadMapContainer()
+}
+
+const MapContainer = dynamic(loadMapContainer, {
   ssr: false,
   loading: () => <MapLoadingSkeleton />,
 })
@@ -28,6 +37,10 @@ type MapaClientProps = {
 }
 
 export function MapaClient({ reportes, categorias, estados, prioridades, error }: MapaClientProps) {
+  // The map tiles are the largest paint of this page. Rendering this hint during SSR
+  // puts it in the document head, so the tile connection opens while the map code downloads.
+  preconnect("https://tile.openstreetmap.org")
+
   const searchParams = useSearchParams()
   const [showFilters, setShowFilters] = useState(false)
   const [showActions, setShowActions] = useState(false)

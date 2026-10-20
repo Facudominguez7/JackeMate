@@ -4,18 +4,20 @@
  * Este componente envuelve el mapa de Leaflet y agrega:
  * - Leyenda de colores por prioridad
  * - Instrucciones de uso del mapa
- * - Manejo de carga dinámica para evitar SSR
+ *
+ * Leaflet necesita `window`, así que este módulo solo debe cargarse con
+ * `next/dynamic` y `ssr: false` (ver `mapa-client` y `panel-cuadrillas`).
+ * Importa Leaflet de forma estática para que el mapa llegue en un solo chunk
+ * en lugar de esperar una segunda carga dinámica encadenada.
  */
 
 "use client"
 
-import dynamic from "next/dynamic"
-import type { LeafletMapProps } from "@/components/leaflet-map"
+import LeafletMap from "@/components/leaflet-map"
 import { MousePointer2 } from "lucide-react"
 
 import { getPriorityColor } from "@/components/report-card"
 import type { EstadoOperativo } from "@/lib/authz/catalog"
-import { MapLoadingSkeleton } from "@/components/loading-skeletons"
 
 /**
  * Interfaz que representa un reporte con sus datos para visualizar en el mapa
@@ -45,18 +47,6 @@ interface MapContainerProps {
   /** Modo selección: se propaga a `LeafletMap` para avisar qué reporte se eligió al hacer click. */
   onSeleccionarReporte?: (reporteId: number) => void
 }
-
-/**
- * Importación dinámica del mapa de Leaflet
- * Necesario para evitar errores de SSR ya que Leaflet requiere el objeto window
- */
-const LeafletMap = dynamic<LeafletMapProps>(
-  () => import("@/components/leaflet-map").then((m) => m.default),
-  {
-    ssr: false,
-    loading: () => <MapLoadingSkeleton />,
-  }
-)
 
 /**
  * Renderiza el contenedor del mapa con el componente de Leaflet y las superposiciones de interfaz.
