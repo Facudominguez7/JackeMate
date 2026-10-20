@@ -27,9 +27,12 @@ type CommentSubmitResult =
 
 type CommentDeleteResult = { success: boolean; error?: string }
 
+/** Only the session fields the detail page needs; the full auth user never reaches the client. */
+export type UsuarioActual = Pick<User, "id" | "is_anonymous">
+
 export type CommentsSectionProps = {
   comments: Comentario[]
-  currentUser: User | null
+  currentUser: UsuarioActual | null
   reportOwnerId: string | null
   isAdmin: boolean
   isClosed: boolean
