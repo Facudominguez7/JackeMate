@@ -28,11 +28,11 @@ export default async function ComunidadPage() {
   return (
     <div className="page-shell">
       <div className="page-container page-stack">
-        <section className="space-y-2">
+        <section className="space-y-3">
           <PageTitleBar
             icon={<UsersRound className="size-4" />}
             title="Comunidad"
-            description="Mirá cómo participa la ciudad."
+            description="Conocé la participación de la comunidad."
           />
           <Tabs defaultValue="ranking" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -43,7 +43,7 @@ export default async function ComunidadPage() {
           <TabsContent value="ranking" className="space-y-2 pt-2">
             <section aria-labelledby="ranking-destacado">
               <Card className="gap-0 py-3">
-                <CardHeader className="px-4 pb-2"><CardTitle id="ranking-destacado">Personas que más reportan</CardTitle></CardHeader>
+                <CardHeader className="px-4 pb-2"><CardTitle id="ranking-destacado" className="text-secondary">Personas que más reportan</CardTitle></CardHeader>
                 <CardContent className="p-0">
                   {topContributors.length === 0 ? (
                     <div className="rounded-[var(--radius)] border border-dashed p-8 text-center">
@@ -79,7 +79,7 @@ export default async function ComunidadPage() {
             {remainingContributors.length > 0 && (
               <section aria-labelledby="ranking-completo">
                 <Card className="gap-0">
-                  <CardHeader><CardTitle id="ranking-completo">Ranking completo</CardTitle></CardHeader>
+                  <CardHeader><CardTitle id="ranking-completo" className="text-secondary">Ranking completo</CardTitle></CardHeader>
                   <CardContent className="divide-y p-0">
                     {remainingContributors.map((contributor, index) => {
                       const rank = index + 4
@@ -112,7 +112,7 @@ export default async function ComunidadPage() {
                 {summary.map(({ label, description, value, icon: Icon, href }) => {
                   const content = (
                     <>
-                      <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                      <Icon className="size-4 shrink-0 text-secondary" aria-hidden="true" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold">{label}</p>
                         <p className="text-xs text-muted-foreground">{description}</p>

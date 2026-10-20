@@ -384,12 +384,12 @@ export function ReporteDetalleClient({
   return (
     <div className="page-shell">
       <div className="page-container space-y-4 md:space-y-6 lg:space-y-8">
-        <section className="space-y-2">
+        <section className="space-y-3">
           <PageTitleBar
             leading={<BackButton />}
             icon={<FileSearch2 className="size-4" />}
             title="Detalle del reporte"
-            description="Estado, avances y conversación del incidente."
+            description="Consultá el estado y los avances del reporte."
           />
         </section>
 

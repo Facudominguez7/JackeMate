@@ -57,7 +57,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <PageTitleBar
               icon={<BarChart3 className="size-4" />}
               title="Analíticas de reportes"
-              description="Una vista rápida de la actividad y los tiempos de respuesta."
+              description="Resumen de reportes y tiempos de atención."
             />
             {/* Two columns only when the crews button sits next to the resolution time. */}
             <div className={cn("grid gap-3", mostrarCuadrillas && data.tiempoResolucion && "md:grid-cols-2")}>
@@ -158,41 +158,37 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   return (
     <div className="page-shell">
-      <div className="page-container page-stack">
-        <section className="space-y-2">
+      <div className="page-container space-y-6 md:space-y-8 lg:space-y-10">
+        <section className="space-y-3">
           <PageTitleBar
             icon={<UserRound className="size-4" />}
             title="Mi cuenta"
-            description="Tu actividad y participación en Reporty."
+            description="Tu información y actividad en Reporty."
           />
-          <section className="page-hero-panel">
-          <div className="page-hero-grid lg:items-center">
-            <div className="flex items-start gap-4 md:gap-6">
-              <Avatar className="size-16 border border-border bg-[var(--surface-subtle)] md:size-20">
-                <AvatarFallback className="text-2xl font-semibold md:text-3xl">{getUserInitials(data.user.email)}</AvatarFallback>
-              </Avatar>
+          <Card className="overflow-hidden">
+            <div className="page-hero-grid lg:items-center">
+              <div className="flex items-start gap-4 md:gap-6">
+                <Avatar className="size-16 border border-border bg-[var(--surface-subtle)] md:size-20">
+                  <AvatarFallback className="text-2xl font-semibold md:text-3xl">{getUserInitials(data.user.email)}</AvatarFallback>
+                </Avatar>
 
-              <div className="min-w-0 flex-1 space-y-2">
-                <div>
-                  <h2 className="max-w-full break-all text-base font-semibold leading-tight tracking-tight sm:text-lg md:text-xl">
-                    {data.user.email}
-                  </h2>
-                  <p className="ranking-points mt-1 inline-flex items-center gap-1.5 text-sm font-semibold">
-                    <Trophy className="size-4" aria-hidden="true" />
-                    {data.puntos} puntos
-                  </p>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div>
+                    <h2 className="max-w-full break-all text-base font-semibold leading-tight tracking-tight sm:text-lg md:text-xl">
+                      {data.user.email}
+                    </h2>
+                    <p className="ranking-points mt-1 inline-flex items-center gap-1.5 text-sm font-semibold">
+                      <Trophy className="size-4" aria-hidden="true" />
+                      {data.puntos} puntos
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          </section>
-        </section>
 
-        <section aria-label="Resumen personal">
-          <Card>
-            <CardContent className="divide-y divide-border p-0">
+            <CardContent className="divide-y divide-border border-t p-0">
               <div className="flex items-center gap-3 px-5 py-3">
-                <Plus className="size-4 shrink-0 text-[var(--semantic-info)]" aria-hidden="true" />
+                <Plus className="size-4 shrink-0 text-secondary" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">Reportes creados</p>
                   <p className="text-xs text-muted-foreground">Reportes publicados</p>
@@ -200,7 +196,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 <p className="text-lg font-semibold tracking-tight">{data.userReports.length}</p>
               </div>
               <div className="flex items-center gap-3 px-5 py-3">
-                <Star className="size-4 shrink-0 text-[var(--semantic-success)]" aria-hidden="true" />
+                <Star className="size-4 shrink-0 text-secondary" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">Casos resueltos</p>
                   <p className="text-xs text-muted-foreground">Reportes solucionados</p>
@@ -208,12 +204,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 <p className="text-lg font-semibold tracking-tight">{resolvedReports}</p>
               </div>
               <div className="flex items-center gap-3 px-5 py-3">
-                <Trophy className="size-4 shrink-0 ranking-points" aria-hidden="true" />
+                <Trophy className="size-4 shrink-0 text-secondary" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">Puntos acumulados</p>
                   <p className="text-xs text-muted-foreground">Participación en la comunidad</p>
                 </div>
-                <p className="ranking-points text-lg font-semibold tracking-tight">{data.puntos}</p>
+                <p className="text-secondary text-lg font-semibold tracking-tight">{data.puntos}</p>
               </div>
             </CardContent>
           </Card>
@@ -223,7 +219,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <PageTitleBar
             icon={<FileText className="size-4" />}
             title="Mis reportes"
-            description="Seguimiento de los avisos que enviaste."
+            description="Revisá los reportes que enviaste."
             actions={
               <ReportesClientWrapper
                 categorias={categorias ?? []}

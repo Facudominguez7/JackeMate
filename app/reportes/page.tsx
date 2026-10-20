@@ -58,7 +58,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
           <PageTitleBar
             icon={<MapPin className="size-4" />}
             title="Incidentes reportados"
-            description="Problemas de la ciudad, ordenados por fecha."
+            description="Consultá los problemas informados en la ciudad."
             actions={
               <ReportesClientWrapper
                 categorias={categorias ?? []}

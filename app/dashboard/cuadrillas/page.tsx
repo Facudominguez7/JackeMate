@@ -98,7 +98,7 @@ export default async function CuadrillasPage() {
             leading={<BackButton />}
             icon={<UsersRound className="size-4" />}
             title="Gestionar cuadrillas"
-            description="Organizá los equipos que atienden los reportes."
+            description="Administrá los equipos de atención."
           />
           <PanelCuadrillas
             cuadrillas={cuadrillas}

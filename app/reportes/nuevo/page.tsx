@@ -506,11 +506,11 @@ export default function NuevoReportePage() {
   return (
     <div className="page-shell">
       <div className="page-container max-w-5xl space-y-6 md:space-y-8 lg:space-y-10">
-        <section className="space-y-2">
+        <section className="space-y-3">
           <PageTitleBar
             icon={<FilePlus2 className="size-4" />}
             title="Crear reporte"
-            description="Contanos qué pasa y dónde para poder atenderlo."
+            description="Informá un problema de tu zona."
           />
           {isGuestMode && (
             <p className="flex items-start gap-2 rounded-xl border border-border/70 bg-muted/60 p-3 text-sm text-muted-foreground">

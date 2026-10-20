@@ -12,7 +12,7 @@ type LoadingStateProps = {
 export function LoadingState({ text, className, showSkeleton = true }: LoadingStateProps) {
   return (
     <div role="status" aria-live="polite" className={cn("flex h-full w-full flex-col items-center justify-center gap-2 text-center", className)}>
-      <span className="rounded-xl bg-secondary px-3 py-2">
+      <span className="rounded-full bg-secondary px-3 py-2">
         <Image
           src="/logos/logoBlanco.webp"
           alt="Reporty"

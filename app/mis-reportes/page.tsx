@@ -36,7 +36,7 @@ export default async function MisReportesPage({ searchParams }: MisReportesPageP
           <PageTitleBar
             icon={<ClipboardList className="size-4" />}
             title="Mis reportes"
-            description="Seguimiento de los avisos que enviaste."
+            description="Revisá los reportes que enviaste."
           />
           <Card>
             <CardHeader>
@@ -82,7 +82,7 @@ export default async function MisReportesPage({ searchParams }: MisReportesPageP
         <PageTitleBar
           icon={<ClipboardList className="size-4" />}
           title="Mis reportes"
-          description="Seguimiento de los avisos que enviaste."
+          description="Revisá los reportes que enviaste."
         />
 
         {passwordPending && (

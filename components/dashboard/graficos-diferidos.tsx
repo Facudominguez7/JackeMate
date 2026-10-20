@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 // out of the page's shared chunks, so only analytics views download it. Import these wrappers
 // directly, not through the `@/components/dashboard` barrel, which references the charts statically.
 function ChartLoadingSkeleton() {
-  return <Skeleton className="h-[380px] w-full rounded-[var(--radius)]" />
+  return <Skeleton className="h-[380px] w-full rounded-[var(--radius-lg)]" />
 }
 
 export const GraficoReportesPorCategoriaDiferido = dynamic(

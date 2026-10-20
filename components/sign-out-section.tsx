@@ -18,7 +18,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 
 const SIGN_OUT_ERROR = "No pudimos cerrar la sesión"
 
@@ -60,23 +59,17 @@ export function SignOutSection() {
   }
 
   return (
-    <section aria-labelledby="sign-out-title">
-      <Card>
-        <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h2 id="sign-out-title" className="text-sm font-semibold">
-              Sesión
-            </h2>
-            <p className="text-sm text-muted-foreground">Salí de tu cuenta en todos tus dispositivos.</p>
-          </div>
-
-          <AlertDialog open={open} onOpenChange={(next) => !isPending && setOpen(next)}>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="lg" className="w-full text-destructive hover:text-destructive sm:w-auto">
-                <LogOut className="size-4" aria-hidden="true" />
-                Cerrar sesión
-              </Button>
-            </AlertDialogTrigger>
+    <section aria-label="Cerrar sesión" className="flex justify-end">
+      <AlertDialog open={open} onOpenChange={(next) => !isPending && setOpen(next)}>
+        <AlertDialogTrigger asChild>
+          <Button
+            size="lg"
+            className="w-full border border-secondary bg-secondary text-destructive hover:bg-secondary/90 sm:w-auto"
+          >
+            <LogOut className="size-4" aria-hidden="true" />
+            Cerrar sesión
+          </Button>
+        </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
@@ -109,9 +102,7 @@ export function SignOutSection() {
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
+        </AlertDialog>
     </section>
   )
 }
