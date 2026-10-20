@@ -8,10 +8,10 @@ const nextConfig = {
   },
 
   allowedDevOrigins: ['192.168.0.107'],
-  // The home is the map. Config redirects run before the proxy, so `/` answers
-  // without a Supabase Auth round trip or a page render.
-  async redirects() {
-    return [{ source: '/', destination: '/mapa', permanent: false }]
+  // The home is the map. Serving it at `/` with a rewrite saves the browser the
+  // extra round trip of a redirect before the page starts loading.
+  async rewrites() {
+    return [{ source: '/', destination: '/mapa' }]
   },
   experimental: {
     serverActions: {
