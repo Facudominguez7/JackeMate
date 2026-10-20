@@ -119,6 +119,17 @@ export function canParticipateInCommunity(
   return Boolean(user) && !isAnonymousUser(user) && !isGuestRole(roleId);
 }
 
+/**
+ * Votes on a report ("no existe" / "reparado") come from the community: guests cannot vote,
+ * and neither can admins or operators, who close reports through their own tools.
+ */
+export function puedeVotarReportes(
+  user: Pick<User, "is_anonymous"> | null | undefined,
+  roleId: number | null | undefined,
+) {
+  return canParticipateInCommunity(user, roleId) && !isAdminRole(roleId) && !esRolOperador(roleId);
+}
+
 /** Indica si el rol es exactamente OPERADOR municipal. */
 export function esRolOperador(roleId: number | null | undefined) {
   return roleId === ROLE_IDS.OPERADOR;
