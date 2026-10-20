@@ -181,8 +181,15 @@ export default function ReporteDetallePage({
         const userPromise = supabase.auth.getUser().then(({ data }) => data.user);
         const comentariosPromise = getComentariosReporte(supabase, resolvedParams.id);
         const historialPromise = getHistorialEstados(supabase, resolvedParams.id);
+        // A failed management action (network error, deployment skew) must only hide the
+        // operational panel, never the report itself, so its rejection resolves to null here.
         const gestionPromise =
-          reporteIdNumerico !== null ? obtenerGestionOperativaAction(reporteIdNumerico) : null;
+          reporteIdNumerico !== null
+            ? obtenerGestionOperativaAction(reporteIdNumerico).catch((gestionError) => {
+                console.error("Error al cargar la gestión operativa:", gestionError);
+                return null;
+              })
+            : null;
         // These settle while the user lookup is still pending. A no-op handler avoids an
         // "unhandled rejection" in that window; Promise.all below still rethrows into the catch.
         for (const pending of [comentariosPromise, historialPromise, gestionPromise]) {
