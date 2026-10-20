@@ -4,19 +4,14 @@ import MapaPage from "./page"
 
 const mocks = vi.hoisted(() => ({
   getReportMapData: vi.fn(),
+  getEstados: vi.fn(),
 }))
 
 vi.mock("./mapa-client", () => ({ MapaClient: () => null }))
 vi.mock("@/database/queries/reportes/get-reportes", () => ({
   getReportMapData: mocks.getReportMapData,
   getCategorias: async () => ({ data: [] }),
-  getEstados: async () => ({
-    data: [
-      { id: 1, nombre: "Pendiente" },
-      { id: 3, nombre: "Rechazado" },
-      { id: 2, nombre: "Reparado" },
-    ],
-  }),
+  getEstados: mocks.getEstados,
   getPrioridades: async () => ({ data: [] }),
 }))
 
@@ -25,7 +20,7 @@ describe("MapaPage", () => {
     mocks.getReportMapData.mockReset().mockResolvedValue({ data: [], error: null })
   })
 
-  it("loads the map without repaired reports, keeping the URL filters", async () => {
+  it("loads only pending reports on the map, keeping the URL filters", async () => {
     await MapaPage({ searchParams: Promise.resolve({ search: "bache", categoria: "Baches" }) })
 
     expect(mocks.getReportMapData).toHaveBeenCalledWith({
@@ -34,16 +29,14 @@ describe("MapaPage", () => {
       estado: undefined,
       prioridad: undefined,
       limite: 100,
-      excluirReparados: true,
+      soloPendientes: true,
     })
   })
 
-  it("does not offer the repaired state as a map filter", async () => {
+  it("does not offer a state filter, since every report on the map is pending", async () => {
     const page = await MapaPage({ searchParams: Promise.resolve({}) })
 
-    expect(page.props.estados).toEqual([
-      { id: 1, nombre: "Pendiente" },
-      { id: 3, nombre: "Rechazado" },
-    ])
+    expect(page.props.estados).toEqual([])
+    expect(mocks.getEstados).not.toHaveBeenCalled()
   })
 })

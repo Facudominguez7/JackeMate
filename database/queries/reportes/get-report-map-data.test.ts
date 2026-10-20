@@ -34,7 +34,7 @@ vi.mock("@/database/queries/cuadrillas", () => ({
   obtenerEstadoOperativoPublicoPorReporte: mocks.obtenerEstadoOperativo,
 }))
 
-const REPARADO_ID = 2
+const PENDIENTE_ID = 1
 
 const pendingRow = {
   id: 7,
@@ -61,21 +61,20 @@ describe("getReportMapData", () => {
     vi.unstubAllEnvs()
   })
 
-  it("leaves repaired reports out of the query when asked to", async () => {
+  it("keeps only pending reports in the query when asked to", async () => {
     mocks.rows.push(pendingRow)
 
-    const { data, error } = await getReportMapData({ excluirReparados: true })
+    const { data, error } = await getReportMapData({ soloPendientes: true })
 
-    expect(mocks.calls).toContainEqual(["neq", "estado_id", REPARADO_ID])
+    expect(mocks.calls).toContainEqual(["eq", "estado_id", PENDIENTE_ID])
     expect(error).toBeNull()
     expect(data.map((report) => report.id)).toEqual([7])
   })
 
-  it("keeps every state when the exclusion is not requested", async () => {
-    await getReportMapData({ estado: "Pendiente" })
+  it("keeps every state when only pending reports are not requested", async () => {
+    await getReportMapData({ categoria: "Bache" })
 
-    expect(mocks.calls.some(([method]) => method === "neq")).toBe(false)
-    expect(mocks.calls).toContainEqual(["eq", "estado_id", 1])
+    expect(mocks.calls.some(([, column]) => column === "estado_id")).toBe(false)
   })
 
   it("skips the crew status lookup while crews are turned off", async () => {

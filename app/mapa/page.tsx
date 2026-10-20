@@ -2,15 +2,14 @@
  * Página del mapa interactivo de reportes
  * 
  * Este componente Server Component se encarga de:
- * - Cargar reportes reales desde Supabase con sus coordenadas y filtros, sin los reparados:
- *   el mapa muestra solo problemas abiertos (los reparados siguen en /reportes)
+ * - Cargar reportes reales desde Supabase con sus coordenadas y filtros, solo los pendientes:
+ *   el mapa muestra únicamente problemas abiertos (reparados y rechazados siguen en /reportes)
  * - Renderizar el MapaClient con los datos
  * - Manejar los searchParams para los filtros
  */
 
 import { MapaClient } from "./mapa-client"
-import { getReportMapData, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
-import { REPORT_STATE_IDS } from "@/lib/authz/catalog"
+import { getReportMapData, getCategorias, getPrioridades } from "@/database/queries/reportes/get-reportes"
 
 export const dynamic = "force-dynamic"
 
@@ -38,22 +37,16 @@ export default async function MapaPage({ searchParams }: MapaPageProps) {
   const { search, categoria, estado, prioridad } = params
 
   // Reports and filter options don't depend on each other, so they load at the same time.
-  const [
-    { data: reportes, error },
-    { data: categorias },
-    { data: estados },
-    { data: prioridades },
-  ] = await Promise.all([
+  const [{ data: reportes, error }, { data: categorias }, { data: prioridades }] = await Promise.all([
     getReportMapData({
       search,
       categoria,
       estado,
       prioridad,
       limite: 100, // Más reportes para el mapa
-      excluirReparados: true,
+      soloPendientes: true,
     }),
     getCategorias(),
-    getEstados(),
     getPrioridades(),
   ])
 
@@ -61,8 +54,8 @@ export default async function MapaPage({ searchParams }: MapaPageProps) {
     <MapaClient
       reportes={reportes ?? []}
       categorias={categorias ?? []}
-      // Filtrar por Reparado dejaría el mapa vacío, así que no se ofrece.
-      estados={(estados ?? []).filter((estado) => estado.id !== REPORT_STATE_IDS.REPARADO)}
+      // Todo el mapa está en Pendiente, así que no hay estado por el cual filtrar.
+      estados={[]}
       prioridades={prioridades ?? []}
       error={error?.message ?? null}
     />

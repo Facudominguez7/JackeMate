@@ -280,7 +280,9 @@ export function FiltrosReportes({
             )}
             {isSheet ? (
               <DrawerDescription className="text-xs text-muted-foreground md:text-sm">
-                Filtrá reportes por categoría, estado o prioridad.
+                {estados.length > 0
+                  ? "Filtrá reportes por categoría, estado o prioridad."
+                  : "Filtrá reportes por categoría o prioridad."}
               </DrawerDescription>
             ) : (
               <p className="text-xs text-muted-foreground md:text-sm">Buscá por texto, categoría, estado o prioridad.</p>
@@ -372,14 +374,17 @@ export function FiltrosReportes({
                 onChange={(value) => actualizarFiltros("categoria", value)}
                 disabled={isPending}
               />
-              <SheetFilterGroup
-                label="Estado"
-                allLabel="Todos"
-                options={estados}
-                value={currentEstadoValue}
-                onChange={(value) => actualizarFiltros("estado", value)}
-                disabled={isPending}
-              />
+              {/* Without state options (the map only shows pending reports) the group is omitted. */}
+              {estados.length > 0 && (
+                <SheetFilterGroup
+                  label="Estado"
+                  allLabel="Todos"
+                  options={estados}
+                  value={currentEstadoValue}
+                  onChange={(value) => actualizarFiltros("estado", value)}
+                  disabled={isPending}
+                />
+              )}
               <SheetFilterGroup
                 label="Prioridad"
                 allLabel="Todas"

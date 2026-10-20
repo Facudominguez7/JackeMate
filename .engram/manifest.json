@@ -112,6 +112,14 @@
       "sessions": 1,
       "memories": 2,
       "prompts": 0
+    },
+    {
+      "id": "1902afcf",
+      "created_by": "facu",
+      "created_at": "2026-10-20T18:12:42.024284852Z",
+      "sessions": 1,
+      "memories": 2,
+      "prompts": 0
     }
   ]
 }
