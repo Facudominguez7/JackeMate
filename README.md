@@ -209,7 +209,11 @@ sequenceDiagram
    NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
    RESEND_API_KEY=tu_resend_api_key
    NEXT_PUBLIC_APP_URL=http://localhost:3000
+   # Opcional: habilita la gestión de cuadrillas (desactivada si no se define)
+   CUADRILLAS_ENABLED=true
    ```
+
+   La gestión de cuadrillas está desactivada en producción. `CUADRILLAS_ENABLED` se lee en el servidor mientras la app corre: para activarla basta con definirla en `true` y reiniciar, sin volver a compilar.
 
 4. **Iniciar servidor de desarrollo**
    ```bash

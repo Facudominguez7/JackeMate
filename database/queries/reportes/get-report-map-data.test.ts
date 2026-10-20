@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { getReportMapData } from "./get-reportes"
 
@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => {
       },
     },
   )
-  return { calls, rows, builder }
+  return { calls, rows, builder, obtenerEstadoOperativo: vi.fn() }
 })
 
 vi.mock("next/cache", () => ({ unstable_cache: (load: unknown) => load }))
@@ -31,31 +31,38 @@ vi.mock("@/database/queries/profiles", () => ({
   indexPublicProfilesById: () => new Map(),
 }))
 vi.mock("@/database/queries/cuadrillas", () => ({
-  obtenerEstadoOperativoPublicoPorReporte: async () => new Map(),
+  obtenerEstadoOperativoPublicoPorReporte: mocks.obtenerEstadoOperativo,
 }))
 
 const REPARADO_ID = 2
+
+const pendingRow = {
+  id: 7,
+  usuario_id: null,
+  titulo: "Bache",
+  descripcion: null,
+  created_at: "2026-10-01T00:00:00Z",
+  lat: -27.4,
+  lon: -55.9,
+  categoria: null,
+  prioridad: null,
+  estado: { nombre: "Pendiente" },
+  fotos: null,
+}
 
 describe("getReportMapData", () => {
   beforeEach(() => {
     mocks.calls.length = 0
     mocks.rows.length = 0
+    mocks.obtenerEstadoOperativo.mockReset().mockResolvedValue(new Map())
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it("leaves repaired reports out of the query when asked to", async () => {
-    mocks.rows.push({
-      id: 7,
-      usuario_id: null,
-      titulo: "Bache",
-      descripcion: null,
-      created_at: "2026-10-01T00:00:00Z",
-      lat: -27.4,
-      lon: -55.9,
-      categoria: null,
-      prioridad: null,
-      estado: { nombre: "Pendiente" },
-      fotos: null,
-    })
+    mocks.rows.push(pendingRow)
 
     const { data, error } = await getReportMapData({ excluirReparados: true })
 
@@ -69,5 +76,28 @@ describe("getReportMapData", () => {
 
     expect(mocks.calls.some(([method]) => method === "neq")).toBe(false)
     expect(mocks.calls).toContainEqual(["eq", "estado_id", 1])
+  })
+
+  it("skips the crew status lookup while crews are turned off", async () => {
+    vi.stubEnv("CUADRILLAS_ENABLED", undefined)
+    mocks.rows.push(pendingRow)
+
+    const { data } = await getReportMapData()
+
+    expect(mocks.obtenerEstadoOperativo).not.toHaveBeenCalled()
+    expect(data).toMatchObject([{ id: 7, estadoOperativo: null, cuadrillaNombre: null }])
+  })
+
+  it("attaches the crew status when crews are turned on", async () => {
+    vi.stubEnv("CUADRILLAS_ENABLED", "true")
+    mocks.rows.push(pendingRow)
+    mocks.obtenerEstadoOperativo.mockResolvedValue(
+      new Map([[7, { estadoOperativo: "en_progreso", cuadrillaNombre: "Cuadrilla Norte" }]]),
+    )
+
+    const { data } = await getReportMapData()
+
+    expect(mocks.obtenerEstadoOperativo).toHaveBeenCalledWith(expect.anything(), [7])
+    expect(data).toMatchObject([{ id: 7, estadoOperativo: "en_progreso", cuadrillaNombre: "Cuadrilla Norte" }])
   })
 })

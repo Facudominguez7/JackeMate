@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { contarReportesEnProgreso } from "@/database/queries/cuadrillas";
+import { cuadrillasHabilitadas } from "@/lib/features";
 
 /**
  * Tipo de datos para estadísticas por categoría
@@ -233,7 +234,8 @@ export async function getZonasConMasReportes(
  * - `reportesPendientes`: número de reportes con `estado_id = 1`.
  * - `reportesEnProgreso`: número de reportes con una asignación de cuadrilla actualmente
  *   `en_progreso`, según la vista pública `reportes_estado_operativo_publico`
- *   (`contarReportesEnProgreso`).
+ *   (`contarReportesEnProgreso`). Es 0 sin consultar la vista mientras las cuadrillas están
+ *   deshabilitadas (`cuadrillasHabilitadas`).
  *
  * IMPORTANTE: `reportesPendientes` y `reportesEnProgreso` NO son categorías disjuntas y no
  * deben sumarse como si lo fueran. `estado_id` (administrativo) y el estado operativo de
@@ -264,7 +266,7 @@ export async function getEstadisticasInteresado(supabase: SupabaseClient) {
         .select("*", { count: "exact", head: true })
         .eq("estado_id", 1)
         .is("deleted_at", null),
-      contarReportesEnProgreso(supabase),
+      cuadrillasHabilitadas() ? contarReportesEnProgreso(supabase) : 0,
     ]);
 
     // Calcular tasa de resolución

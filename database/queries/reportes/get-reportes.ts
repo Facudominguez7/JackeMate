@@ -14,6 +14,7 @@ import { createClient } from "@/utils/supabase/server"
 import { createPublicClient } from "@/utils/supabase/public"
 import { getPublicProfilesByIds, indexPublicProfilesById } from "@/database/queries/profiles"
 import { obtenerEstadoOperativoPublicoPorReporte } from "@/database/queries/cuadrillas"
+import { cuadrillasHabilitadas } from "@/lib/features"
 import {
   getPreferredReportListingImageUrl,
   getPrimaryReportImageUrl,
@@ -351,10 +352,13 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
       supabase,
       pageRows.map((report) => report.usuario_id ?? ""),
     ),
-    obtenerEstadoOperativoPublicoPorReporte(
-      supabase,
-      pageRows.map((report) => report.id),
-    ),
+    // Without crews there is no operational state to show, so the lookup is skipped.
+    cuadrillasHabilitadas()
+      ? obtenerEstadoOperativoPublicoPorReporte(
+          supabase,
+          pageRows.map((report) => report.id),
+        )
+      : new Map<number, never>(),
   ])
   const profilesById = indexPublicProfilesById(publicProfiles)
 

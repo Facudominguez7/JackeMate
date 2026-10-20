@@ -16,6 +16,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 import { getDashboardPageData } from "@/database/queries/dashboard"
 import { isGuestRole, puedeOperarCuadrillas } from "@/lib/authz/roles"
+import { cuadrillasHabilitadas } from "@/lib/features"
+import { cn } from "@/lib/utils"
 import { getUserInitials } from "@/lib/identity/display"
 import { PageTitleBar } from "@/components/page-title-bar"
 import { SignOutSection } from "@/components/sign-out-section"
@@ -46,12 +48,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   }
 
   if (data.isAnalyticsDashboard) {
+    const mostrarCuadrillas = cuadrillasHabilitadas() && puedeOperarCuadrillas(data.roleId)
+
     return (
       <div className="page-shell">
         <div className="page-container space-y-4 md:space-y-6 lg:space-y-8">
           <section className="space-y-3">
             <PageTitleBar title="Analíticas de reportes" />
-            <div className="grid gap-3 md:grid-cols-2">
+            {/* Two columns only when the crews button sits next to the resolution time. */}
+            <div className={cn("grid gap-3", mostrarCuadrillas && data.tiempoResolucion && "md:grid-cols-2")}>
               {data.tiempoResolucion && (
                 <Card className="border-[var(--semantic-admin)]/25 bg-[var(--semantic-admin)]/10">
                   <CardContent className="p-4">
@@ -68,7 +73,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   </CardContent>
                 </Card>
               )}
-              {puedeOperarCuadrillas(data.roleId) && (
+              {mostrarCuadrillas && (
                 <Button size="lg" variant="secondary" className="w-full justify-between" asChild>
                   <Link href="/dashboard/cuadrillas">
                     <span className="flex items-center gap-2">
@@ -109,14 +114,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   </div>
                   <p className="text-lg font-semibold tracking-tight">{data.estadisticas?.reportesPendientes || 0}</p>
                 </div>
-                <div className="flex items-center gap-3 px-5 py-3">
-                  <TrendingUp className="size-4 shrink-0 text-[var(--semantic-admin)]" aria-hidden="true" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold">En progreso</p>
-                    <p className="text-xs text-muted-foreground">Casos en seguimiento</p>
+                {/* Counts reports with a crew at work, so it only exists while crews are turned on. */}
+                {cuadrillasHabilitadas() && (
+                  <div className="flex items-center gap-3 px-5 py-3">
+                    <TrendingUp className="size-4 shrink-0 text-[var(--semantic-admin)]" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold">En progreso</p>
+                      <p className="text-xs text-muted-foreground">Casos en seguimiento</p>
+                    </div>
+                    <p className="text-lg font-semibold tracking-tight">{data.estadisticas?.reportesEnProgreso || 0}</p>
                   </div>
-                  <p className="text-lg font-semibold tracking-tight">{data.estadisticas?.reportesEnProgreso || 0}</p>
-                </div>
+                )}
               </CardContent>
             </Card>
           </section>

@@ -120,6 +120,8 @@ export type ReporteDetalleInicial = {
   comentarios: Comentario[];
   fechaCambioEstado: string | null;
   gestionOperativa: GestionOperativaDetalle | null;
+  /** Computed on the server from the visitor's role; the vote actions check it again. */
+  puedeVotar: boolean;
 };
 
 /**
@@ -135,6 +137,7 @@ export function ReporteDetalleClient({
   comentarios,
   fechaCambioEstado,
   gestionOperativa,
+  puedeVotar,
 }: ReporteDetalleInicial) {
   const [votosCount, setVotosCount] = useState(reporte?.votos.noExiste.count ?? 0);
   const [hasVoted, setHasVoted] = useState(reporte?.votos.noExiste.hasVoted ?? false);
@@ -162,11 +165,6 @@ export function ReporteDetalleClient({
   const isReporteCerrado = reporte && (
     reporte.estado_id === REPORT_STATE_IDS.REPARADO ||
     reporte.estado_id === REPORT_STATE_IDS.RECHAZADO
-  );
-
-  // Guests (anonymous identities) cannot vote; the server action and RLS enforce it too.
-  const puedeVotar = Boolean(
-    currentUser && !currentUser.is_anonymous && gestionOperativa && !isAdmin && !gestionOperativa.puedeOperar,
   );
 
   const handleVoteNoExiste = async () => {

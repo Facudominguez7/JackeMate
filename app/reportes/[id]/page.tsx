@@ -8,6 +8,8 @@ import {
 } from "@/database/queries/reportes/[id]/index";
 import { verificarEsAdmin, getEstados } from "@/database/queries/admin/index";
 import { REPORT_STATE_IDS } from "@/lib/authz/catalog";
+import { getUserRoleContext, puedeVotarReportes } from "@/lib/authz/roles";
+import { cuadrillasHabilitadas } from "@/lib/features";
 import { obtenerGestionOperativaDetalle } from "@/lib/use-cases/cuadrillas/detalle-operativo";
 import { ReporteDetalleClient, type ReporteDetalleInicial } from "./reporte-detalle-client";
 
@@ -19,6 +21,7 @@ const SIN_REPORTE: ReporteDetalleInicial = {
   comentarios: [],
   fechaCambioEstado: null,
   gestionOperativa: null,
+  puedeVotar: false,
 };
 
 function parseReporteId(id: string) {
@@ -41,10 +44,23 @@ async function cargarDetalle(id: string): Promise<ReporteDetalleInicial> {
     const userPromise = supabase.auth.getUser().then(({ data }) => data.user);
     const comentariosPromise = getComentariosReporte(supabase, id);
     const historialPromise = getHistorialEstados(supabase, id);
+    // Voting depends only on who the visitor is, never on the crew panel loading. A failed role
+    // lookup hides the vote buttons but still renders the report.
+    const puedeVotarPromise = userPromise
+      .then(async (user) => {
+        if (!user) return false;
+        const { data: contextoRol } = await getUserRoleContext(supabase, user.id);
+        return puedeVotarReportes(user, contextoRol?.roleId);
+      })
+      .catch((rolError) => {
+        console.error("Error al cargar el rol para votar:", rolError);
+        return false;
+      });
     // A failed management load must only hide the operational panel, never the report itself,
     // so its rejection resolves to null here. The role it reads comes from the server session.
+    // While crews are turned off there is no panel to load.
     const gestionPromise =
-      reporteIdNumerico !== null
+      cuadrillasHabilitadas() && reporteIdNumerico !== null
         ? userPromise
             .then((user) => obtenerGestionOperativaDetalle(supabase, user?.id ?? null, reporteIdNumerico))
             .catch((gestionError) => {
@@ -68,14 +84,21 @@ async function cargarDetalle(id: string): Promise<ReporteDetalleInicial> {
         }))
       : null;
 
-    const [{ data: reporte, error }, adminResult, { data: comentarios }, { data: historial }, gestionOperativa] =
-      await Promise.all([
-        getReporteDetalle(supabase, id, user?.id),
-        adminPromise,
-        comentariosPromise,
-        historialPromise,
-        gestionPromise,
-      ]);
+    const [
+      { data: reporte, error },
+      adminResult,
+      { data: comentarios },
+      { data: historial },
+      gestionOperativa,
+      puedeVotar,
+    ] = await Promise.all([
+      getReporteDetalle(supabase, id, user?.id),
+      adminPromise,
+      comentariosPromise,
+      historialPromise,
+      gestionPromise,
+      puedeVotarPromise,
+    ]);
 
     const encontrado = !error && reporte ? reporte : null;
     const cerrado =
@@ -95,6 +118,7 @@ async function cargarDetalle(id: string): Promise<ReporteDetalleInicial> {
       comentarios,
       fechaCambioEstado: cambio?.created_at ?? null,
       gestionOperativa: encontrado ? gestionOperativa : null,
+      puedeVotar,
     };
   } catch (error) {
     unstable_rethrow(error);

@@ -4,6 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 
 import type { RoleId } from "@/lib/authz/catalog"
 import { getUserRoleContext, isAdminRole, puedeGestionarCuadrillas, puedeOperarCuadrillas } from "@/lib/authz/roles"
+import { cuadrillasHabilitadas } from "@/lib/features"
+
+const CUADRILLAS_DESHABILITADAS = "La gestión de cuadrillas no está disponible."
 
 /** Resultado uniforme de una operación de casos de uso: éxito con dato, o error con mensaje en español (mismo patrón que `MutationResult` en `detail-mutations.ts`). */
 export type ResultadoAccion<T> =
@@ -19,6 +22,12 @@ export async function asegurarGestorDeCuadrillas(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<ResultadoAccion<RoleId>> {
+  // Every crew action passes through this guard or the operator one, so this also covers
+  // direct server action calls while the feature is off.
+  if (!cuadrillasHabilitadas()) {
+    return { success: false, error: CUADRILLAS_DESHABILITADAS }
+  }
+
   const { data, error } = await getUserRoleContext(supabase, userId)
 
   if (error || data?.roleId == null || !puedeGestionarCuadrillas(data.roleId)) {
@@ -36,6 +45,10 @@ export async function asegurarOperadorDeCuadrillas(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<ResultadoAccion<RoleId>> {
+  if (!cuadrillasHabilitadas()) {
+    return { success: false, error: CUADRILLAS_DESHABILITADAS }
+  }
+
   const { data, error } = await getUserRoleContext(supabase, userId)
 
   if (error || data?.roleId == null || !puedeOperarCuadrillas(data.roleId)) {
