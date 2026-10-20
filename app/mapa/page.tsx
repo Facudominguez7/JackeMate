@@ -2,13 +2,15 @@
  * Página del mapa interactivo de reportes
  * 
  * Este componente Server Component se encarga de:
- * - Cargar reportes reales desde Supabase con sus coordenadas y filtros
+ * - Cargar reportes reales desde Supabase con sus coordenadas y filtros, sin los reparados:
+ *   el mapa muestra solo problemas abiertos (los reparados siguen en /reportes)
  * - Renderizar el MapaClient con los datos
  * - Manejar los searchParams para los filtros
  */
 
 import { MapaClient } from "./mapa-client"
 import { getReportMapData, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
+import { REPORT_STATE_IDS } from "@/lib/authz/catalog"
 
 export const dynamic = "force-dynamic"
 
@@ -48,6 +50,7 @@ export default async function MapaPage({ searchParams }: MapaPageProps) {
       estado,
       prioridad,
       limite: 100, // Más reportes para el mapa
+      excluirReparados: true,
     }),
     getCategorias(),
     getEstados(),
@@ -58,7 +61,8 @@ export default async function MapaPage({ searchParams }: MapaPageProps) {
     <MapaClient
       reportes={reportes ?? []}
       categorias={categorias ?? []}
-      estados={estados ?? []}
+      // Filtrar por Reparado dejaría el mapa vacío, así que no se ofrece.
+      estados={(estados ?? []).filter((estado) => estado.id !== REPORT_STATE_IDS.REPARADO)}
       prioridades={prioridades ?? []}
       error={error?.message ?? null}
     />
