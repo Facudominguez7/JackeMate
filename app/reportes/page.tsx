@@ -23,18 +23,25 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
   const params = await searchParams
   const { search, categoria, estado, prioridad } = params
 
-  const { data: reports, error, hasMore } = await getReportCardData({
-    search,
-    categoria,
-    estado,
-    prioridad,
-    limite: 12,
-    offset: 0,
-  })
-
-  const { data: categorias } = await getCategorias()
-  const { data: estados } = await getEstados()
-  const { data: prioridades } = await getPrioridades()
+  // Reports and filter options don't depend on each other, so they load at the same time.
+  const [
+    { data: reports, error, hasMore },
+    { data: categorias },
+    { data: estados },
+    { data: prioridades },
+  ] = await Promise.all([
+    getReportCardData({
+      search,
+      categoria,
+      estado,
+      prioridad,
+      limite: 12,
+      offset: 0,
+    }),
+    getCategorias(),
+    getEstados(),
+    getPrioridades(),
+  ])
 
   return (
     <div className="page-shell">

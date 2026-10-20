@@ -9,7 +9,6 @@
 
 import { MapaClient } from "./mapa-client"
 import { getReportMapData, getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
-import { createClient } from "@/utils/supabase/server"
 
 export const dynamic = "force-dynamic"
 
@@ -36,23 +35,24 @@ export default async function MapaPage({ searchParams }: MapaPageProps) {
   const params = await searchParams
   const { search, categoria, estado, prioridad } = params
 
-  // Verificar si hay un usuario autenticado
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Obtener reportes con filtros aplicados (solo con coordenadas)
-  const { data: reportes, error } = await getReportMapData({
-    search,
-    categoria,
-    estado,
-    prioridad,
-    limite: 100 // Más reportes para el mapa
-  })
-
-  // Obtener opciones para los filtros
-  const { data: categorias } = await getCategorias()
-  const { data: estados } = await getEstados()
-  const { data: prioridades } = await getPrioridades()
+  // Reports and filter options don't depend on each other, so they load at the same time.
+  const [
+    { data: reportes, error },
+    { data: categorias },
+    { data: estados },
+    { data: prioridades },
+  ] = await Promise.all([
+    getReportMapData({
+      search,
+      categoria,
+      estado,
+      prioridad,
+      limite: 100, // Más reportes para el mapa
+    }),
+    getCategorias(),
+    getEstados(),
+    getPrioridades(),
+  ])
 
   return (
     <MapaClient
@@ -61,7 +61,6 @@ export default async function MapaPage({ searchParams }: MapaPageProps) {
       estados={estados ?? []}
       prioridades={prioridades ?? []}
       error={error?.message ?? null}
-      isAuthenticated={!!user}
     />
   )
 }
