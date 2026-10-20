@@ -2,7 +2,6 @@ import type { PostgrestError } from "@supabase/supabase-js"
 import { unstable_cache } from "next/cache"
 
 import { REPORT_STATE_IDS } from "@/lib/authz/catalog"
-import { isGuestRole } from "@/lib/authz/roles"
 import { getPublicProfilesByIds, getPublicProfilesCount, indexPublicProfilesById } from "@/database/queries/profiles"
 import { createPublicClient } from "@/utils/supabase/public"
 
@@ -95,7 +94,7 @@ const loadComunidadPageData = unstable_cache(
 
     const contributors = contributorIds
       // Guests (role 5) report like anyone else but do not take part in the ranking.
-      .filter((id) => !isGuestRole(profilesById.get(id)?.rol_id))
+      .filter((id) => !profilesById.get(id)?.es_invitado)
       .map((id) => {
         const profile = profilesById.get(id)
         return {
