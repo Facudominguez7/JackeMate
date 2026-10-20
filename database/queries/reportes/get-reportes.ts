@@ -196,7 +196,7 @@ function mapReportToMapItem(report: ReporteDB): ReportMapItem | null {
     coordinates: [report.lat, report.lon],
     author: cardData.author,
     createdAt: cardData.createdAt,
-    image: cardData.image ?? undefined,
+    image: cardData.thumbnailImage ?? undefined,
   }
 }
 
@@ -208,7 +208,7 @@ function mapReportToDashboardItem(report: ReporteDB): DashboardUserReport {
     categoria: getSingleRelationName(report.categoria, "Sin categoría"),
     prioridad: getSingleRelationName(report.prioridad, "Sin prioridad"),
     estado: getSingleRelationName(report.estado, "Sin estado"),
-    imageUrl: getPrimaryReportImageUrl(report.fotos),
+    imageUrl: getPreferredReportListingImageUrl(report.fotos),
     createdAt: report.created_at,
     autor: getSingleUsername(report.autor),
   }
