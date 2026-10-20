@@ -15,10 +15,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { getCategorias, getEstados, getPrioridades } from "@/database/queries/reportes/get-reportes"
 import { getDashboardPageData } from "@/database/queries/dashboard"
-import { signout } from "@/app/auth/actions"
 import { isGuestRole, puedeOperarCuadrillas } from "@/lib/authz/roles"
 import { getUserInitials } from "@/lib/identity/display"
 import { PageTitleBar } from "@/components/page-title-bar"
+import { SignOutSection } from "@/components/sign-out-section"
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -50,7 +50,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       <div className="page-shell">
         <div className="page-container space-y-4 md:space-y-6 lg:space-y-8">
           <section className="space-y-3">
-            <PageTitleBar title="Analíticas de reportes" mostrarCerrarSesion cerrarSesionAction={signout} />
+            <PageTitleBar title="Analíticas de reportes" />
             <div className="grid gap-3 md:grid-cols-2">
               {data.tiempoResolucion && (
                 <Card className="border-[var(--semantic-admin)]/25 bg-[var(--semantic-admin)]/10">
@@ -129,6 +129,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <section className="section-stack">
             <MapaCalorZonas zonas={data.zonasCalientes} height="500px" />
           </section>
+
+          <SignOutSection />
         </div>
       </div>
     )
@@ -146,7 +148,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <div className="page-shell">
       <div className="page-container page-stack">
         <section className="space-y-2">
-          <PageTitleBar title="Mi cuenta" mostrarCerrarSesion cerrarSesionAction={signout} />
+          <PageTitleBar title="Mi cuenta" />
           <section className="page-hero-panel">
           <div className="page-hero-grid lg:items-center">
             <div className="flex items-start gap-4 md:gap-6">
@@ -241,6 +243,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
           )}
         </section>
+
+        <SignOutSection />
       </div>
     </div>
   )

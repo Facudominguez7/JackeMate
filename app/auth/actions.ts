@@ -177,15 +177,23 @@ export async function signup(_prevState: AuthFormState | void, formData: FormDat
 }
 
 /**
- * Cierra la sesión actual y refresca el layout autenticado.
- *
- * @returns Redirección a la página inicial tras cerrar sesión.
+ * Cierra la sesión en todos los dispositivos (el alcance por defecto de Supabase, explícito
+ * acá porque la interfaz lo comunica) y refresca el layout autenticado. No redirige: el
+ * cliente confirma el cierre al usuario y después navega al mapa.
  */
-export async function signout() {
+export async function signout(): Promise<{ error?: string }> {
   const supabase = await createClient()
-  await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut({ scope: 'global' })
+
+  // El layout se refresca igual ante un error: si Supabase ya invalidó la sesión (401, 403 o
+  // 404), la interfaz deja de mostrarla; si no, el usuario sigue conectado y puede reintentar.
   revalidatePath('/', 'layout')
-  redirect('/')
+
+  if (error) {
+    return { error: 'Por favor, intenta nuevamente' }
+  }
+
+  return {}
 }
 
 /**
