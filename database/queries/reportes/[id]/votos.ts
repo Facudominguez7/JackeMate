@@ -101,13 +101,22 @@ export async function getReporteVoteSummary(
   reporteId: string,
   usuarioId?: string | null,
 ) {
-  const countsResult = await getVoteAggregateCounts(supabase, reporteId);
+  // The counts and the current user's vote presence are independent, so they load together.
+  const [countsResult, presences] = await Promise.all([
+    getVoteAggregateCounts(supabase, reporteId),
+    usuarioId
+      ? Promise.all([
+          getVotePresence(supabase, "votos_no_existe", reporteId, usuarioId),
+          getVotePresence(supabase, "votos_reparado", reporteId, usuarioId),
+        ])
+      : null,
+  ]);
 
   if (countsResult.error) {
     console.error("Error al obtener resumen agregado de votos:", countsResult.error);
   }
 
-  if (!usuarioId) {
+  if (!presences) {
     return {
       data: {
         noExiste: { count: countsResult.noExisteCount, hasVoted: false },
@@ -117,10 +126,7 @@ export async function getReporteVoteSummary(
     };
   }
 
-  const [noExistePresence, reparadoPresence] = await Promise.all([
-    getVotePresence(supabase, "votos_no_existe", reporteId, usuarioId),
-    getVotePresence(supabase, "votos_reparado", reporteId, usuarioId),
-  ]);
+  const [noExistePresence, reparadoPresence] = presences;
 
   const error = countsResult.error ?? noExistePresence.error ?? reparadoPresence.error;
 

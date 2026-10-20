@@ -176,26 +176,46 @@ export default function ReporteDetallePage({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Obtener usuario actual
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setCurrentUser(user);
-
-        // Verificar si el usuario es admin
-        if (user) {
-          const { isAdmin: adminStatus } = await verificarEsAdmin(supabase, user.id);
-          setIsAdmin(adminStatus);
-
-          // Si es admin, cargar los estados disponibles
-          if (adminStatus) {
-            const { data: estadosData } = await getEstados(supabase);
-            setEstados(estadosData);
-          }
+        // Loads that only need the report id start right away, at the same time as the user lookup.
+        const reporteIdNumerico = /^\d+$/.test(resolvedParams.id) ? Number(resolvedParams.id) : null;
+        const userPromise = supabase.auth.getUser().then(({ data }) => data.user);
+        const comentariosPromise = getComentariosReporte(supabase, resolvedParams.id);
+        const historialPromise = getHistorialEstados(supabase, resolvedParams.id);
+        const gestionPromise =
+          reporteIdNumerico !== null ? obtenerGestionOperativaAction(reporteIdNumerico) : null;
+        // These settle while the user lookup is still pending. A no-op handler avoids an
+        // "unhandled rejection" in that window; Promise.all below still rethrows into the catch.
+        for (const pending of [comentariosPromise, historialPromise, gestionPromise]) {
+          pending?.catch(() => {});
         }
 
-        // Obtener reporte
-        const { data, error } = await getReporteDetalle(supabase, resolvedParams.id, user?.id);
+        const user = await userPromise;
+        setCurrentUser(user);
+
+        // The admin check and the report detail both need the user, but not each other.
+        const adminPromise = user
+          ? verificarEsAdmin(supabase, user.id).then(async ({ isAdmin: adminStatus }) => ({
+              adminStatus,
+              // Si es admin, cargar los estados disponibles
+              estadosData: adminStatus ? (await getEstados(supabase)).data : [],
+            }))
+          : null;
+
+        const [{ data, error }, adminResult, { data: comentariosData }, { data: historial }, gestionResult] =
+          await Promise.all([
+            getReporteDetalle(supabase, resolvedParams.id, user?.id),
+            adminPromise,
+            comentariosPromise,
+            historialPromise,
+            gestionPromise,
+          ]);
+
+        if (adminResult) {
+          setIsAdmin(adminResult.adminStatus);
+          if (adminResult.adminStatus) {
+            setEstados(adminResult.estadosData);
+          }
+        }
 
         if (!error && data) {
           setReporte(data);
@@ -204,27 +224,15 @@ export default function ReporteDetallePage({
           setHasVoted(data.votos.noExiste.hasVoted);
           setHasVotedReparado(data.votos.reparado.hasVoted);
 
-          const gestionResult = await obtenerGestionOperativaAction(data.id);
-          if (gestionResult.success) {
+          if (gestionResult?.success) {
             setGestionOperativa(gestionResult.data);
           }
         }
 
-        // Obtener comentarios
-        const { data: comentariosData } = await getComentariosReporte(
-          supabase,
-          resolvedParams.id
-        );
         setComentarios(comentariosData);
 
-        // Obtener historial de estados para encontrar cuándo cambió a Reparado (2) o Rechazado (3)
+        // Usar el historial para encontrar cuándo cambió a Reparado (2) o Rechazado (3)
         if (data && (data.estado_id === REPORT_STATE_IDS.REPARADO || data.estado_id === REPORT_STATE_IDS.RECHAZADO)) {
-          const { data: historial } = await getHistorialEstados(
-            supabase,
-            resolvedParams.id
-          );
-
-          // Buscar el registro donde cambió a Reparado (2) o Rechazado (3) usando IDs
           const cambio = historial?.find((h: HistorialEstadoItem) => {
             return h.estado_nuevo_id === REPORT_STATE_IDS.REPARADO || h.estado_nuevo_id === REPORT_STATE_IDS.RECHAZADO;
           });

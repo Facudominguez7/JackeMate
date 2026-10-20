@@ -183,10 +183,11 @@ export async function obtenerLineaTiempoWorkflow(
   reporteId: number,
   roleId: number | null,
 ): Promise<EventoLineaTiempo[]> {
-  const eventosCiudadanos = await construirEventosCiudadanos(supabase, reporteId)
-
+  // The citizen history does not depend on the role, so it loads at the same time as the
+  // operational events. Which operational source is read still depends only on `roleId`.
   if (puedeOperarCuadrillas(roleId)) {
-    const [{ data: asignaciones }, { data: observaciones }] = await Promise.all([
+    const [eventosCiudadanos, { data: asignaciones }, { data: observaciones }] = await Promise.all([
+      construirEventosCiudadanos(supabase, reporteId),
       listarAsignacionesDeReporte(supabase, reporteId),
       listarObservacionesDeReporte(supabase, reporteId),
     ])
@@ -195,6 +196,9 @@ export async function obtenerLineaTiempoWorkflow(
     return fusionarLineaTiempo(eventosCiudadanos, eventosOperativos)
   }
 
-  const eventosPublicos = await listarEventosOperativosPublicos(supabase, reporteId)
+  const [eventosCiudadanos, eventosPublicos] = await Promise.all([
+    construirEventosCiudadanos(supabase, reporteId),
+    listarEventosOperativosPublicos(supabase, reporteId),
+  ])
   return fusionarLineaTiempo(eventosCiudadanos, eventosOperativosPublicos(eventosPublicos))
 }
