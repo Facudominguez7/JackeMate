@@ -14,11 +14,11 @@ Objective: cut first-load latency of Reporty pages. Branch `perf/first-load` fro
 
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
-| T1 | S1-S4 | inline | done | Cache lookups (categorias, estados, prioridades) with `unstable_cache` and a cookie-less client; parallel awaits in /reportes, /mapa, /dashboard; drop unused `getUser` in /mapa |
-| T2 | S1-S3 | inline | done | `getReportes`: replace `count: 'exact'` with `limite + 1`; fetch profiles and operational status in parallel |
-| T3 | S1-S4 | inline | pending | Share one request-scoped `getUser` (React `cache`) between Header and pages |
-| T4 | S1-S3 | inline | pending | /comunidad: parallel counts, profiles only for shown contributors |
-| T5 | S1-S3 | inline | pending | Dashboard: remove N+1 in resolution time, parallel counts |
+| T1 | S1-S4 | inline | done (31023f8) | Cache lookups (categorias, estados, prioridades) with `unstable_cache` and a cookie-less client; parallel awaits in /reportes, /mapa, /dashboard; drop unused `getUser` in /mapa |
+| T2 | S1-S3 | inline | done (31023f8) | `getReportes`: replace `count: 'exact'` with `limite + 1`; fetch profiles and operational status in parallel |
+| T3 | S1-S4 | inline | dropped | Share one request-scoped `getUser` (React `cache`) between Header and pages |
+| T4 | S1-S3, S5 | inline | done | /comunidad: parallel counts, profiles only for shown contributors |
+| T5 | S1-S3, S5 | inline | done | Dashboard: remove N+1 in resolution time, parallel counts |
 | T6 | S1-S3 | inline | pending | /reportes/[id]: run independent client loads in parallel |
 | T7 | S1, S5 | inline | pending | Images: use thumbnails where full photos load on lists, popups and cards; check image weight and Next image optimization; loading skeletons for /mapa and /comunidad; split recharts |
 
@@ -28,3 +28,5 @@ Objective: cut first-load latency of Reporty pages. Branch `perf/first-load` fro
 - L2: Explorer mapped the first-load path. Root cause: sequential Supabase round trips, no caching, `count: 'exact'`, duplicate `auth.getUser` (proxy + Header + page), client-side waterfall on /reportes/[id], N+1 in dashboard analytics. Baseline outputs saved under /tmp/reporty-perf/base.
 - L3 (2026-10-20, user): "Para los tiempos de carga tendrías que ver las queries, que no haya consultas N+1" / "Si podes cachear algo también serviría" / "Y si tiene que ver con imágenes ver la posibilidad de optimizarlas eso me dijeron"
 - L4: T1+T2 done. Data identical to baseline (5 API queries, /reportes, /mapa, /comunidad). Timings: /mapa 1.4-3.6 s -> 0.43-0.50 s; /reportes 1.5-3.6 s -> 0.58-0.94 s. tsc and eslint clean. /api/reportes no longer returns `count` (its only caller, lista-reportes-client, never read it).
+- L5: T3 dropped. Logging every Supabase fetch of the server with a guest session showed the Header and page `auth.getUser()` calls already collapse into one, because Next memoizes identical GET fetches within one render. The two Auth calls per page are the proxy plus the render. React `cache()` gave no measurable change, so the change was reverted.
+- L6: T4+T5 done. /comunidad: all independent queries in one parallel batch (row scan, member count, three exact report counts), then one batched profiles query; result cached 60 s with the anon client (verified live: `reportes_public_read` applies to anon and authenticated alike, `public_profiles` grants SELECT to both). Exact counts kept because the row scan is capped by the API max rows. Visible ranking text and summary numbers (10, 19, 8, 9) identical to baseline; warm cache 12-22 ms. Dashboard: the four stat counts run in parallel and `getTiempoPromedioResolucion` reads `historial_estados` with batched `.in()` queries instead of one query per resolved report. No other await-in-loop pattern found in app, database, lib or components. Advisory (pre-existing): the community ranking row scan is also capped at the API max rows.
