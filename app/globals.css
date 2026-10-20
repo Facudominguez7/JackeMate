@@ -28,7 +28,7 @@
   --input: oklch(96.416% 0.00011 271.152);
   --ring: oklch(0.62 0.08 230);
 
-  --radius: 0.25rem;
+  --radius: 0.5rem;
   --radius-sm: var(--radius);
   --radius-md: var(--radius);
   --radius-lg: var(--radius);

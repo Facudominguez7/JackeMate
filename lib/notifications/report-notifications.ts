@@ -67,7 +67,7 @@ export async function sendCommentNotificationEmail({
   const safeComment = escapeHtml(comentarioContenido);
 
   return resend.emails.send({
-    from: "Reporty <team@notificaciones.octavioduarte.com.ar>",
+    from: "Reporty <team@notificaciones.reporty.com.ar>",
     to: [ownerEmail],
     subject: `Nuevo comentario en tu reporte: ${reporteTitulo}`,
     html: `
@@ -150,7 +150,7 @@ export async function sendStatusNotificationEmail({
     : 'Lamentamos informarte que tu reporte no cumplió con los criterios de validación o fue marcado como "No Existe" por otros usuarios.';
 
   return resend.emails.send({
-    from: "Reporty <team@notificaciones.octavioduarte.com.ar>",
+    from: "Reporty <team@notificaciones.reporty.com.ar>",
     to: [ownerEmail],
     subject: `${estadoEmoji} Tu reporte "${reporteTitulo}" cambió de estado`,
     html: `
@@ -249,7 +249,7 @@ export async function sendCrewAssignedEmail({
   const safeDetalle = detalle ? escapeHtml(detalle) : null;
 
   return resend.emails.send({
-    from: "Reporty <team@notificaciones.octavioduarte.com.ar>",
+    from: "Reporty <team@notificaciones.reporty.com.ar>",
     to: [ownerEmail],
     subject: `🚧 Se asignó una cuadrilla a tu reporte "${reporteTitulo}"`,
     html: `
