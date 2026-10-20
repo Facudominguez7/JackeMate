@@ -4,7 +4,7 @@
  */
 
 import Link from "next/link"
-import { CheckCircle2, FileText, Info, KeyRound, Plus, ShieldCheck } from "lucide-react"
+import { CheckCircle2, ClipboardList, FileText, Info, KeyRound, Plus, ShieldCheck } from "lucide-react"
 
 import { LinkEmailForm } from "@/components/guest-account/link-email-form"
 import { SetPasswordForm } from "@/components/guest-account/set-password-form"
@@ -33,7 +33,11 @@ export default async function MisReportesPage({ searchParams }: MisReportesPageP
     return (
       <div className="page-shell">
         <div className="page-container max-w-3xl page-stack">
-          <PageTitleBar title="Mis reportes" />
+          <PageTitleBar
+            icon={<ClipboardList className="size-4" />}
+            title="Mis reportes"
+            description="Seguimiento de los avisos que enviaste."
+          />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -75,7 +79,11 @@ export default async function MisReportesPage({ searchParams }: MisReportesPageP
   return (
     <div className="page-shell">
       <div className="page-container max-w-3xl page-stack">
-        <PageTitleBar title="Mis reportes" />
+        <PageTitleBar
+          icon={<ClipboardList className="size-4" />}
+          title="Mis reportes"
+          description="Seguimiento de los avisos que enviaste."
+        />
 
         {passwordPending && (
           <Card>

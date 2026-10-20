@@ -6,23 +6,31 @@ import type { ReactNode } from "react"
 
 type PageTitleBarProps = {
   leading?: ReactNode
+  icon?: ReactNode
   title: ReactNode
+  description?: ReactNode
   actions?: ReactNode
 }
 
 /**
- * Renderiza una barra de título centrada con contenido inicial y acciones.
+ * Renderiza el encabezado de una sección como una barra de aplicación: contexto a la izquierda y acciones a la derecha.
  */
-export function PageTitleBar({ leading, title, actions }: PageTitleBarProps) {
+export function PageTitleBar({ leading, icon, title, description, actions }: PageTitleBarProps) {
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-      <div className="min-w-0 justify-self-start">{leading}</div>
-      <h1 className="justify-self-center border-b-2 border-primary/50 px-2 text-center text-lg font-semibold tracking-tight text-foreground md:px-3 md:text-2xl">
-        {title}
-      </h1>
-      <div className="flex min-w-0 items-center gap-2 justify-self-end">
-        {actions}
+    <div className="section-heading flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3">
+        {leading && <div className="shrink-0">{leading}</div>}
+        {icon && (
+          <div className="section-heading-icon shrink-0" aria-hidden="true">
+            {icon}
+          </div>
+        )}
+        <div className="min-w-0 space-y-1">
+          <h1 className="line-clamp-2 text-xl font-semibold tracking-tight text-foreground md:text-2xl">{title}</h1>
+          {description && <p className="line-clamp-2 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>}
+        </div>
       </div>
+      {actions && <div className="flex min-w-0 shrink-0 items-center gap-2">{actions}</div>}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { Award, CheckCircle2, ChevronRight, Clock3, FileText, Medal, Trophy, Users } from "lucide-react"
+import { Award, CheckCircle2, ChevronRight, Clock3, FileText, Medal, Trophy, Users, UsersRound } from "lucide-react"
 import Link from "next/link"
 
 import { getComunidadPageData } from "@/database/queries/comunidad"
@@ -29,7 +29,11 @@ export default async function ComunidadPage() {
     <div className="page-shell">
       <div className="page-container page-stack">
         <section className="space-y-2">
-          <PageTitleBar title="Comunidad" />
+          <PageTitleBar
+            icon={<UsersRound className="size-4" />}
+            title="Comunidad"
+            description="Mirá cómo participa la ciudad."
+          />
           <Tabs defaultValue="ranking" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="ranking">Ranking</TabsTrigger>

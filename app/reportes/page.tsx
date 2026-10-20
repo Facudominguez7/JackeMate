@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, MapPin } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent } from "@/components/ui/card"
@@ -56,7 +56,9 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
 
         <section className="space-y-3">
           <PageTitleBar
+            icon={<MapPin className="size-4" />}
             title="Incidentes reportados"
+            description="Problemas de la ciudad, ordenados por fecha."
             actions={
               <ReportesClientWrapper
                 categorias={categorias ?? []}

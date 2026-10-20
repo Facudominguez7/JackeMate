@@ -65,9 +65,9 @@ export function HeaderClient({ user }: HeaderClientProps) {
 
   return (
     <>
-      {showTopHeader && <div className="h-14 shrink-0" aria-hidden="true" />}
+      {showTopHeader && <div className="h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0" aria-hidden="true" />}
       {showTopHeader && (
-        <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-center border-b border-secondary-foreground/10 bg-secondary px-4 shadow-xl backdrop-blur-sm sm:px-6">
+        <header className="fixed inset-x-0 top-0 z-40 flex min-h-14 items-center justify-center border-b border-secondary-foreground/10 bg-secondary px-4 pb-0 pt-[env(safe-area-inset-top)] shadow-xl backdrop-blur-sm sm:px-6">
           <Link href="/mapa" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-secondary" aria-label="Reporty, ir al mapa">
             <Image
               src="/logos/logoBlanco.webp"

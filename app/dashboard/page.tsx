@@ -4,7 +4,7 @@
 
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Calendar, CheckCircle, Clock, FileText, Plus, Star, Timer, TrendingUp, Trophy, Users } from "lucide-react"
+import { BarChart3, Calendar, CheckCircle, Clock, FileText, Plus, Star, Timer, TrendingUp, Trophy, UserRound, Users } from "lucide-react"
 
 import { GraficoReportesPorCategoriaDiferido, GraficoZonasCalientesDiferido } from "@/components/dashboard/graficos-diferidos"
 import { MapaCalorZonas } from "@/components/dashboard/mapa-calor-zonas"
@@ -54,7 +54,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       <div className="page-shell">
         <div className="page-container space-y-4 md:space-y-6 lg:space-y-8">
           <section className="space-y-3">
-            <PageTitleBar title="Analíticas de reportes" />
+            <PageTitleBar
+              icon={<BarChart3 className="size-4" />}
+              title="Analíticas de reportes"
+              description="Una vista rápida de la actividad y los tiempos de respuesta."
+            />
             {/* Two columns only when the crews button sits next to the resolution time. */}
             <div className={cn("grid gap-3", mostrarCuadrillas && data.tiempoResolucion && "md:grid-cols-2")}>
               {data.tiempoResolucion && (
@@ -156,7 +160,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <div className="page-shell">
       <div className="page-container page-stack">
         <section className="space-y-2">
-          <PageTitleBar title="Mi cuenta" />
+          <PageTitleBar
+            icon={<UserRound className="size-4" />}
+            title="Mi cuenta"
+            description="Tu actividad y participación en Reporty."
+          />
           <section className="page-hero-panel">
           <div className="page-hero-grid lg:items-center">
             <div className="flex items-start gap-4 md:gap-6">
@@ -213,7 +221,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
         <section className="section-stack">
           <PageTitleBar
+            icon={<FileText className="size-4" />}
             title="Mis reportes"
+            description="Seguimiento de los avisos que enviaste."
             actions={
               <ReportesClientWrapper
                 categorias={categorias ?? []}

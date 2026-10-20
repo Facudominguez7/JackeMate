@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { UsersRound } from "lucide-react"
 
 import { PanelCuadrillas } from "@/components/cuadrillas/panel-cuadrillas"
 import { BackButton } from "@/components/back-button"
@@ -93,7 +94,12 @@ export default async function CuadrillasPage() {
     <div className="page-shell">
       <div className="page-container page-stack">
         <section className="space-y-3">
-          <PageTitleBar leading={<BackButton />} title="Gestionar cuadrillas" />
+          <PageTitleBar
+            leading={<BackButton />}
+            icon={<UsersRound className="size-4" />}
+            title="Gestionar cuadrillas"
+            description="Organizá los equipos que atienden los reportes."
+          />
           <PanelCuadrillas
             cuadrillas={cuadrillas}
             abiertasPorCuadrilla={Object.fromEntries(abiertasPorCuadrilla)}

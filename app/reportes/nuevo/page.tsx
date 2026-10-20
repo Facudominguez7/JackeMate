@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Camera, Send, CheckCircle2, FileText, Info } from "lucide-react"
+import { MapPin, Camera, Send, CheckCircle2, FileText, Info, FilePlus2 } from "lucide-react"
 import Link from "next/link"
 import { PUNTOS } from "@/database/queries/puntos"
 import { MapLoadingSkeleton, NuevoReporteLoadingSkeleton } from "@/components/loading-skeletons"
@@ -507,7 +507,11 @@ export default function NuevoReportePage() {
     <div className="page-shell">
       <div className="page-container max-w-5xl space-y-6 md:space-y-8 lg:space-y-10">
         <section className="space-y-2">
-          <PageTitleBar title="Crear reporte" />
+          <PageTitleBar
+            icon={<FilePlus2 className="size-4" />}
+            title="Crear reporte"
+            description="Contanos qué pasa y dónde para poder atenderlo."
+          />
           {isGuestMode && (
             <p className="flex items-start gap-2 rounded-xl border border-border/70 bg-muted/60 p-3 text-sm text-muted-foreground">
               <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />

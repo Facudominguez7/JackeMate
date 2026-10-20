@@ -40,6 +40,7 @@ import {
   Shield,
   Settings,
   Users,
+  FileSearch2,
 } from "lucide-react";
 import Link from "next/link";
 import { Textarea } from "@/components/ui/textarea";
@@ -384,7 +385,12 @@ export function ReporteDetalleClient({
     <div className="page-shell">
       <div className="page-container space-y-4 md:space-y-6 lg:space-y-8">
         <section className="space-y-2">
-          <PageTitleBar leading={<BackButton />} title="Detalle del reporte" />
+          <PageTitleBar
+            leading={<BackButton />}
+            icon={<FileSearch2 className="size-4" />}
+            title="Detalle del reporte"
+            description="Estado, avances y conversación del incidente."
+          />
         </section>
 
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
