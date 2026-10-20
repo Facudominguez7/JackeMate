@@ -22,9 +22,15 @@ import { Card, CardContent } from "@/components/ui/card"
 
 const SIGN_OUT_ERROR = "No pudimos cerrar la sesión"
 
+const SIGN_OUT_ERROR_DESCRIPTIONS = {
+  failed: "Por favor, intenta nuevamente",
+  guest: "Las cuentas de invitado no pueden cerrar sesión: perderían el acceso a sus reportes.",
+} as const
+
 /**
- * Account section with the sign-out action, confirmed in a dialog. Only accounts with email and
- * password render it: a guest that signs out loses access to its reports for good.
+ * Account section with the sign-out action, confirmed in a dialog. Render it only for accounts
+ * with email and password; `signout` also refuses guest sessions on the server, because a guest
+ * that signs out loses access to its reports for good.
  */
 export function SignOutSection() {
   const router = useRouter()
@@ -39,8 +45,8 @@ export function SignOutSection() {
       try {
         const result = await signout()
 
-        if (result.error) {
-          toast.error(SIGN_OUT_ERROR, { description: result.error })
+        if (!result.ok) {
+          toast.error(SIGN_OUT_ERROR, { description: SIGN_OUT_ERROR_DESCRIPTIONS[result.reason] })
           return
         }
 
@@ -48,7 +54,7 @@ export function SignOutSection() {
         toast.success("Sesión cerrada")
         router.replace("/")
       } catch {
-        toast.error(SIGN_OUT_ERROR, { description: "Por favor, intenta nuevamente" })
+        toast.error(SIGN_OUT_ERROR, { description: SIGN_OUT_ERROR_DESCRIPTIONS.failed })
       }
     })
   }
