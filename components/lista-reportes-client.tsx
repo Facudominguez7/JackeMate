@@ -125,6 +125,7 @@ export function ListaReportesClient({
                                  status={report.status}
                                  createdAt={report.createdAt}
                                  image={report.thumbnailImage ?? report.image}
+                                 category={report.category}
                              />
                         ) : (
                             <ReportCard

@@ -51,31 +51,40 @@ export function ReportCompactCard({
             </div>
 
             <div className="min-w-0 flex-1 space-y-1">
-              <Badge
-                variant={getStatusVariant(status)}
-                className="float-right ml-2 gap-0.5 px-1 py-0 text-[9px] leading-4"
-              >
-                {getStatusIcon(status)}
-                {status}
-              </Badge>
+              <div className="float-right ml-2 flex max-w-[9rem] flex-col items-end gap-1">
+                <Badge
+                  variant={getStatusVariant(status)}
+                  className="max-w-full gap-0.5 px-1 py-0 text-[9px] leading-4"
+                  title={status}
+                >
+                  {getStatusIcon(status)}
+                  <span className="truncate">{status}</span>
+                </Badge>
+                {category && (
+                  <Badge
+                    variant="category"
+                    className="max-w-full gap-0.5 px-1 py-0 text-[9px] leading-4"
+                    title={category}
+                  >
+                    {getCategoryIcon(category, "size-3")}
+                    <span className="truncate">{category}</span>
+                  </Badge>
+                )}
+              </div>
 
-              <div>
-                <h2 className="line-clamp-2 text-sm font-semibold tracking-tight text-foreground">{title}</h2>
-                <p className="line-clamp-1 text-xs leading-4 text-muted-foreground">
+              <div className="space-y-1.5">
+                <h2 className="line-clamp-2 text-sm font-semibold tracking-tight text-foreground" title={title}>
+                  {title}
+                </h2>
+                <p className="line-clamp-2 text-xs leading-4 text-muted-foreground" title={description || undefined}>
                   {description || "Sin descripción adicional."}
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                {category && (
-                  <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
-                    {getCategoryIcon(category, "size-3")}
-                    {category}
-                  </span>
-                )}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-[11px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1 font-medium" style={{ color: getPriorityColor(priority) }}>
                   {getPriorityIcon(priority, "size-3")}
-                  {priority}
+                  Prioridad {priority}
                 </span>
                 <span className="inline-flex items-center gap-1 whitespace-nowrap">
                   <Calendar className="size-3 flex-none" />

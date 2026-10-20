@@ -55,7 +55,7 @@
   --priority-medium: oklch(0.72 0.16 55);
   --priority-low: var(--semantic-info);
 
-  --category-accent: var(--ranking-third);
+  --category-accent: var(--semantic-admin);
 
   --map-heat-high: var(--semantic-danger);
   --map-heat-medium: var(--semantic-warning);
