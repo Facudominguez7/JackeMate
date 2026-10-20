@@ -136,7 +136,7 @@
 
 @layer components {
   .page-shell {
-    @apply min-h-full rounded-t-[2rem] bg-muted/30;
+    @apply min-h-full bg-muted/30 px-2 sm:px-4;
   }
 
   .app-header {
@@ -164,7 +164,7 @@
   }
 
   .page-container {
-    @apply mx-auto w-full max-w-[120rem] px-2 py-2 sm:px-6 md:py-4 lg:px-8 lg:py-6;
+    @apply mx-auto w-full max-w-[120rem] rounded-t-[2rem] bg-card px-2 py-2 sm:px-6 md:py-4 lg:px-8 lg:py-6;
   }
 
   .page-stack {
