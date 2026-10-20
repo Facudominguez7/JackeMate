@@ -5,7 +5,7 @@
  */
 
 import { revalidatePath } from "next/cache"
-import { isAuthSessionMissingError } from "@supabase/supabase-js"
+import { isAuthSessionMissingError, isAuthWeakPasswordError, type AuthError } from "@supabase/supabase-js"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { z } from "zod"
@@ -49,6 +49,92 @@ async function obtenerRedireccionCallback(next: string) {
 const obtenerSiguienteRutaSegura = (formData: FormData) => obtenerRutaInternaSegura(formData.get("next"))
 
 /**
+ * Translates a sign-in error into Spanish copy. Supabase messages are English and may be
+ * technical, so they are never shown as is.
+ */
+function mensajeErrorLogin(error: AuthError) {
+  if (error.code === "invalid_credentials") {
+    return "El correo o la contraseña no son correctos."
+  }
+
+  if (error.code === "email_not_confirmed") {
+    return "Primero confirmá tu correo desde el enlace que te enviamos."
+  }
+
+  if (error.status === 429) {
+    return "Hiciste demasiados intentos. Probá de nuevo en unos minutos."
+  }
+
+  console.error("No pudimos iniciar sesión:", { status: error.status, code: error.code, message: error.message })
+  return "No pudimos iniciar sesión. Intentá nuevamente."
+}
+
+const TIPOS_DE_CARACTERES = [
+  { muestra: "abcdefghijklmnopqrstuvwxyz", nombre: "minúsculas" },
+  { muestra: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", nombre: "mayúsculas" },
+  { muestra: "0123456789", nombre: "números" },
+  { muestra: "!@#$", nombre: "símbolos" },
+]
+
+/** Joins Spanish list items as "a, b y c". */
+const unirLista = (items: string[]) =>
+  items.length > 1 ? `${items.slice(0, -1).join(", ")} y ${items.at(-1)}` : items.join("")
+
+/**
+ * Explains why Supabase rejected a password. Its `reasons` say which rule failed, and the
+ * English message carries the project settings (minimum length, required character types).
+ */
+function mensajeContrasenaDebil(error: AuthError) {
+  const generico = "Elegí una contraseña más segura."
+
+  if (!isAuthWeakPasswordError(error)) {
+    return generico
+  }
+
+  const partes: string[] = []
+
+  if (error.reasons.includes("length")) {
+    const minimo = error.message.match(/at least (\d+) characters/)?.[1] ?? MIN_PASSWORD_LENGTH
+    partes.push(`La contraseña debe tener al menos ${minimo} caracteres.`)
+  }
+
+  if (error.reasons.includes("characters")) {
+    const tipos = TIPOS_DE_CARACTERES.filter(({ muestra }) => error.message.includes(muestra)).map(({ nombre }) => nombre)
+    partes.push(tipos.length > 0 ? `La contraseña debe incluir ${unirLista(tipos)}.` : "Combiná letras, números y símbolos.")
+  }
+
+  if (error.reasons.includes("pwned")) {
+    partes.push("Esa contraseña aparece en filtraciones conocidas. Elegí otra.")
+  }
+
+  // No reasons, or only ones this code does not know yet.
+  return partes.join(" ") || generico
+}
+
+/** Translates a sign-up error into Spanish copy, logging the unexpected ones server-side. */
+function mensajeErrorRegistro(error: AuthError) {
+  if (error.code === "user_already_exists" || error.code === "email_exists") {
+    return "Ya existe una cuenta con ese correo. Iniciá sesión o recuperá tu contraseña."
+  }
+
+  if (error.code === "weak_password") {
+    return mensajeContrasenaDebil(error)
+  }
+
+  if (error.code === "email_address_invalid") {
+    return "Ingresá un correo electrónico válido."
+  }
+
+  if (error.status === 429) {
+    return "Enviamos demasiados correos. Probá de nuevo en unos minutos."
+  }
+
+  // Includes a failed confirmation email, such as a broken SMTP setup.
+  console.error("No pudimos crear la cuenta:", { status: error.status, code: error.code, message: error.message })
+  return "No pudimos crear tu cuenta. Intentá nuevamente."
+}
+
+/**
  * Valida que el proveedor OAuth enviado desde la UI esté permitido por la app.
  *
  * @param proveedor - Valor recibido desde el formulario OAuth.
@@ -80,7 +166,7 @@ export async function login(_prevState: AuthFormState | void, formData: FormData
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    return { error: error.message || "Credenciales inválidas" }
+    return { error: mensajeErrorLogin(error) }
   }
 
   revalidatePath("/", "layout")
@@ -145,11 +231,13 @@ export async function signup(_prevState: AuthFormState | void, formData: FormDat
   if (password !== confirmPassword) {
     return { error: 'Las contraseñas no coinciden' }
   }
-  
+
   const data = {
     email: formData.get('email') as string,
     password,
     options: {
+      // Without it the confirmation link lands on the Site URL root and the session is never exchanged.
+      emailRedirectTo: await obtenerRedireccionCallback(obtenerSiguienteRutaSegura(formData)),
       data: {
         display_name: displayName,
         name: name,
@@ -162,7 +250,7 @@ export async function signup(_prevState: AuthFormState | void, formData: FormDat
   const { data: signUpData, error } = await supabase.auth.signUp(data)
 
   if (error) {
-    return { error: error.message || 'No se pudo crear la cuenta' }
+    return { error: mensajeErrorRegistro(error) }
   }
 
   if (!signUpData?.session) {
@@ -331,7 +419,7 @@ export async function crearContrasenaCuenta(
 
   if (error) {
     if (error.code === "weak_password") {
-      return { error: "Elegí una contraseña más segura." }
+      return { error: mensajeContrasenaDebil(error) }
     }
 
     if (error.code === "reauthentication_needed") {
