@@ -22,7 +22,7 @@ Objective: cut the LCP of the home map and give instant feedback on navigation. 
 | T3 | S4 | inline | done (see git log) | loading.tsx for /mapa, /comunidad, /dashboard, /mis-reportes, /reportes/nuevo; new page skeletons (L9) |
 | T4 | S5 | inline | done (see git log) | Dashboard items and map items use `getPreferredReportListingImageUrl` (L9) |
 | T5 | S6 | inline | done (see git log) | `graficos-diferidos.tsx` with next/dynamic; page imports bypass the barrel (L8) |
-| T6 | S1-S6 | delegated verifier | pending | Independent verification (no test runner, risk item 6) |
+| T6 | S1-S6 | delegated verifier | done | S2-S6 PASS, no blockers (L10) |
 
 ## Log
 
@@ -42,3 +42,11 @@ Objective: cut the LCP of the home map and give instant feedback on navigation. 
   - The title placeholders of the new skeletons were centered to match `PageTitleBar`.
   - Pending: `/dashboard` and `/mis-reportes` need a signed-in session. Reading `.env` is denied in this session, so test users cannot be created and hard-deleted afterwards.
   - Advisory, already present before this change: the header logo loads only when the top header first appears, so it is missing from the skeleton under high latency.
+- L10: Independent verifier (HEAD 76a8765, server built from HEAD): S2-S6 PASS, no blockers.
+  - Map at 390, 1280 and 1920: tiles and markers render, clusters expand, popups show WebP thumbnails, and the category filter ("Bache") updates the URL and cuts markers from 12 to 4. No console errors and no overflow.
+  - No /dashboard manifest chunk contains recharts; it lives only in async chunk `3467.*`.
+  - Visitors: /dashboard → 307 /auth?next=%2Fdashboard and /mis-reportes → 200 guest card, as at the baseline.
+  - Advisory: the config redirect now preserves the query string (`/?x=1` → `/mapa?x=1`); the old page `redirect()` dropped it.
+  - Advisory: with `/dashboard/loading.tsx`, the page's `redirect("/mis-reportes")` for users without permission becomes a streamed client-side redirect (HTTP 200) instead of a 307; the user still lands on /mis-reportes.
+  - Parent spot check reran the `/?x=1` and `/dashboard` probes with the same results.
+  - RDD assess 6ada805..76a8765: medium, not due (under_budget).
