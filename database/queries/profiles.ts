@@ -1,13 +1,13 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 
-const PUBLIC_PROFILE_COLUMNS = "id, username, rol_id, puntos, created_at";
+const PUBLIC_PROFILE_COLUMNS = "id, username, puntos, created_at, es_invitado";
 
 export type PublicProfile = {
   id: string;
   username: string | null;
-  rol_id: number | null;
   puntos: number | null;
   created_at: string | null;
+  es_invitado: boolean;
 };
 
 export type PrivateProfileContact = {
@@ -15,16 +15,6 @@ export type PrivateProfileContact = {
   username: string | null;
   email: string | null;
 };
-
-function isMissingPublicProfilesProjectionError(error: Pick<PostgrestError, "code" | "message"> | null | undefined) {
-  return error?.code === "42P01" || error?.code === "PGRST205" || error?.message?.includes("public_profiles") || false;
-}
-
-/**
- * PostgREST filter that keeps rows whose role is not the guest role (5). Guests keep a
- * profile so their reports resolve an author, but never count as community members.
- */
-const NON_GUEST_ROLE_FILTER = "rol_id.is.null,rol_id.neq.5";
 
 function dedupeUserIds(userIds: string[]) {
   return Array.from(new Set(userIds.filter(Boolean)));
@@ -44,19 +34,11 @@ export async function getPublicProfilesByIds(
     return { data: [], error: null };
   }
 
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("public_profiles")
     .select(PUBLIC_PROFILE_COLUMNS)
     .in("id", uniqueUserIds)
     .returns<PublicProfile[]>();
-
-  if (error && isMissingPublicProfilesProjectionError(error)) {
-    ({ data, error } = await supabase
-      .from("profiles")
-      .select(PUBLIC_PROFILE_COLUMNS)
-      .in("id", uniqueUserIds)
-      .returns<PublicProfile[]>());
-  }
 
   if (error) {
     console.error("Error al obtener perfiles públicos:", error);
@@ -82,17 +64,11 @@ export async function getPublicProfile(
 export async function getPublicProfilesCount(
   supabase: SupabaseClient,
 ): Promise<{ count: number; error: PostgrestError | null }> {
-  let { count, error } = await supabase
+  // Guests keep a profile so their reports resolve an author, but never count as community members.
+  const { count, error } = await supabase
     .from("public_profiles")
     .select("id", { count: "exact", head: true })
-    .or(NON_GUEST_ROLE_FILTER);
-
-  if (error && isMissingPublicProfilesProjectionError(error)) {
-    ({ count, error } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .or(NON_GUEST_ROLE_FILTER));
-  }
+    .eq("es_invitado", false);
 
   if (error) {
     console.error("Error al contar perfiles públicos:", error);
@@ -106,23 +82,13 @@ export async function getTopPublicProfiles(
   supabase: SupabaseClient,
   limite: number,
 ): Promise<{ data: Pick<PublicProfile, "id" | "username" | "puntos">[]; error: PostgrestError | null }> {
-  let { data, error } = await supabase
+  const { data, error } = await supabase
     .from("public_profiles")
     .select("id, username, puntos")
-    .or(NON_GUEST_ROLE_FILTER)
+    .eq("es_invitado", false)
     .order("puntos", { ascending: false })
     .limit(limite)
     .returns<Array<Pick<PublicProfile, "id" | "username" | "puntos">>>();
-
-  if (error && isMissingPublicProfilesProjectionError(error)) {
-    ({ data, error } = await supabase
-      .from("profiles")
-      .select("id, username, puntos")
-      .or(NON_GUEST_ROLE_FILTER)
-      .order("puntos", { ascending: false })
-      .limit(limite)
-      .returns<Array<Pick<PublicProfile, "id" | "username" | "puntos">>>());
-  }
 
   if (error) {
     console.error("Error al obtener ranking público de usuarios:", error);
