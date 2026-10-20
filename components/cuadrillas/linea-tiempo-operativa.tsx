@@ -40,7 +40,7 @@ export function LineaTiempoOperativa({ eventos, mostrarInternas }: LineaTiempoOp
             {evento.detalle && <p className="text-sm leading-6 text-muted-foreground">{evento.detalle}</p>}
             <p className="text-xs leading-5 text-muted-foreground">
               {evento.autor ?? evento.cuadrillaNombre ?? "Sistema"} ·{" "}
-              {new Date(evento.ocurridoAt).toLocaleString("es-AR")}
+              {new Date(evento.ocurridoAt).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}
             </p>
           </div>
         </div>
