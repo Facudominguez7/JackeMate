@@ -8,7 +8,10 @@
  * - Prioridad
  */
 
+import { unstable_cache } from "next/cache"
+
 import { createClient } from "@/utils/supabase/server"
+import { createPublicClient } from "@/utils/supabase/public"
 import { getPublicProfilesByIds, indexPublicProfilesById } from "@/database/queries/profiles"
 import { obtenerEstadoOperativoPublicoPorReporte } from "@/database/queries/cuadrillas"
 import {
@@ -246,7 +249,7 @@ async function fetchReportes(
 
   let query = supabase
     .from("reportes")
-    .select(buildReportesSelect(imageSelectMode), { count: 'exact' })
+    .select(buildReportesSelect(imageSelectMode))
     .is("deleted_at", null)
 
   if (search && search.trim() !== "") {
@@ -276,9 +279,10 @@ async function fetchReportes(
     query = query.not("lat", "is", null).not("lon", "is", null)
   }
 
+  // Fetch one extra row to know whether another page exists without an expensive exact count.
   return query
     .order("created_at", { ascending: false })
-    .range(offset, offset + limite - 1)
+    .range(offset, offset + limite)
     .returns<ReporteDBRaw[]>()
 }
 
@@ -316,26 +320,35 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     offset,
   }
 
-  let { data, error, count } = await fetchReportes(supabase, normalizedFilters, "thumbnail")
+  let { data, error } = await fetchReportes(supabase, normalizedFilters, "thumbnail")
 
   if (error && isMissingReportImageColumnsError(error)) {
-    ;({ data, error, count } = await fetchReportes(supabase, normalizedFilters, "canonical"))
+    ;({ data, error } = await fetchReportes(supabase, normalizedFilters, "canonical"))
   }
 
   if (error && isMissingReportImageColumnsError(error)) {
-    ;({ data, error, count } = await fetchReportes(supabase, normalizedFilters, "legacy"))
+    ;({ data, error } = await fetchReportes(supabase, normalizedFilters, "legacy"))
   }
 
-  // Calcular si hay más resultados
-  const hasMore = count !== null ? (offset + limite) < count : false
+  // fetchReportes asks for one extra row: if it came back, there is another page.
+  const rows = data ?? []
+  const hasMore = rows.length > limite
+  const pageRows = hasMore ? rows.slice(0, limite) : rows
 
-  const { data: publicProfiles } = await getPublicProfilesByIds(
-    supabase,
-    (data ?? []).map((report) => report.usuario_id ?? ""),
-  )
+  // Both lookups only need the ids of this page, so they run at the same time.
+  const [{ data: publicProfiles }, estadosOperativos] = await Promise.all([
+    getPublicProfilesByIds(
+      supabase,
+      pageRows.map((report) => report.usuario_id ?? ""),
+    ),
+    obtenerEstadoOperativoPublicoPorReporte(
+      supabase,
+      pageRows.map((report) => report.id),
+    ),
+  ])
   const profilesById = indexPublicProfilesById(publicProfiles)
 
-  const resolvedData = (data ?? []).map((report: ReporteDBRaw) => ({
+  const resolvedData = pageRows.map((report: ReporteDBRaw) => ({
     ...report,
     autor: report.usuario_id
       ? { username: profilesById.get(report.usuario_id)?.username ?? null }
@@ -343,30 +356,18 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     fotos: resolveReportImageRows(report.fotos),
   }))
 
-  return { data: resolvedData, error, count, hasMore }
+  return { data: resolvedData, error, hasMore, estadosOperativos }
 }
 
 /**
- * Adjunta el estado operativo público a una lista ya mapeada, con una única consulta por lote.
- * Sigue el mismo patrón de segunda-consulta-y-fusión que ya usa `getPublicProfilesByIds`.
- *
- * Degrada en silencio: si la vista pública falla, devuelve la lista de entrada sin modificar,
- * con los campos operativos en null. Nunca lanza — un fallo acá no puede romper el mapa ni el
- * listado de reportes.
+ * Adjunta el estado operativo público, ya consultado por lote en `getReportes`, a una lista mapeada.
+ * Si la vista pública falló, el mapa llega vacío y los campos operativos quedan en null:
+ * un fallo acá no puede romper el mapa ni el listado de reportes.
  */
-async function adjuntarEstadoOperativo<T extends { id: number }>(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+function adjuntarEstadoOperativo<T extends { id: number }>(
   items: T[],
-): Promise<Array<T & { estadoOperativo: EstadoOperativo | null; cuadrillaNombre: string | null }>> {
-  if (items.length === 0) {
-    return []
-  }
-
-  const estadosPorReporte = await obtenerEstadoOperativoPublicoPorReporte(
-    supabase,
-    items.map((item) => item.id),
-  )
-
+  estadosPorReporte: Awaited<ReturnType<typeof obtenerEstadoOperativoPublicoPorReporte>>,
+): Array<T & { estadoOperativo: EstadoOperativo | null; cuadrillaNombre: string | null }> {
   return items.map((item) => {
     const estado = estadosPorReporte.get(item.id)
     return {
@@ -378,30 +379,27 @@ async function adjuntarEstadoOperativo<T extends { id: number }>(
 }
 
 export async function getReportCardData(filtros: FiltrosReportes = {}) {
-  const { data, error, count, hasMore } = await getReportes(filtros)
-  const supabase = await createClient()
+  const { data, error, hasMore, estadosOperativos } = await getReportes(filtros)
 
   return {
-    data: await adjuntarEstadoOperativo(supabase, (data ?? []).map(mapReportToCardData)),
+    data: adjuntarEstadoOperativo(data.map(mapReportToCardData), estadosOperativos),
     error,
-    count,
     hasMore,
   }
 }
 
 export async function getReportMapData(filtros: FiltrosReportes = {}) {
-  const { data, error } = await getReportes({
+  const { data, error, estadosOperativos } = await getReportes({
     ...filtros,
     soloConCoordenadas: true,
   })
-  const supabase = await createClient()
 
-  const mapItems = (data ?? [])
+  const mapItems = data
     .map(mapReportToMapItem)
     .filter((report): report is ReportMapItem => report !== null)
 
   return {
-    data: await adjuntarEstadoOperativo(supabase, mapItems),
+    data: adjuntarEstadoOperativo(mapItems, estadosOperativos),
     error,
   }
 }
@@ -467,61 +465,94 @@ export async function getDashboardUserReports(
   }
 }
 
+type LookupRow = { id: number; nombre: string }
+
+/** Lookup tables change only through migrations, so one hour of staleness is safe. */
+const LOOKUP_REVALIDATE_SECONDS = 3600
+
+/**
+ * Runs a cached lookup and keeps the `{ data, error }` shape callers expect.
+ * The cached loader throws on query errors so a failed read is never stored in the cache.
+ */
+async function readCachedLookup(load: () => Promise<LookupRow[]>) {
+  try {
+    return { data: await load(), error: null }
+  } catch (error) {
+    console.error("Error al obtener catálogo:", error)
+    return { data: null, error: error as Error }
+  }
+}
+
+const loadCategorias = unstable_cache(
+  async (): Promise<LookupRow[]> => {
+    const { data, error } = await createPublicClient()
+      .from("categorias")
+      .select("id, nombre")
+      .order("nombre")
+
+    if (error) throw error
+
+    return (data ?? []).sort((a, b) => {
+      const aIsOther = a.nombre.localeCompare("Otros", "es", { sensitivity: "base" }) === 0
+      const bIsOther = b.nombre.localeCompare("Otros", "es", { sensitivity: "base" }) === 0
+
+      if (aIsOther !== bIsOther) {
+        return aIsOther ? 1 : -1
+      }
+
+      return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+    })
+  },
+  ["lookup-categorias"],
+  { revalidate: LOOKUP_REVALIDATE_SECONDS, tags: ["lookups"] },
+)
+
+const loadEstados = unstable_cache(
+  async (): Promise<LookupRow[]> => {
+    const { data, error } = await createPublicClient()
+      .from("estados")
+      .select("id, nombre")
+      .order("nombre")
+
+    if (error) throw error
+    return data ?? []
+  },
+  ["lookup-estados"],
+  { revalidate: LOOKUP_REVALIDATE_SECONDS, tags: ["lookups"] },
+)
+
+const loadPrioridades = unstable_cache(
+  async (): Promise<LookupRow[]> => {
+    const { data, error } = await createPublicClient()
+      .from("prioridades")
+      .select("id, nombre")
+      .order("id", { ascending: false })
+
+    if (error) throw error
+    return data ?? []
+  },
+  ["lookup-prioridades"],
+  { revalidate: LOOKUP_REVALIDATE_SECONDS, tags: ["lookups"] },
+)
+
 /**
  * Recupera todas las categorías disponibles por nombre, dejando "Otros" al final.
- *
- * @returns Un objeto con `data` — arreglo de categorías (cada elemento tiene `id` y `nombre`) o `null` si no hay resultados — y `error` con la información del error si se produjo alguno.
+ * El resultado se cachea entre requests (ver `LOOKUP_REVALIDATE_SECONDS`).
  */
-export async function getCategorias() {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from("categorias")
-    .select("id, nombre")
-    .order("nombre")
-
-  const sortedData = data?.sort((a, b) => {
-    const aIsOther = a.nombre.localeCompare("Otros", "es", { sensitivity: "base" }) === 0
-    const bIsOther = b.nombre.localeCompare("Otros", "es", { sensitivity: "base" }) === 0
-
-    if (aIsOther !== bIsOther) {
-      return aIsOther ? 1 : -1
-    }
-
-    return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
-  })
-
-  return { data: sortedData, error }
+export function getCategorias() {
+  return readCachedLookup(loadCategorias)
 }
 
 /**
- * Recupera la lista de todos los estados ordenados por nombre.
- *
- * @returns Objeto con `data` — arreglo de registros `{ id, nombre }` o `null`, y `error` — error de la consulta o `null`.
+ * Recupera la lista de todos los estados ordenados por nombre, cacheada entre requests.
  */
-export async function getEstados() {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from("estados")
-    .select("id, nombre")
-    .order("nombre")
-
-  return { data, error }
+export function getEstados() {
+  return readCachedLookup(loadEstados)
 }
 
 /**
- * Obtiene la lista de prioridades disponibles en el orden Baja, Media y Alta.
- *
- * @returns `data` — Array de objetos con `id` y `nombre` de cada prioridad; `error` — objeto de error de la consulta si se produjo, `null` en caso contrario.
+ * Obtiene la lista de prioridades en el orden Baja, Media y Alta, cacheada entre requests.
  */
-export async function getPrioridades() {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from("prioridades")
-    .select("id, nombre")
-    .order("id", { ascending: false })
-
-  return { data, error }
+export function getPrioridades() {
+  return readCachedLookup(loadPrioridades)
 }

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         const prioridad = searchParams.get("prioridad") ?? undefined
 
         // Obtener reportes con los filtros aplicados
-        const { data, error, hasMore, count } = await getReportCardData({
+        const { data, error, hasMore } = await getReportCardData({
             search,
             categoria,
             estado,
@@ -40,7 +40,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             data,
             hasMore,
-            count,
             offset,
             limite
         })

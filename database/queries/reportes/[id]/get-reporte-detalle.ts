@@ -63,6 +63,11 @@ export async function getReporteDetalle(
   reporteId: string,
   usuarioId?: string | null,
 ) {
+  // The vote summary only needs the report id, so it loads at the same time as the report row.
+  const voteSummaryPromise = getReporteVoteSummary(supabase, reporteId, usuarioId)
+  // Unused when the report lookup fails; the handler keeps that path free of unhandled rejections.
+  voteSummaryPromise.catch(() => {})
+
   let { data, error } = await supabase
     .from("reportes")
     .select(buildReporteDetalleSelect(true))
@@ -87,15 +92,16 @@ export async function getReporteDetalle(
   }
 
   const reporte = (data ?? null) as ReporteDetalleRow | null
-  const publicProfileResult = reporte?.usuario_id
-    ? await getPublicProfile(supabase, reporte.usuario_id)
-    : { data: null, error: null }
+  const [publicProfileResult, voteSummaryResult] = await Promise.all([
+    reporte?.usuario_id
+      ? getPublicProfile(supabase, reporte.usuario_id)
+      : Promise.resolve({ data: null, error: null }),
+    voteSummaryPromise,
+  ])
 
   if (publicProfileResult.error) {
     console.error("Error al obtener autor público del reporte:", publicProfileResult.error)
   }
-
-  const voteSummaryResult = await getReporteVoteSummary(supabase, reporteId, usuarioId)
 
   if (voteSummaryResult.error) {
     console.error("Error al obtener resumen de votos del reporte:", voteSummaryResult.error)

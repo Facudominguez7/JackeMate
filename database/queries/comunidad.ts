@@ -1,9 +1,10 @@
 import type { PostgrestError } from "@supabase/supabase-js"
+import { unstable_cache } from "next/cache"
 
-import { getEstadisticasInteresado } from "@/database/queries/interesado/estadisticas-interesado"
+import { REPORT_STATE_IDS } from "@/lib/authz/catalog"
 import { isGuestRole } from "@/lib/authz/roles"
 import { getPublicProfilesByIds, getPublicProfilesCount, indexPublicProfilesById } from "@/database/queries/profiles"
-import { createClient } from "@/utils/supabase/server"
+import { createPublicClient } from "@/utils/supabase/public"
 
 type VisibleReport = {
   usuario_id: string | null
@@ -35,24 +36,48 @@ const EMPTY_DATA: CommunityPageData = {
   error: null,
 }
 
-export async function getComunidadPageData(): Promise<CommunityPageData> {
-  const supabase = await createClient()
+/** Community numbers are public and identical for every visitor, so a short cache is safe. */
+const COMMUNITY_REVALIDATE_SECONDS = 60
 
-  try {
-    const [{ data: reports, error: reportsError }, statistics, { count: members }] = await Promise.all([
+/**
+ * Loads the community page data with the anon role and caches it between requests.
+ * Every read here (visible reports and public profiles) returns the same rows for anon and
+ * authenticated users. Query errors throw so a failed read is never stored in the cache.
+ */
+const loadComunidadPageData = unstable_cache(
+  async (): Promise<Omit<CommunityPageData, "error">> => {
+    const supabase = createPublicClient()
+
+    const countVisibleReports = (estadoId?: number) => {
+      const query = supabase
+        .from("reportes")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
+      return estadoId === undefined ? query : query.eq("estado_id", estadoId)
+    }
+
+    // Every query here is independent, so they all run at the same time. The totals stay as
+    // exact counts because the row list below is capped by the API's max rows setting.
+    const [
+      { data: reports, error: reportsError },
+      { count: members, error: membersError },
+      { count: totalReports, error: totalError },
+      { count: solvedReports, error: solvedError },
+      { count: pendingReports, error: pendingError },
+    ] = await Promise.all([
       supabase
         .from("reportes")
         .select("usuario_id, estado_id")
         .is("deleted_at", null)
         .returns<VisibleReport[]>(),
-      getEstadisticasInteresado(supabase),
       getPublicProfilesCount(supabase),
+      countVisibleReports(),
+      countVisibleReports(REPORT_STATE_IDS.REPARADO),
+      countVisibleReports(REPORT_STATE_IDS.PENDIENTE),
     ])
 
-    if (reportsError) {
-      console.error("Error al obtener los reportes de la comunidad:", reportsError)
-      return { ...EMPTY_DATA, members: members ?? 0, error: reportsError }
-    }
+    const firstError = reportsError ?? membersError ?? totalError ?? solvedError ?? pendingError
+    if (firstError) throw firstError
 
     const reportCounts = new Map<string, number>()
     for (const report of reports ?? []) {
@@ -61,8 +86,11 @@ export async function getComunidadPageData(): Promise<CommunityPageData> {
       }
     }
 
+    // Profiles are needed for every contributor (not only the top 10) because guests
+    // must be filtered out before ranking. It is still a single batched query.
     const contributorIds = [...reportCounts.keys()]
     const { data: profiles, error: profilesError } = await getPublicProfilesByIds(supabase, contributorIds)
+    if (profilesError) throw profilesError
     const profilesById = indexPublicProfilesById(profiles)
 
     const contributors = contributorIds
@@ -82,14 +110,21 @@ export async function getComunidadPageData(): Promise<CommunityPageData> {
 
     return {
       members: members ?? 0,
-      totalReports: statistics.totalReportes,
-      solvedReports: statistics.reportesResueltos,
-      pendingReports: statistics.reportesPendientes,
+      totalReports: totalReports ?? 0,
+      solvedReports: solvedReports ?? 0,
+      pendingReports: pendingReports ?? 0,
       contributors,
-      error: profilesError ?? null,
     }
+  },
+  ["comunidad-page-data"],
+  { revalidate: COMMUNITY_REVALIDATE_SECONDS, tags: ["comunidad"] },
+)
+
+export async function getComunidadPageData(): Promise<CommunityPageData> {
+  try {
+    return { ...(await loadComunidadPageData()), error: null }
   } catch (error) {
     console.error("Error al obtener los datos de la comunidad:", error)
-    return EMPTY_DATA
+    return { ...EMPTY_DATA, error: error as PostgrestError }
   }
 }

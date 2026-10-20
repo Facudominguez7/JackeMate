@@ -25,7 +25,6 @@ type MapaClientProps = {
   estados: { id: number; nombre: string }[]
   prioridades: { id: number; nombre: string }[]
   error: string | null
-  isAuthenticated: boolean
 }
 
 export function MapaClient({ reportes, categorias, estados, prioridades, error }: MapaClientProps) {

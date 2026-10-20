@@ -104,23 +104,44 @@ export async function getTiempoPromedioResolucion(
       return { diasPromedio: 0, horasPromedio: 0 };
     }
 
-    // Para cada reporte resuelto, obtener la fecha del cambio a estado "Reparado"
+    // Fetch the "Reparado" history rows of all resolved reports in batches instead of one
+    // query per report. Ids are chunked to keep each request URL short.
+    const HISTORIAL_ID_BATCH_SIZE = 200;
+    const ids = reportesResueltos.map((reporte) => reporte.id);
+    const lotes: number[][] = [];
+    for (let inicio = 0; inicio < ids.length; inicio += HISTORIAL_ID_BATCH_SIZE) {
+      lotes.push(ids.slice(inicio, inicio + HISTORIAL_ID_BATCH_SIZE));
+    }
+
+    const resultados = await Promise.all(
+      lotes.map((lote) =>
+        supabase
+          .from("historial_estados")
+          .select("reporte_id, created_at")
+          .in("reporte_id", lote)
+          .eq("estado_nuevo_id", 2) // Cambio a estado "Reparado"
+          .order("created_at", { ascending: true }),
+      ),
+    );
+
+    // Keep the first change to "Reparado" per report (rows arrive oldest first).
+    const primeraResolucion = new Map<number, string>();
+    for (const { data: historial, error: historialError } of resultados) {
+      if (historialError || !historial) continue;
+      for (const fila of historial) {
+        if (!primeraResolucion.has(fila.reporte_id)) {
+          primeraResolucion.set(fila.reporte_id, fila.created_at);
+        }
+      }
+    }
+
     const tiemposResolucion: number[] = [];
-
     for (const reporte of reportesResueltos) {
-      const { data: historial, error: historialError } = await supabase
-        .from("historial_estados")
-        .select("created_at")
-        .eq("reporte_id", reporte.id)
-        .eq("estado_nuevo_id", 2) // Cambio a estado "Reparado"
-        .order("created_at", { ascending: true })
-        .limit(1);
-
-      if (!historialError && historial && historial.length > 0) {
+      const fechaResolucionIso = primeraResolucion.get(reporte.id);
+      if (fechaResolucionIso) {
         const fechaCreacion = new Date(reporte.created_at);
-        const fechaResolucion = new Date(historial[0].created_at);
-        const tiempoMs = fechaResolucion.getTime() - fechaCreacion.getTime();
-        tiemposResolucion.push(tiempoMs);
+        const fechaResolucion = new Date(fechaResolucionIso);
+        tiemposResolucion.push(fechaResolucion.getTime() - fechaCreacion.getTime());
       }
     }
 
@@ -222,25 +243,29 @@ export async function getZonasConMasReportes(
  */
 export async function getEstadisticasInteresado(supabase: SupabaseClient) {
   try {
-    // Obtener estadísticas básicas
-    const { count: totalReportes } = await supabase
-      .from("reportes")
-      .select("*", { count: "exact", head: true })
-      .is("deleted_at", null);
-
-    const { count: reportesResueltos } = await supabase
-      .from("reportes")
-      .select("*", { count: "exact", head: true })
-      .eq("estado_id", 2)
-      .is("deleted_at", null);
-
-    const { count: reportesPendientes } = await supabase
-      .from("reportes")
-      .select("*", { count: "exact", head: true })
-      .eq("estado_id", 1)
-      .is("deleted_at", null);
-
-    const reportesEnProgreso = await contarReportesEnProgreso(supabase);
+    // The four counts are independent, so they run at the same time.
+    const [
+      { count: totalReportes },
+      { count: reportesResueltos },
+      { count: reportesPendientes },
+      reportesEnProgreso,
+    ] = await Promise.all([
+      supabase
+        .from("reportes")
+        .select("*", { count: "exact", head: true })
+        .is("deleted_at", null),
+      supabase
+        .from("reportes")
+        .select("*", { count: "exact", head: true })
+        .eq("estado_id", 2)
+        .is("deleted_at", null),
+      supabase
+        .from("reportes")
+        .select("*", { count: "exact", head: true })
+        .eq("estado_id", 1)
+        .is("deleted_at", null),
+      contarReportesEnProgreso(supabase),
+    ]);
 
     // Calcular tasa de resolución
     const tasaResolucion =
