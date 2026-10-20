@@ -21,7 +21,7 @@ import {
   resolveReportImageRows,
   type ReportImageRow,
 } from "@/lib/media/report-images"
-import type { EstadoOperativo } from "@/lib/authz/catalog"
+import { REPORT_STATE_IDS, type EstadoOperativo } from "@/lib/authz/catalog"
 import type { ReportCardData } from "@/components/lista-reportes-client"
 
 export type ReporteDB = {
@@ -49,6 +49,8 @@ export type FiltrosReportes = {
   estado?: string
   prioridad?: string
   soloConCoordenadas?: boolean
+  /** Deja afuera los reportes en estado Reparado: el mapa solo muestra problemas abiertos. */
+  excluirReparados?: boolean
   limite?: number
   offset?: number
 }
@@ -243,6 +245,7 @@ async function fetchReportes(
     estado,
     prioridad,
     soloConCoordenadas,
+    excluirReparados,
     limite,
     offset,
   } = filtros
@@ -279,6 +282,10 @@ async function fetchReportes(
     query = query.not("lat", "is", null).not("lon", "is", null)
   }
 
+  if (excluirReparados) {
+    query = query.neq("estado_id", REPORT_STATE_IDS.REPARADO)
+  }
+
   // Fetch one extra row to know whether another page exists without an expensive exact count.
   return query
     .order("created_at", { ascending: false })
@@ -295,6 +302,7 @@ async function fetchReportes(
  *   - `estado`: nombre del estado (o `"all"` para no filtrar)
  *   - `prioridad`: nombre de la prioridad (o `"all"` para no filtrar)
  *   - `soloConCoordenadas`: si `true`, solo incluye reportes con `lat` y `lon`
+ *   - `excluirReparados`: si `true`, omite los reportes en estado Reparado
  *   - `limite`: número máximo de resultados (por defecto 12)
  * @returns Objeto con `data` — lista de reportes (`ReporteDB[]`) o `null`, y `error` — el error devuelto por Supabase o `null`.
  */
@@ -306,6 +314,7 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     estado,
     prioridad,
     soloConCoordenadas = false,
+    excluirReparados = false,
     limite = 12,
     offset = 0
   } = filtros
@@ -316,6 +325,7 @@ export async function getReportes(filtros: FiltrosReportes = {}) {
     estado,
     prioridad,
     soloConCoordenadas,
+    excluirReparados,
     limite,
     offset,
   }
