@@ -136,7 +136,13 @@
 
 @layer components {
   .page-shell {
-    @apply min-h-full bg-background;
+    @apply min-h-full rounded-t-[2rem] bg-muted/30;
+  }
+
+  .app-header {
+    background-image: url("/reporty-header-ciudad.png");
+    background-position: center;
+    background-size: cover;
   }
 
   .app-main {
