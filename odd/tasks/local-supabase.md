@@ -12,6 +12,11 @@ Branch: `chore/local-supabase` · Delivery: ask-on-risk (single PR expected; gen
 - **S2** Data: the user chose "Copia de producción". Local data is a copy of production: all rows, including `auth.users`, plus the files in the `reportes` bucket. The copy is never committed; it lives in gitignored files and can be refreshed with one command.
 - **S3** The app in development (`npm run dev`) uses the local stack, not production. Assumption: production keys stay where they are; the local values override them only in development.
 - **S4** Documentation: how to start, stop and reset the stack, refresh the production copy, and write new migrations.
+- **S5** "yo quiero que en cualquiera de esos sistemas operativos se pueda correr con un comando y que vaya solicitando al usuario lo que necesita para dejar al dia su base local" (Windows, macOS and Linux).
+  - One command, `npm run db:setup`, that works natively on all three: a Node script with no bash, no python, no shell between the arguments.
+  - It asks for what is missing: Docker installed and running, then where the data comes from (production copy, saved copy), then the connection string, hidden.
+  - It leaves the local base up to date: stack running, repo migrations applied, data loaded, `.env.development.local` written.
+  - Assumption: it also offers an empty database with the catalogs only, for someone without production access (`supabase/seed.sql`, no personal data).
 
 ## Tasks
 
@@ -20,6 +25,7 @@ Branch: `chore/local-supabase` · Delivery: ask-on-risk (single PR expected; gen
 | T1 | S1, S4 | inline | done | CLI 2.121.0, config.toml Auth = prod, scripts; stack starts |
 | T2 | S1 | inline | done | local schema dump = prod baseline except pending drop_rol_id and a cosmetic schema comment |
 | T3 | S2, S3 | inline | done | row counts = prod (19 users, 34 reports, 43 objects); Chrome 3 sizes; local signup → Mailpit → confirmed + profile |
+| T4 | S5 | inline | done | RED → GREEN 22 helper tests, suite 103; Linux runs of every path; Windows/macOS not run |
 
 - T1: Supabase CLI as a dev dependency, `supabase/config.toml` aligned with production Auth, npm scripts, gitignore for local copies.
 - T2: production schema baseline (`supabase db dump`, run by the user with the database URL), the old migrations archived, and the pending `public_profiles_drop_rol_id` migration kept after the baseline.
@@ -55,3 +61,17 @@ Route evidence: no Writer trigger reason (sequential units, context below the ba
   - The dump is written to `.partial` and moved, so a failed dump keeps the previous copy.
   - The storage MIME type is read from a TSV instead of a per-file SQL query that interpolated the object name.
   - Not changed: the container name duplicates `project_id`; a partial storage sync aborts without restoring owners (re-running fixes it).
+- **L8** (2026-10-21) User asked how someone else sets it up on Windows or macOS. Findings: the bash scripts do not run in PowerShell or cmd, `python3` is often a Store stub on Windows, and `date -r` is GNU. User: "si, yo quiero que en cualquiera de esos sistemas operativos se pueda correr con un comando y que vaya solicitando al usuario lo que necesita para dejar al dia su base local se entiende?" → T4: rewrite as one interactive Node script.
+- **L9** T4: `npm run db:setup` (`scripts/local-supabase/setup.mjs` plus tested pure helpers in `lib.mjs`) replaces the bash scripts and `db:pull`/`db:reset`/`db:env`.
+  - How it stays cross-platform: the Supabase CLI runs through its npm entry with the same Node (the lockfile has the Windows, macOS and Linux binaries), Docker runs without a shell, the SQL file streams into `docker exec psql`, and the storage copy uses `fetch`.
+  - It asks for Docker (and waits), then the data source (production / saved copy / empty with catalogs from the new `supabase/seed.sql`), then the hidden connection string. Up to 3 tries, with a dump to `.partial`.
+  - Verified on Linux:
+    - `--saved`: 43/43 files.
+    - `--production` with `SUPABASE_DB_URL` pointed at the local DB as a stand-in source: full path, no `.partial` left.
+    - Wrong password: exit 1, saved copy hash unchanged.
+    - `DOCKER_HOST` unreachable: Linux install hint, exit 1.
+    - `--empty`: 5 roles, 7 categories, 0 users; an API signup created a profile with rol 2 (test user deleted).
+    - Interactive menu through a pty: invalid "9" re-asks, "2" loads the saved copy.
+    - Hidden prompt: neither the invalid answer nor the URL was echoed.
+    - The real copy was restored afterwards.
+  - Not verified: Windows and macOS (no machine here).

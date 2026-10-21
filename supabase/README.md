@@ -17,32 +17,54 @@ This project is adopting tracked Supabase artifacts incrementally.
 
 ## Local development
 
-Development runs against a local Supabase stack in Docker, not production. It needs Docker and the Supabase CLI, which is a dev dependency (`npx supabase`).
-
-First time, or to refresh the copy of production:
+Development runs against a local Supabase stack in Docker, not production. One command sets it up or brings it up to date, on Windows, macOS and Linux:
 
 ```bash
-npm run db:pull   # asks for the production connection string, copies the data and the bucket files
-npm run db:env    # writes .env.development.local so `npm run dev` uses the local stack
+npm install
+npm run db:setup
 npm run dev
 ```
 
-The connection string is in Supabase Dashboard → Connect → Direct → Session pooler. The script reads it from `SUPABASE_DB_URL` or asks for it, and never saves it.
+`npm run db:setup` walks through five steps and asks only for what is missing:
+1. **Docker:** checks that it is installed and running. If not, it explains how to get it on your OS and waits.
+2. **Stack:** starts it if needed. The first run downloads about 7 GB of Docker images.
+3. **Data source:** asks where the data comes from:
+   - **A fresh copy of production.** Asks for the connection string, typed hidden.
+   - **The production copy saved by an earlier run.** No connection needed.
+   - **An empty database with the catalogs only.** No production access needed (`supabase/seed.sql`).
+4. **Schema and data:** resets the local database with the repo migrations and loads the data.
+5. **App environment:** writes `.env.development.local`, so `npm run dev` uses the local stack. Delete that file to develop against production again.
+
+### Requirements
+
+| | Windows | macOS | Linux |
+|---|---|---|---|
+| Docker | [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) (WSL 2 backend) | [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/) | [Docker Engine](https://docs.docker.com/engine/install/); your user must be able to run `docker ps` |
+| Node.js | The version the app uses | Same | Same |
+| Terminal | PowerShell, cmd or Windows Terminal | Terminal | Any |
+
+The script is plain Node: it needs no bash, Python or WSL shell.
+
+The production connection string is in Supabase Dashboard → Connect → Direct → Session pooler; replace `[YOUR-PASSWORD]` with the database password. The script reads it from `SUPABASE_DB_URL`, or asks for it, and never saves it. Without it, choose the empty database.
+
+### Options and other commands
 
 | Command | What it does |
 |---------|--------------|
+| `npm run db:setup -- --production` / `--saved` / `--empty` | Skips the data question. Needed when there is no terminal to ask in. |
 | `npm run db:start` / `npm run db:stop` | Starts or stops the stack. Stopping keeps the data. |
-| `npm run db:pull` | Dumps production data into `supabase/.local/prod-data.sql`, resets the local database with it and copies the files of the `reportes` bucket. |
-| `npm run db:reset` | Resets the local database with the copy already saved, without connecting to the production database. |
-| `npm run db:env` | Writes `.env.development.local` from `supabase status`. Delete that file to develop against production again. |
+| `npm run db:setup -- --schema` | Maintainers: regenerates the schema baseline from production. |
 
-Local services:
+### Local services
+
 - API: `http://127.0.0.1:54321`.
 - Studio: `http://127.0.0.1:54323`.
 - Mailpit: `http://127.0.0.1:54324`. Every Auth email lands there, with the templates from `supabase/templates/`.
 
+### Production data on your machine
+
 The production copy holds real user data:
-- `supabase/.local/` is gitignored; never commit or share it.
+- It lives in `supabase/.local/`, which git ignores; never commit or share it.
 - Users keep their production passwords, so you can sign in locally with your own account.
 - Sessions, refresh tokens, one-time codes, OAuth flow state and the Auth audit log are left out of the dump: they would still be valid against production.
 - `.env.development.local` leaves `RESEND_API_KEY` empty, so report notifications are skipped instead of emailing real users.
@@ -51,13 +73,13 @@ The production copy holds real user data:
 
 ### Migrations
 
-- `20261020120050_remote_schema.sql` is a `supabase db dump` of production taken on 2026-10-21 (`npm run db:pull -- --schema` regenerates it).
+- `20261020120050_remote_schema.sql` is a `supabase db dump` of production taken on 2026-10-21 (`npm run db:setup -- --schema` regenerates it).
 - `20261020120060_match_production_grants.sql` and `20261020120070_auth_and_storage_objects.sql` restore what the dump leaves out: the revoked client privileges, plus the trigger and the policies production keeps in the `auth` and `storage` schemas.
 - These three files describe what production already has: never apply them there.
 - The migrations they replace are kept in `archive/migrations/` for their history.
 - `20261020120100_public_profiles_drop_rol_id.sql` is still pending in production.
 - New schema changes go in new migrations after these files:
-  - Test them locally with `npm run db:reset`.
+  - Test them locally with `npm run db:setup -- --saved` (or `--empty`).
   - Apply them to production as before; production's migration history does not match these file names.
 
 ## Anonymous sign-ins: dashboard and environment

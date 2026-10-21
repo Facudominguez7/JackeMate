@@ -4,9 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build --webpack",
-    "db:env": "bash scripts/local-supabase/write-env.sh",
-    "db:pull": "bash scripts/local-supabase/pull-prod.sh",
-    "db:reset": "bash scripts/local-supabase/pull-prod.sh --load",
+    "db:setup": "node scripts/local-supabase/setup.mjs",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "dev": "next dev",
