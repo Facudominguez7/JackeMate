@@ -49,3 +49,9 @@ Route evidence: no Writer trigger reason (sequential units, context below the ba
   - Signup on localhost: the Spanish confirmation email lands in Mailpit, its link goes to `/mapa` signed in, and the user is confirmed with a profile created by the trigger. The test user was deleted afterwards.
   - Vitest 81 passing, tsc clean.
   - Observation, not in scope: the trigger only stores id/email/rol_id, so `username` is empty. Same in production (7 of 10 registered users).
+- **L7** RDD review (risk, resilience, readability): approved and acknowledged, with 8 advisories. Fixed in a follow-up commit:
+  - The dump excludes live Auth credentials and session state (`-x`: sessions, refresh_tokens, one_time_tokens, flow_state, MFA challenges and AMR claims, audit log, and others), because a copied refresh token still works against production. The saved copy was stripped in place: 12 sessions, 16 refresh tokens, 3 one-time tokens, 49 flow states and 104 audit rows removed.
+  - `db:env` fails before writing when the stack is down, so a truncated file can no longer fall back to the production `.env.local`. Verified: exit 1 with the file unchanged, then success after start.
+  - The dump is written to `.partial` and moved, so a failed dump keeps the previous copy.
+  - The storage MIME type is read from a TSV instead of a per-file SQL query that interpolated the object name.
+  - Not changed: the container name duplicates `project_id`; a partial storage sync aborts without restoring owners (re-running fixes it).

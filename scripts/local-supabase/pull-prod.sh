@@ -17,6 +17,9 @@ LOCAL_DIR="supabase/.local"
 DATA_FILE="$LOCAL_DIR/prod-data.sql"
 BASELINE="supabase/migrations/20261020120050_remote_schema.sql"
 DB_CONTAINER="supabase_db_JackeMate"
+# Live credentials and session state: a copied refresh token or one-time code would still work
+# against production Auth, so they never leave production. Users keep their password hashes.
+EXCLUDED_TABLES="auth.sessions,auth.refresh_tokens,auth.mfa_amr_claims,auth.one_time_tokens,auth.flow_state,auth.mfa_challenges,auth.webauthn_challenges,auth.saml_relay_states,auth.oauth_authorizations,auth.oauth_client_states,auth.scim_tokens,auth.audit_log_entries"
 TMP_FILE="$(mktemp)"
 trap 'rm -f "$TMP_FILE"' EXIT
 
@@ -66,17 +69,18 @@ sync_storage() {
   # Uploading through the Storage API rewrites owner and timestamps; keep them to restore later.
   local_sql -At -c "copy (select name, owner, owner_id, created_at, updated_at from storage.objects where bucket_id = '$BUCKET') to stdout with csv" >"$LOCAL_DIR/objects.csv"
 
+  local_sql -At -c "copy (select name, coalesce(metadata->>'mimetype', 'application/octet-stream') from storage.objects where bucket_id = '$BUCKET') to stdout" >"$LOCAL_DIR/objects.tsv"
+
   local count=0 name encoded mime
   # The list comes on fd 3: `docker exec -i` inside the loop would swallow it from stdin.
-  while IFS= read -r name <&3; do
+  while IFS=$'\t' read -r name mime <&3; do
     encoded="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$name")"
-    mime="$(local_sql -At </dev/null -c "select coalesce(metadata->>'mimetype', 'application/octet-stream') from storage.objects where bucket_id = '$BUCKET' and name = \$\$$name\$\$")"
     curl -fsS "$PROD_API_URL/storage/v1/object/public/$BUCKET/$encoded" -o "$TMP_FILE"
     curl -fsS -o /dev/null -X POST "$api_url/storage/v1/object/$BUCKET/$encoded" \
       -H "Authorization: Bearer $service_key" -H "x-upsert: true" -H "Content-Type: $mime" \
       --data-binary "@$TMP_FILE"
     count=$((count + 1))
-  done 3< <(cut -d, -f1 "$LOCAL_DIR/objects.csv")
+  done 3<"$LOCAL_DIR/objects.tsv"
 
   local_sql <<SQL
 create temp table original_objects (name text, owner uuid, owner_id text, created_at timestamptz, updated_at timestamptz);
@@ -88,7 +92,7 @@ set owner = r.owner, owner_id = r.owner_id, created_at = r.created_at, updated_a
 from original_objects r
 where o.bucket_id = '$BUCKET' and o.name = r.name;
 SQL
-  rm -f "$LOCAL_DIR/objects.csv"
+  rm -f "$LOCAL_DIR/objects.csv" "$LOCAL_DIR/objects.tsv"
   echo "Copied $count files from the $BUCKET bucket."
 }
 
@@ -111,6 +115,8 @@ fi
 
 read_db_url
 mkdir -p "$LOCAL_DIR"
-npx supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy -f "$DATA_FILE"
+# Written aside first, so a failed dump keeps the previous copy.
+npx supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy -x "$EXCLUDED_TABLES" -f "$DATA_FILE.partial"
+mv "$DATA_FILE.partial" "$DATA_FILE"
 reset_with_copy
 echo "Local database is a copy of production as of $(date '+%Y-%m-%d %H:%M')."

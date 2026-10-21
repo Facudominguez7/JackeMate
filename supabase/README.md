@@ -44,6 +44,7 @@ Local services:
 The production copy holds real user data:
 - `supabase/.local/` is gitignored; never commit or share it.
 - Users keep their production passwords, so you can sign in locally with your own account.
+- Sessions, refresh tokens, one-time codes, OAuth flow state and the Auth audit log are left out of the dump: they would still be valid against production.
 - `.env.development.local` leaves `RESEND_API_KEY` empty, so report notifications are skipped instead of emailing real users.
 
 `supabase/config.toml` mirrors the production Auth settings listed below. Google sign-in and CAPTCHA are off locally.
