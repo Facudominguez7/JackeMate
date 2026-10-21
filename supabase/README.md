@@ -2,6 +2,7 @@
 
 This project is adopting tracked Supabase artifacts incrementally.
 
+- The migration files listed below now live in `archive/migrations/`: the schema baseline replaced them (see "Local development").
 - `supabase/migrations/20260421231500_baseline_adoption.sql` is the compatibility-first baseline marker for this change.
 - `supabase/migrations/20260422000500_report_image_compatibility_and_rls.sql` adds the first safe compatibility migration: canonical `fotos_reporte.bucket/path`, resumable backfill, evidence-backed image indexes, and limited RLS/storage tightening for `roles`, `estados`, `fotos_reporte`, and the public `reportes` bucket listing policy.
 - `supabase/migrations/20260422013500_trusted_mutations_and_incremental_rls.sql` adds the next rollout slice: advisor-backed foreign-key indexes plus read-only RLS for `reportes`, `comentarios_reporte`, and `historial_estados` now that those writes run from trusted server boundaries.
@@ -14,9 +15,49 @@ This project is adopting tracked Supabase artifacts incrementally.
 - `supabase/access-matrix.md` documents the trusted access model used to phase in RLS and storage tightening.
 - Future schema and policy changes for this change MUST be added as incremental migrations after the baseline file.
 
-## Current repository constraint
+## Local development
 
-The Supabase CLI is not installed in this workspace, so the remote schema could not be pulled automatically into a generated baseline snapshot during this batch. The baseline file therefore acts as the tracked adoption marker while the access matrix and live DB inspection results capture the rollout source of truth for the affected tables and bucket.
+Development runs against a local Supabase stack in Docker, not production. It needs Docker and the Supabase CLI, which is a dev dependency (`npx supabase`).
+
+First time, or to refresh the copy of production:
+
+```bash
+npm run db:pull   # asks for the production connection string, copies the data and the bucket files
+npm run db:env    # writes .env.development.local so `npm run dev` uses the local stack
+npm run dev
+```
+
+The connection string is in Supabase Dashboard → Connect → Direct → Session pooler. The script reads it from `SUPABASE_DB_URL` or asks for it, and never saves it.
+
+| Command | What it does |
+|---------|--------------|
+| `npm run db:start` / `npm run db:stop` | Starts or stops the stack. Stopping keeps the data. |
+| `npm run db:pull` | Dumps production data into `supabase/.local/prod-data.sql`, resets the local database with it and copies the files of the `reportes` bucket. |
+| `npm run db:reset` | Resets the local database with the copy already saved, without connecting to the production database. |
+| `npm run db:env` | Writes `.env.development.local` from `supabase status`. Delete that file to develop against production again. |
+
+Local services:
+- API: `http://127.0.0.1:54321`.
+- Studio: `http://127.0.0.1:54323`.
+- Mailpit: `http://127.0.0.1:54324`. Every Auth email lands there, with the templates from `supabase/templates/`.
+
+The production copy holds real user data:
+- `supabase/.local/` is gitignored; never commit or share it.
+- Users keep their production passwords, so you can sign in locally with your own account.
+- `.env.development.local` leaves `RESEND_API_KEY` empty, so report notifications are skipped instead of emailing real users.
+
+`supabase/config.toml` mirrors the production Auth settings listed below. Google sign-in and CAPTCHA are off locally.
+
+### Migrations
+
+- `20261020120050_remote_schema.sql` is a `supabase db dump` of production taken on 2026-10-21 (`npm run db:pull -- --schema` regenerates it).
+- `20261020120060_match_production_grants.sql` and `20261020120070_auth_and_storage_objects.sql` restore what the dump leaves out: the revoked client privileges, plus the trigger and the policies production keeps in the `auth` and `storage` schemas.
+- These three files describe what production already has: never apply them there.
+- The migrations they replace are kept in `archive/migrations/` for their history.
+- `20261020120100_public_profiles_drop_rol_id.sql` is still pending in production.
+- New schema changes go in new migrations after these files:
+  - Test them locally with `npm run db:reset`.
+  - Apply them to production as before; production's migration history does not match these file names.
 
 ## Anonymous sign-ins: dashboard and environment
 
