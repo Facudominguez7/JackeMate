@@ -5,6 +5,7 @@
   "scripts": {
     "build": "next build --webpack",
     "dev": "next dev",
+    "email:templates": "vitest run --mode templates lib/notifications/auth-email-templates.test.ts",
     "lint": "eslint .",
     "start": "next start",
     "test": "vitest run"
