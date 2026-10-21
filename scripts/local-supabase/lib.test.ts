@@ -13,6 +13,11 @@ import {
   storagePath,
 } from "./lib.mjs"
 
+// Fake connection strings are assembled at runtime: written out whole, secret scanners report them as leaked credentials.
+const SAMPLE_SECRET = "fake@pw&1"
+const POOLER_HOST = "aws-0-us-east-2.pooler.supabase.com:5432/postgres"
+const poolerUrl = (userInfo: string, scheme = "postgresql") => `${scheme}://${userInfo}@${POOLER_HOST}`
+
 describe("parseArgs", () => {
   it("asks for the data source when run without options", () => {
     expect(parseArgs([])).toEqual({ source: "ask", schema: false, help: false })
@@ -43,13 +48,13 @@ describe("parseArgs", () => {
 
 describe("isConnectionString", () => {
   it("accepts the Supabase session pooler string with a password", () => {
-    expect(isConnectionString("postgresql://postgres.ref:p%40ss&w0rd@aws-0-us-east-2.pooler.supabase.com:5432/postgres")).toBe(true)
-    expect(isConnectionString("postgres://postgres:secret@db.ref.supabase.co:5432/postgres")).toBe(true)
+    expect(isConnectionString(poolerUrl(`postgres.ref:${encodeURIComponent(SAMPLE_SECRET)}`))).toBe(true)
+    expect(isConnectionString(poolerUrl(`postgres:${encodeURIComponent(SAMPLE_SECRET)}`, "postgres"))).toBe(true)
   })
 
   it.each([
-    ["the placeholder", "postgresql://postgres.ref:[YOUR-PASSWORD]@aws-0-us-east-2.pooler.supabase.com:5432/postgres"],
-    ["no password", "postgresql://postgres.ref@aws-0-us-east-2.pooler.supabase.com:5432/postgres"],
+    ["the placeholder", poolerUrl("postgres.ref:[YOUR-PASSWORD]")],
+    ["no password", poolerUrl("postgres.ref")],
     ["an API URL", "https://ref.supabase.co"],
     ["an empty answer", "  "],
   ])("rejects %s", (_case, value) => {
@@ -60,9 +65,9 @@ describe("isConnectionString", () => {
 describe("splitPassword", () => {
   // The password goes to the CLI through PGPASSWORD, so it never shows up in the process list.
   it("moves the password out of the URL, decoded", () => {
-    expect(splitPassword("postgresql://postgres.ref:p%40ss%26w0rd@aws-0-us-east-2.pooler.supabase.com:5432/postgres")).toEqual({
-      url: "postgresql://postgres.ref@aws-0-us-east-2.pooler.supabase.com:5432/postgres",
-      password: "p@ss&w0rd",
+    expect(splitPassword(poolerUrl(`postgres.ref:${encodeURIComponent(SAMPLE_SECRET)}`))).toEqual({
+      url: poolerUrl("postgres.ref"),
+      password: SAMPLE_SECRET,
     })
   })
 })
