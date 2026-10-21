@@ -75,3 +75,9 @@ Route evidence: no Writer trigger reason (sequential units, context below the ba
     - Hidden prompt: neither the invalid answer nor the URL was echoed.
     - The real copy was restored afterwards.
   - Not verified: Windows and macOS (no machine here).
+- **L10** Follow-up to the T4 review advisories:
+  - The connection password goes to the CLI through `PGPASSWORD`; the `--db-url` argument has no password. Verified: during a `--production` run the `db dump` process arguments did not contain it.
+  - `loadSqlFile` no longer crashes with an unhandled EPIPE when psql exits early; psql's exit code reports the failure. A read error kills psql and rejects.
+  - `--schema` next to `--production`, `--saved` or `--empty` now fails with "--schema only regenerates the baseline; it takes no data option." instead of ignoring the flag. Option errors print the usage.
+  - Vitest 105 passing (24 helper tests), tsc clean; `--production` and `--saved` rerun on Linux, real copy restored (hash unchanged).
+  - Not changed: no `--env-only` option; the EPIPE path was not reproduced.

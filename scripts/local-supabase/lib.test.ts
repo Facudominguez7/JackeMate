@@ -9,6 +9,7 @@ import {
   parseStatusEnv,
   readProjectId,
   restoreObjectsSql,
+  splitPassword,
   storagePath,
 } from "./lib.mjs"
 
@@ -34,6 +35,10 @@ describe("parseArgs", () => {
     expect(() => parseArgs(["--prod"])).toThrow("Unknown option: --prod")
     expect(() => parseArgs(["--saved", "--empty"])).toThrow("Choose only one of --production, --saved or --empty.")
   })
+
+  it("rejects a data source next to --schema instead of ignoring it", () => {
+    expect(() => parseArgs(["--schema", "--empty"])).toThrow("--schema only regenerates the baseline; it takes no data option.")
+  })
 })
 
 describe("isConnectionString", () => {
@@ -49,6 +54,16 @@ describe("isConnectionString", () => {
     ["an empty answer", "  "],
   ])("rejects %s", (_case, value) => {
     expect(isConnectionString(value)).toBe(false)
+  })
+})
+
+describe("splitPassword", () => {
+  // The password goes to the CLI through PGPASSWORD, so it never shows up in the process list.
+  it("moves the password out of the URL, decoded", () => {
+    expect(splitPassword("postgresql://postgres.ref:p%40ss%26w0rd@aws-0-us-east-2.pooler.supabase.com:5432/postgres")).toEqual({
+      url: "postgresql://postgres.ref@aws-0-us-east-2.pooler.supabase.com:5432/postgres",
+      password: "p@ss&w0rd",
+    })
   })
 })
 

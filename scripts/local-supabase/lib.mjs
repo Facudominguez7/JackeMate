@@ -38,6 +38,10 @@ export function parseArgs(argv) {
     }
   }
 
+  if (options.schema && options.source !== "ask") {
+    throw new Error("--schema only regenerates the baseline; it takes no data option.")
+  }
+
   return options
 }
 
@@ -51,6 +55,17 @@ export function isConnectionString(value) {
   } catch {
     return false
   }
+}
+
+/**
+ * Splits the password out of a connection string. It goes to the CLI through PGPASSWORD, so it
+ * never shows up in the arguments that `ps` or the Task Manager list.
+ */
+export function splitPassword(connectionString) {
+  const url = new URL(connectionString.trim())
+  const password = decodeURIComponent(url.password)
+  url.password = ""
+  return { url: url.toString(), password }
 }
 
 /** Reads the `KEY="value"` lines printed by `supabase status -o env`; anything else is ignored. */

@@ -26,6 +26,7 @@ import {
   parseStatusEnv,
   readProjectId,
   restoreObjectsSql,
+  splitPassword,
   storagePath,
 } from "./lib.mjs"
 
@@ -58,10 +59,11 @@ function step(title) {
   console.log(`\n[${stepNumber}/5] ${title}`)
 }
 
-function run(command, args, { capture = false, input } = {}) {
+function run(command, args, { capture = false, input, env } = {}) {
   const result = spawnSync(command, args, {
     cwd: ROOT,
     encoding: "utf8",
+    env: env ? { ...process.env, ...env } : process.env,
     input,
     maxBuffer: 64 * 1024 * 1024,
     stdio: capture || input !== undefined ? "pipe" : "inherit",
@@ -73,6 +75,12 @@ function run(command, args, { capture = false, input } = {}) {
 /** The CLI's npm entry point picks the binary for this OS; running it with this Node needs no shell. */
 function supabase(args, options) {
   return run(process.execPath, [SUPABASE_CLI, ...args], options)
+}
+
+/** `supabase db dump` against a remote database, with the password in PGPASSWORD instead of argv. */
+function dumpRemote(connectionString, args) {
+  const { url, password } = splitPassword(connectionString)
+  return supabase(["db", "dump", "--db-url", url, ...args], { env: { PGPASSWORD: password } })
 }
 
 function localStatus() {
@@ -95,7 +103,14 @@ function loadSqlFile(file) {
       ["exec", "-i", DB_CONTAINER, "psql", "-U", "supabase_admin", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-q", "--single-transaction"],
       { stdio: ["pipe", "ignore", "inherit"] },
     )
-    createReadStream(file).pipe(child.stdin)
+    const source = createReadStream(file)
+    source.on("error", (error) => {
+      child.kill()
+      reject(error)
+    })
+    // When psql exits early (a SQL error), writes fail with EPIPE; its exit code reports the failure.
+    child.stdin.on("error", () => {})
+    source.pipe(child.stdin)
     child.on("error", reject)
     child.on("close", (code) => (code === 0 ? resolve() : reject(new SetupError(`Loading ${path.relative(ROOT, file)} failed.`))))
   })
@@ -205,7 +220,7 @@ async function pullProduction() {
   for (let attempt = 0; attempt < 3; attempt++) {
     const url = await askConnectionString(attempt > 0)
     console.log("  Dumping production data (live sessions and tokens are left out)...")
-    const result = supabase(["db", "dump", "--db-url", url, "--data-only", "--use-copy", "-x", EXCLUDED_TABLES.join(","), "-f", partial])
+    const result = dumpRemote(url, ["--data-only", "--use-copy", "-x", EXCLUDED_TABLES.join(","), "-f", partial])
     if (result.status === 0) {
       // Written aside first, so a failed dump keeps the previous copy.
       renameSync(partial, DATA_FILE)
@@ -264,12 +279,17 @@ function writeEnvFile(status) {
 async function regenerateSchema() {
   console.log("\nRegenerating the schema baseline from production.")
   const url = await askConnectionString(false)
-  if (supabase(["db", "dump", "--db-url", url, "-f", BASELINE]).status !== 0) fail("The schema dump failed.")
+  if (dumpRemote(url, ["-f", BASELINE]).status !== 0) fail("The schema dump failed.")
   console.log(`\nSchema written to ${BASELINE}. Review the diff before committing it.`)
 }
 
 async function main() {
-  const options = parseArgs(process.argv.slice(2))
+  let options
+  try {
+    options = parseArgs(process.argv.slice(2))
+  } catch (error) {
+    throw new SetupError(`${error.message}\n\n${USAGE}`)
+  }
   if (options.help) {
     console.log(USAGE)
     return
@@ -322,9 +342,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  if (error instanceof SetupError || error.message?.startsWith("Unknown option") || error.message?.startsWith("Choose only one")) {
+  if (error instanceof SetupError) {
     console.error(`\n${error.message}`)
-    if (!(error instanceof SetupError)) console.error(USAGE)
   } else {
     console.error(error)
   }
