@@ -33,6 +33,9 @@ const expectNewStyle = (html: string) => {
   expect(html).toContain(PRIMARY)
   expect(html).toContain("border-radius:999px")
   expect(html).not.toContain("linear-gradient")
+  // The report card is a stub with a perforated divider, not a card with a colored side bar.
+  expect(html).not.toContain("border-left")
+  expect(html).toContain("dashed")
   expect(html).not.toContain("#16a34a")
 }
 

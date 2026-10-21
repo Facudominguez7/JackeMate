@@ -19,6 +19,7 @@ export const EMAIL_COLORS = {
   mutedForeground: "#495a4f",
   subtle: "#f6f5f4",
   border: "#e2e0e0",
+  perforation: "#cfcac6",
   primary: "#278c5a",
   primaryOnDark: "#6ad8a1",
   accent: "#d8eee0",
@@ -66,25 +67,40 @@ export function emailPill(label: string, tone: EmailTone) {
 }
 
 /**
- * The report as a numbered file card: monospace eyebrow, title and a tone-colored edge.
+ * The report as the stub of a municipal form: a header strip with the report number and its
+ * state, a perforated line, then the title. Color lives only in the state pill.
  * `title` is plain text; `content` is already-escaped HTML placed under it.
  */
 export function emailPanel({
   eyebrow,
+  badge,
   title,
   content,
-  tone,
 }: {
   eyebrow?: string
+  badge?: { label: string; tone: EmailTone }
   title: string
   content?: string
-  tone?: EmailTone
 }) {
-  const edge = tone ? TONE_COLORS[tone] : EMAIL_COLORS.border
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="rp-rise rp-d2" style="margin:8px 0 24px 0;border-collapse:separate;">
+  const header =
+    eyebrow || badge
+      ? `<tr>
+    <td style="padding:14px 22px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="vertical-align:middle;">${eyebrow ? monoLabel("span", eyebrow, EMAIL_COLORS.mutedForeground) : ""}</td>
+          <td align="right" style="vertical-align:middle;">${badge ? emailPill(badge.label, badge.tone) : ""}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>`
+      : ""
+  const perforation = header ? `border-top:2px dashed ${EMAIL_COLORS.perforation};` : ""
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="rp-rise rp-d2" style="margin:8px 0 24px 0;border-collapse:separate;border:1px solid ${EMAIL_COLORS.border};border-radius:18px;background:${EMAIL_COLORS.subtle};">
+  ${header}
   <tr>
-    <td style="padding:20px 22px;border-radius:18px;background:${EMAIL_COLORS.subtle};border:1px solid ${EMAIL_COLORS.border};border-left:5px solid ${edge};">
-      ${eyebrow ? monoLabel("p", eyebrow, edge, "margin:0 0 6px 0;") : ""}
+    <td style="padding:18px 22px 20px 22px;${perforation}">
       <p style="margin:0;font-family:${FONT_SANS};font-size:18px;font-weight:600;line-height:1.35;letter-spacing:-0.2px;color:${EMAIL_COLORS.foreground};">${escapeHtml(title)}</p>
       ${content ?? ""}
     </td>

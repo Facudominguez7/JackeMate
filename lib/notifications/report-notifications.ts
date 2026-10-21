@@ -8,7 +8,6 @@ import {
   emailField,
   emailPanel,
   emailParagraph,
-  emailPill,
   escapeHtml,
   renderEmailLayout,
 } from "./email-layout";
@@ -90,7 +89,6 @@ export async function sendCommentNotificationEmail({
         emailPanel({
           eyebrow: `Reporte N.º ${reporteId}`,
           title: reporteTitulo,
-          tone: "success",
           content: emailField("Comentario", escapeHtml(comentarioContenido)),
         }),
         emailButton("Ver reporte completo", reportUrl),
@@ -143,11 +141,8 @@ export async function sendStatusNotificationEmail({
         emailPanel({
           eyebrow: `Reporte N.º ${reporteId}`,
           title: reporteTitulo,
-          tone: esReparado ? "success" : "danger",
-          content: [
-            `<p style="margin:12px 0 0 0;">${emailPill(nuevoEstado, esReparado ? "success" : "danger")}</p>`,
-            comentario ? emailField("Comentario", escapeHtml(comentario)) : "",
-          ].join("\n"),
+          badge: { label: nuevoEstado, tone: esReparado ? "success" : "danger" },
+          content: comentario ? emailField("Comentario", escapeHtml(comentario)) : "",
         }),
         emailParagraph(escapeHtml(mensajeAdicional)),
         emailButton("Ver detalles del reporte", reportUrl),
@@ -198,7 +193,6 @@ export async function sendCrewAssignedEmail({
         emailPanel({
           eyebrow: `Reporte N.º ${reporteId}`,
           title: reporteTitulo,
-          tone: "info",
           content: [
             cuadrillaNombre ? emailField("Cuadrilla", escapeHtml(cuadrillaNombre)) : "",
             detalle ? emailField("Detalle", escapeHtml(detalle)) : "",
