@@ -55,6 +55,14 @@ describe("GET /auth/confirm", () => {
     ).resolves.toBe("/mis-reportes?cuenta=vinculada")
   })
 
+  it("reads the destination when the email template inserts redirect_to unencoded", async () => {
+    mocks.verifyOtp.mockResolvedValueOnce({ data: {}, error: null })
+
+    await expect(
+      confirm("token_hash=abc&type=recovery&redirect_to=https://reporty.com.ar/auth/callback?next=%2Fauth%2Fnueva-contrasena"),
+    ).resolves.toBe("/auth/nueva-contrasena")
+  })
+
   it("opens the new password page after a recovery link without a destination", async () => {
     mocks.verifyOtp.mockResolvedValueOnce({ data: {}, error: null })
 
