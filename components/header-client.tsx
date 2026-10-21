@@ -70,7 +70,7 @@ export function HeaderClient({ user }: HeaderClientProps) {
     <>
       {showTopHeader && <div className="h-[calc(4.75rem+env(safe-area-inset-top))] shrink-0" aria-hidden="true" />}
       {showTopHeader && (
-        <header className="app-header fixed inset-x-0 top-0 z-40 flex min-h-[4.75rem] items-center justify-center border-b border-secondary-foreground/15 bg-secondary/30 px-4 pt-[env(safe-area-inset-top)] shadow-lg backdrop-blur-[2px] sm:px-6">
+        <header className="app-header fixed inset-x-0 top-0 z-40 flex min-h-[4.75rem] items-center justify-center bg-transparent px-4 pt-[env(safe-area-inset-top)] sm:px-6">
           {isReportDetail && (
             <div className="absolute left-4 top-1/2 -translate-y-1/2 sm:left-6">
               <BackButton />
