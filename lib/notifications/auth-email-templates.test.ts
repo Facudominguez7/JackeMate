@@ -55,6 +55,16 @@ describe("Supabase Auth email templates", () => {
     },
   )
 
+  // Supabase renders the templates without escaping variables, and the name comes from the signup
+  // form: unescaped, anyone could inject HTML into an email sent from our domain.
+  it.each(AUTH_EMAIL_TEMPLATES.map((template) => [template.file, template.html]))(
+    "%s escapes the user-provided name",
+    (_file, html) => {
+      expect(html).toContain("{{ .Data.name | html }}")
+      expect(html).not.toMatch(/\{\{ \.Data\.name \}\}/)
+    },
+  )
+
   it.each(AUTH_EMAIL_TEMPLATES.map((template) => [template.file, template.html]))(
     "supabase/templates/%s matches the generated template",
     (file, html) => {

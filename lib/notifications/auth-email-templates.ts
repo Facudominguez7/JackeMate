@@ -12,7 +12,8 @@
 import { emailButton, emailCode, emailLinkFallback, emailParagraph, renderEmailLayout } from "./email-layout"
 
 const SITE_URL = "{{ .SiteURL }}"
-const GREETING = "{{ if .Data.name }}¡Hola, {{ .Data.name }}!{{ else }}¡Hola!{{ end }}"
+/** Supabase does not escape template variables and the name comes from the signup form, so `html` escapes it. */
+const GREETING = "{{ if .Data.name }}¡Hola, {{ .Data.name | html }}!{{ else }}¡Hola!{{ end }}"
 const NOT_REQUESTED = "Si no pediste este correo, podés ignorarlo."
 
 /** `type` is the Supabase email OTP type that `/auth/confirm` passes to `verifyOtp`. */
