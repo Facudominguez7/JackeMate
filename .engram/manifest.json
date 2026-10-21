@@ -144,6 +144,14 @@
       "sessions": 1,
       "memories": 1,
       "prompts": 0
+    },
+    {
+      "id": "66ad2ddc",
+      "created_by": "facu",
+      "created_at": "2026-10-21T13:22:07.270113116Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 0
     }
   ]
 }
