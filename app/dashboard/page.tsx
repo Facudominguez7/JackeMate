@@ -241,7 +241,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </CardContent>
             </Card>
           ) : (
-            <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="incident-list">
               {data.userReports.map((report) => (
                 <ReportCompactCard
                   key={report.id}
@@ -252,6 +252,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   status={report.estado}
                   createdAt={report.createdAt}
                   image={report.imageUrl}
+                  category={report.categoria}
                 />
               ))}
             </div>

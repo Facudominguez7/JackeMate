@@ -17,7 +17,7 @@ export default async function RecuperarPage({ searchParams }: RecuperarPageProps
   const { error } = await searchParams
 
   return (
-    <div className="auth-shell bg-background px-4 py-6">
+    <div className="auth-shell px-4 py-6">
       <div className="mx-auto w-full max-w-md">
         <Card>
           <CardHeader className="pb-4">

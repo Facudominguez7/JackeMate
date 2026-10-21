@@ -38,7 +38,7 @@ export default function AuthPage() {
   const oauthError = searchParams.get("error") === "oauth"
 
   return (
-    <div className="auth-shell bg-background px-4 py-6">
+    <div className="auth-shell px-4 py-6">
       <div className="mx-auto w-full max-w-md">
         <Card>
           <CardHeader className="pb-4">

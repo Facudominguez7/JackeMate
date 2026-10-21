@@ -14,7 +14,6 @@ import { ReportCompactCard } from "@/components/report-compact-card"
 import { ReportCard } from "@/components/report-card"
 import { Loader2 } from "lucide-react"
 import type { EstadoOperativo } from "@/lib/authz/catalog"
-import { LoadingState } from "@/components/loading-state"
 import { Button } from "@/components/ui/button"
 
 export type ReportCardData = {
@@ -113,7 +112,7 @@ export function ListaReportesClient({
     return (
         <>
             {reports.length > 0 && (
-                <div className={variant === "compact" ? "grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2"}>
+                <div className={variant === "compact" ? "incident-list" : "grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2"}>
                     {reports.map((report) => (
                         variant === "compact" ? (
                              <ReportCompactCard
@@ -159,7 +158,10 @@ export function ListaReportesClient({
                             className="min-w-56"
                         >
                             {isLoading ? (
-                                <LoadingState text="Cargando reportes..." className="h-10 w-auto flex-row gap-2 px-4" showSkeleton={false} />
+                                <span className="inline-flex items-center gap-2">
+                                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                                    Cargando reportes...
+                                </span>
                             ) : (
                                 "Cargar Más Reportes"
                             )}

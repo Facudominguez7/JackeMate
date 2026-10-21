@@ -89,7 +89,7 @@ export function CuadrillasLoadingSkeleton() {
 export function NuevoReporteLoadingSkeleton() {
   return (
     <div className="page-shell">
-      <div className="page-container max-w-5xl space-y-6 md:space-y-8">
+      <div className="page-container space-y-6 md:space-y-8">
         <SectionHeaderSkeleton />
         <div className="space-y-6 rounded-[var(--radius-lg)] border border-border bg-card p-4 shadow-sm md:p-6">
           <div className="space-y-2">

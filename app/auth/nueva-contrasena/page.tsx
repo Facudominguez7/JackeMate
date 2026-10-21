@@ -23,7 +23,7 @@ export default async function NuevaContrasenaPage() {
   const canSetPassword = Boolean(user?.email) && !isAnonymousUser(user)
 
   return (
-    <div className="auth-shell bg-background px-4 py-6">
+    <div className="auth-shell px-4 py-6">
       <div className="mx-auto w-full max-w-md">
         <Card>
           {canSetPassword ? (

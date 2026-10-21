@@ -54,7 +54,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
           </Alert>
         )}
 
-        <section className="space-y-3">
+        <section className="incident-shell space-y-4 sm:space-y-5">
           <PageTitleBar
             icon={<MapPin className="size-4" />}
             title="Incidentes reportados"

@@ -56,7 +56,6 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import dynamic from "next/dynamic";
 import { MapLoadingSkeleton } from "@/components/loading-skeletons";
-import { BackButton } from "@/components/back-button";
 import { PageTitleBar } from "@/components/page-title-bar";
 import { toast } from "sonner";
 import type { Comentario, ReporteDetalle } from "@/database/queries/reportes/[id]/index";
@@ -386,7 +385,6 @@ export function ReporteDetalleClient({
       <div className="page-container space-y-4 md:space-y-6 lg:space-y-8">
         <section className="space-y-3">
           <PageTitleBar
-            leading={<BackButton />}
             icon={<FileSearch2 className="size-4" />}
             title="Detalle del reporte"
             description="Consultá el estado y los avances del reporte."

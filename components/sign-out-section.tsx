@@ -63,8 +63,8 @@ export function SignOutSection() {
       <AlertDialog open={open} onOpenChange={(next) => !isPending && setOpen(next)}>
         <AlertDialogTrigger asChild>
           <Button
-            size="lg"
-            className="w-full border border-secondary bg-secondary text-destructive hover:bg-secondary/90 sm:w-auto"
+            variant="destructive"
+            className="w-full sm:w-auto"
           >
             <LogOut className="size-4" aria-hidden="true" />
             Cerrar sesión

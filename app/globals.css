@@ -67,7 +67,7 @@
   --elevation-soft: 0 10px 30px color-mix(in oklab, var(--foreground) 12%, transparent);
   --card-shadow: 7px 7px 12px color-mix(in oklab, var(--foreground) 20%, transparent);
 
-  --bottom-nav-space: calc(4.75rem + env(safe-area-inset-bottom));
+  --bottom-nav-space: calc(4rem + env(safe-area-inset-bottom));
 
 }
 
@@ -136,11 +136,30 @@
 
 @layer components {
   .page-shell {
-    @apply min-h-full bg-muted/30 px-2 sm:px-4;
+    @apply min-h-full px-0;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    background:
+      radial-gradient(circle at 12% 0%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 34%),
+      radial-gradient(circle at 92% 14%, color-mix(in oklab, var(--semantic-info) 9%, transparent), transparent 30%),
+      var(--muted);
   }
 
   .app-header {
-    background-image: url("/reporty-header-ciudad.png");
+    isolation: isolate;
+    background: transparent;
+  }
+
+  .app-header::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: -1;
+    height: 9rem;
+    background-image:
+      linear-gradient(180deg, color-mix(in oklab, white 10%, transparent), color-mix(in oklab, white 2%, transparent)),
+      url("/Mapa minimalista costero pastel.png");
     background-position: center;
     background-size: cover;
   }
@@ -153,6 +172,11 @@
     padding-bottom: var(--bottom-nav-space);
   }
 
+  body:has([data-vaul-drawer-visible="true"]) nav[aria-label="Navegación principal"] {
+    pointer-events: none;
+    visibility: hidden;
+  }
+
   .auth-shell {
     display: flex;
     flex: 1 1 auto;
@@ -161,11 +185,25 @@
     align-items: center;
     justify-content: safe center;
     overflow-y: auto;
+    background-image:
+      linear-gradient(180deg, color-mix(in oklab, white 30%, transparent), color-mix(in oklab, white 72%, transparent)),
+      url("/Mapa minimalista costero pastel.png");
+    background-position: center;
+    background-size: cover;
   }
 
   .page-container {
-    @apply mx-auto w-full max-w-[120rem] rounded-t-[2rem] bg-card px-2 py-2 sm:px-6 md:py-4 lg:px-8 lg:py-6;
+    @apply relative z-50 mx-auto flex w-full max-w-[120rem] flex-1 flex-col rounded-[2.25rem] border border-white/70 bg-card/95 px-3 py-3 shadow-[0_22px_70px_-32px_color-mix(in_oklab,var(--foreground)_45%,transparent)] backdrop-blur-sm sm:px-6 md:py-5 lg:px-8 lg:py-7;
   }
+
+  .incident-shell {
+    @apply overflow-visible rounded-none border-0 bg-transparent p-0;
+  }
+
+  .incident-list {
+    @apply grid min-w-0 grid-cols-1 gap-3 p-1 sm:gap-4 sm:p-2 lg:grid-cols-2 xl:grid-cols-3;
+  }
+
 
   .page-stack {
     @apply space-y-8 md:space-y-12 lg:space-y-16;
@@ -180,11 +218,11 @@
   }
 
   .section-heading {
-    @apply rounded-full border border-border bg-card px-4 py-3 shadow-sm;
+    @apply rounded-full px-4 py-3;
   }
 
   .section-heading-icon {
-    @apply inline-flex size-9 items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground;
+    @apply inline-flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground;
   }
 
   .page-hero-panel {
