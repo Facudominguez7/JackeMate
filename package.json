@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "build": "next build --webpack",
+    "db:setup": "node scripts/local-supabase/setup.mjs",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
     "dev": "next dev",
     "email:templates": "vitest run --mode templates lib/notifications/auth-email-templates.test.ts",
     "lint": "eslint .",
@@ -79,6 +82,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.3.8",
     "postcss": "^8.5",
+    "supabase": "^2.121.0",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5",
