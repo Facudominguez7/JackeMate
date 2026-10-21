@@ -125,7 +125,17 @@
     height: env(safe-area-inset-top);
     z-index: 50;
     pointer-events: none;
-    background: var(--secondary);
+    background: white;
+  }
+
+  nav[aria-label="Navegación principal"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: env(safe-area-inset-bottom);
+    background: #000;
+    pointer-events: none;
   }
 
   ::selection {

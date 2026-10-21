@@ -16,6 +16,7 @@ Objective: Reorganize the incident listing around the supplied mobile reference 
 - S10. User follow-up (verbatim): "ahora si. En la pantalla de crear, osea reportes/nuevo, el fondo ese de mapa minimalista sigue mal en pc, pasa que en esa pantalla el contenedor de crear reporte no esta pegado al borde por eso creo"
 - S11. User follow-up (verbatim): "En pc me gustaria que los contenedores principales de cada page, se vean asi como se veian en crear en pc, solo que el bg del mapa minimalista en ese caso habria que arreglarlo, ya que solo ocupa ese ancho chico del layout/header, Solo en pc estoy diciendo, osea en pc cada contenedor principal no ocupa full todo el ancho, por eso se logra ver parte del bg atras, en el caso del bg del mapa, habria q hacer q ocupe toda la pantalla o nose"
 - S12. User follow-up (verbatim): "Al entrar a la vista de un reporte, el boton ese de back, osea que vuelve atras me gustaria que pase a la izquierda del logo ese del header de reporty, misma altura q el de como usar pero a la izquierda"
+- S13. User follow-up (verbatim): "los bordes que te dije tanto arriba y abajo para iphone esos que te habia dicho, ceo mejor conviene dejarlos blanco, o si es posible el de abajo del buscador de ios en negro y el de arriba, donde sta la camara frontal blanco"
 
 ## Tasks
 
@@ -32,6 +33,7 @@ Objective: Reorganize the incident listing around the supplied mobile reference 
 | T9 | S10 | inline | done | Removed the create-report-only max width from page and loading skeleton so the shared container reaches desktop edges |
 | T10 | S11 | inline | dropped | User withdrew the desktop-wide container/background adjustment; reverted without changing prior layout behavior |
 | T11 | S12 | inline | done | Added the report-detail back action to the shared header and removed the duplicate title-level action; focused checks passed |
+| T12 | S13 | inline | done | Set the mobile safe-area top to white and bottom indicator area to black; diff check passed |
 
 ## Log
 
@@ -47,3 +49,4 @@ Objective: Reorganize the incident listing around the supplied mobile reference 
 - L10: Desktop now restores a shared 64rem page-container width and moves the pastel map to a fixed body background, while mobile/tablet behavior remains unchanged.
 - L11: User withdrew S11; removed the desktop-only width and body-background overrides.
 - L12: Report detail now detects `/reportes/<id>` in the shared header, rendering the existing BackButton left of the logo; the duplicate PageTitleBar control was removed.
+- L13: Set the safe-area top inset to white and added a black bottom inset pseudo-element to the fixed navigation; zero-height safe areas remain unchanged.
