@@ -1,7 +1,7 @@
 # Email templates refresh
 
 Objective: every email Reporty sends (app notifications through Resend and Supabase Auth emails) uses the refreshed civic style.
-Branch: `feat/email-templates-refresh` · Delivery: ask-on-risk · Test runner: Vitest (`npx vitest run`).
+Branch: `feat/email-templates-refresh` · Delivery: ask-on-risk → stacked-to-main (T1 → T2 → T3) · Test runner: Vitest (`npx vitest run`).
 
 ## Specs
 
@@ -17,7 +17,7 @@ Branch: `feat/email-templates-refresh` · Delivery: ask-on-risk · Test runner: 
 
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
-| T1 | S1 | inline | pending | |
+| T1 | S1 | inline | done | b55b6a5 + postcard redesign commit; RED → GREEN, suite 53, Chrome 3 sizes, MailHog preview |
 | T2 | S2, S3 | inline | pending | |
 | T3 | S1, S2, S4 | inline | pending | |
 
@@ -33,3 +33,6 @@ Forecast: ~450 authored changed lines (generated HTML excluded); ask for the cha
 - **L1** (2026-10-21) User: "hay que verificar todas las plantillas de correo actuales para utilizar el nuevo estilo"
 - **L2** Context: Supabase now sends through Resend (`no-reply@notificaciones.reporty.com.ar`, domain verified). The first recovery emails were delivered but landed in spam: new sender, short English default template, and a link to `supabase.co`.
 - **L3** Theme tokens in hex: background `#eeecec`, foreground `#15140f`, primary `#278c5a`, muted foreground `#495a4f`, accent `#d8eee0`, accent foreground `#163524`, destructive `#cc3d3d`, border `#bababa`, info `#297cae`; radius 12px, pill buttons, black secondary.
+- **L4** (2026-10-21) User chose "PRs encadenados a main". T1 ≈570 changed lines, over half deleted legacy inline HTML; flag `size:exception` in its PR instead of an artificial split. RDD assess on b55b6a5: medium, review_due false (under_budget).
+- **L5** (2026-10-21) User: "pero antes usa mailhog para que pueda ver como quedaron los estilos". MailHog already runs in Docker (`mailhog`, SMTP 1025, UI 8025); the four app emails were rendered and sent there with HTML and plain-text parts.
+- **L6** (2026-10-21) User asked to apply the `<frontend_aesthetics>` guidelines (added to the local, gitignored AGENTS.md, which CLAUDE.md imports). Redesign: "postcard from Posadas" — coastal map header (`public/email/posadas-mapa.jpg`, 11 KB, cropped from the app backdrop with a baked fade), trimmed logo in a white map-label pill (`public/email/reporty-logo.png`), Geist + Geist Mono from Google Fonts (mono kickers and "Reporte N.º" eyebrows), report as a numbered file card, black pill CTA with a green arrow, staggered reveal only under `prefers-reduced-motion: no-preference`. Assets are served from the app URL, so they go live with the deploy.

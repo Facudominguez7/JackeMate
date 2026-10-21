@@ -10,7 +10,8 @@ vi.mock("resend", () => ({
   },
 }))
 
-const LOGO = "https://reporty.com.ar/logos/logoSinBg.png"
+const LOGO = "https://reporty.com.ar/email/reporty-logo.png"
+const MAP = "https://reporty.com.ar/email/posadas-mapa.jpg"
 const PRIMARY = "#278c5a"
 
 /** Returns the payload of the only email sent during the test. */
@@ -19,9 +20,16 @@ const sentEmail = () => {
   return mocks.send.mock.calls[0][0] as { from: string; to: string[]; subject: string; html: string; text: string }
 }
 
-/** Every app email shares the refreshed layout: logo, brand color, pill button and no legacy gradient. */
+/**
+ * Every app email shares the refreshed layout: Posadas map header, logo, brand fonts and color,
+ * pill button, a reduced-motion-safe reveal, and no legacy gradient.
+ */
 const expectNewStyle = (html: string) => {
   expect(html).toContain(`src="${LOGO}"`)
+  expect(html).toContain(`url('${MAP}')`)
+  expect(html).toContain("family=Geist:")
+  expect(html).toContain("'Geist Mono'")
+  expect(html).toContain("@media (prefers-reduced-motion: no-preference)")
   expect(html).toContain(PRIMARY)
   expect(html).toContain("border-radius:999px")
   expect(html).not.toContain("linear-gradient")
@@ -54,6 +62,8 @@ describe("report notification emails", () => {
     expect(email.html).toContain("Sigue igual &lt;script&gt;alert(1)&lt;/script&gt;")
     expect(email.html).not.toContain("<script>")
     expect(email.html).toContain('href="https://reporty.com.ar/reportes/42"')
+    expect(email.html).toContain("REPORTE N.º 42")
+    expect(email.html).toContain("NUEVO COMENTARIO")
     expect(email.text).toContain("https://reporty.com.ar/reportes/42")
     expect(email.text).toContain("Sigue igual <script>alert(1)</script>")
   })

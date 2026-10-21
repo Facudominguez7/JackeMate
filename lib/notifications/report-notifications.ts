@@ -80,12 +80,15 @@ export async function sendCommentNotificationEmail({
     to: [ownerEmail],
     subject: `Nuevo comentario en tu reporte: ${reporteTitulo}`,
     html: renderEmailLayout({
+      assetBaseUrl: getAppUrl(),
       title: "Nuevo comentario en tu reporte",
+      kicker: "Nuevo comentario",
       preheader: `${commenter} comentó en "${reporteTitulo}".`,
       heading: `¡Hola ${owner}!`,
       body: [
         emailParagraph(`<strong style="color:${EMAIL_COLORS.foreground};">${escapeHtml(commenter)}</strong> dejó un comentario en tu reporte:`),
         emailPanel({
+          eyebrow: `Reporte N.º ${reporteId}`,
           title: reporteTitulo,
           tone: "success",
           content: emailField("Comentario", escapeHtml(comentarioContenido)),
@@ -130,12 +133,15 @@ export async function sendStatusNotificationEmail({
     to: [ownerEmail],
     subject: `Tu reporte "${reporteTitulo}" cambió de estado`,
     html: renderEmailLayout({
+      assetBaseUrl: getAppUrl(),
       title: "Cambio de estado en tu reporte",
+      kicker: "Cambio de estado",
       preheader: `${titular}: "${reporteTitulo}".`,
       heading: `¡Hola ${owner}!`,
       body: [
         emailParagraph(escapeHtml(titular)),
         emailPanel({
+          eyebrow: `Reporte N.º ${reporteId}`,
           title: reporteTitulo,
           tone: esReparado ? "success" : "danger",
           content: [
@@ -182,12 +188,15 @@ export async function sendCrewAssignedEmail({
     to: [ownerEmail],
     subject: `Se asignó una cuadrilla a tu reporte "${reporteTitulo}"`,
     html: renderEmailLayout({
+      assetBaseUrl: getAppUrl(),
       title: "Se asignó una cuadrilla a tu reporte",
+      kicker: "Cuadrilla asignada",
       preheader: `Una cuadrilla va a trabajar en "${reporteTitulo}".`,
       heading: `¡Hola ${owner}!`,
       body: [
         emailParagraph(escapeHtml(intro)),
         emailPanel({
+          eyebrow: `Reporte N.º ${reporteId}`,
           title: reporteTitulo,
           tone: "info",
           content: [
