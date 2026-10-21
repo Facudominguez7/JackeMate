@@ -75,12 +75,14 @@ The production copy holds real user data:
 
 - `20261020120050_remote_schema.sql` is a `supabase db dump` of production taken on 2026-10-21 (`npm run db:setup -- --schema` regenerates it).
 - `20261020120060_match_production_grants.sql` and `20261020120070_auth_and_storage_objects.sql` restore what the dump leaves out: the revoked client privileges, plus the trigger and the policies production keeps in the `auth` and `storage` schemas.
-- These three files describe what production already has: never apply them there.
+- These three files describe what production already has. Production's migration history lists exactly these three versions, so the CLI never applies them there.
+  - It was aligned on 2026-10-21 (the equivalent of `supabase migration repair`). The previous 16 history rows are kept in `supabase_migrations.schema_migrations_backup_20261021`.
 - The migrations they replace are kept in `archive/migrations/` for their history.
 - `20261020120100_public_profiles_drop_rol_id.sql` is still pending in production.
 - New schema changes go in new migrations after these files:
   - Test them locally with `npm run db:setup -- --saved` (or `--empty`).
-  - Apply them to production as before; production's migration history does not match these file names.
+  - Apply them to production with `npx supabase db push --db-url "<session pooler connection string>"`. It lists the pending files and records each one under its file version.
+  - Do not apply them with the dashboard SQL editor or the MCP `apply_migration` tool: those record a different version (or none), and the history drifts from the repo again.
 
 ## Anonymous sign-ins: dashboard and environment
 

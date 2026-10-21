@@ -81,3 +81,8 @@ Route evidence: no Writer trigger reason (sequential units, context below the ba
   - `--schema` next to `--production`, `--saved` or `--empty` now fails with "--schema only regenerates the baseline; it takes no data option." instead of ignoring the flag. Option errors print the usage.
   - Vitest 105 passing (24 helper tests), tsc clean; `--production` and `--saved` rerun on Linux, real copy restored (hash unchanged).
   - Not changed: no `--env-only` option; the EPIPE path was not reproduced.
+- **L11** (2026-10-21) User asked whether the mismatched migration history was good practice, then authorized aligning it: "si, alinealo".
+  - Supabase's documented flow for an existing project is a production baseline plus `supabase migration repair`, so the history matches the repo.
+  - Before the change, production's privileges, function EXECUTE grants, `auth.users` trigger and storage policies were compared with the local stack built from 050+060+070: identical. The only difference was how `auth.jwt()` prints under another search_path.
+  - Production history: the 16 old rows were copied to `supabase_migrations.schema_migrations_backup_20261021`, then deleted, and 050, 060 and 070 inserted, all in one transaction. `list_migrations` now returns exactly those three. Their `statements` column is empty, because the rows were written over SQL rather than by the CLI.
+  - README: new migrations go to production with `npx supabase db push --db-url`. The dashboard SQL editor and the MCP `apply_migration` tool would record other versions.
