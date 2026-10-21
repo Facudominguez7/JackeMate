@@ -1,0 +1,10 @@
+# Supabase
+.branches
+.temp
+# Local copy of production data (real user data, never commit)
+.local
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
