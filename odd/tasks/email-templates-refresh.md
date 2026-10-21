@@ -17,8 +17,8 @@ Branch: `feat/email-templates-refresh` · Delivery: ask-on-risk → stacked-to-m
 
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
-| T1 | S1 | inline | done | b55b6a5 + postcard redesign commit; RED → GREEN, suite 53, Chrome 3 sizes, MailHog preview |
-| T2 | S2, S3 | inline | pending | |
+| T1 | S1 | inline | done | PR #124 (b55b6a5, b258600, e3331ea); RED → GREEN, suite 53, Chrome 3 sizes, MailHog preview |
+| T2 | S2, S3 | inline | done | branch fix/auth-confirm-links; RED 6 → GREEN, suite 61, Chrome 3 sizes |
 | T3 | S1, S2, S4 | inline | pending | |
 
 - T1: shared email layout with the new style; the three app emails use it; tests.
@@ -36,3 +36,5 @@ Forecast: ~450 authored changed lines (generated HTML excluded); ask for the cha
 - **L4** (2026-10-21) User chose "PRs encadenados a main". T1 ≈570 changed lines, over half deleted legacy inline HTML; flag `size:exception` in its PR instead of an artificial split. RDD assess on b55b6a5: medium, review_due false (under_budget).
 - **L5** (2026-10-21) User: "pero antes usa mailhog para que pueda ver como quedaron los estilos". MailHog already runs in Docker (`mailhog`, SMTP 1025, UI 8025); the four app emails were rendered and sent there with HTML and plain-text parts.
 - **L6** (2026-10-21) User asked to apply the `<frontend_aesthetics>` guidelines (added to the local, gitignored AGENTS.md, which CLAUDE.md imports). Redesign: "postcard from Posadas" — coastal map header (`public/email/posadas-mapa.jpg`, 11 KB, cropped from the app backdrop with a baked fade), trimmed logo in a white map-label pill (`public/email/reporty-logo.png`), Geist + Geist Mono from Google Fonts (mono kickers and "Reporte N.º" eyebrows), report as a numbered file card, black pill CTA with a green arrow, staggered reveal only under `prefers-reduced-motion: no-preference`. Assets are served from the app URL, so they go live with the deploy.
+- **L7** (2026-10-21) User approved the stub design ("me cierra asi si"). PR #124 opened for T1 (RDD assess: medium, not due, under_budget).
+- **L8** T2: `/auth/confirm` takes `next`, or the `next` inside Supabase's `redirect_to`, recovery defaults to `/auth/nueva-contrasena`, expired links go to `/auth/recuperar?error=enlace` or `/auth?error=enlace&next=...` (new alert on `/auth`). Follow-up for T3: the "abrilo desde este mismo navegador" copy in the recovery and guest-link messages stays until the token_hash templates are live in Supabase.

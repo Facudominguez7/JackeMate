@@ -36,6 +36,7 @@ export default function AuthPage() {
   const [signupState, signupAction] = useActionState(signup, initialState)
   const nextPath = obtenerRutaInternaSegura(searchParams.get("next"))
   const oauthError = searchParams.get("error") === "oauth"
+  const enlaceError = searchParams.get("error") === "enlace"
 
   return (
     <div className="auth-shell px-4 py-6">
@@ -50,6 +51,12 @@ export default function AuthPage() {
               <Alert variant="destructive">
                 <AlertTitle>No se pudo iniciar sesión</AlertTitle>
                 <AlertDescription>Intentá nuevamente con Google.</AlertDescription>
+              </Alert>
+            )}
+            {enlaceError && (
+              <Alert variant="destructive">
+                <AlertTitle>El enlace no es válido</AlertTitle>
+                <AlertDescription>Venció o ya se usó. Iniciá sesión o pedí un correo nuevo.</AlertDescription>
               </Alert>
             )}
 
