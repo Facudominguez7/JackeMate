@@ -1,0 +1,101 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { sendCommentNotificationEmail, sendCrewAssignedEmail, sendStatusNotificationEmail } from "./report-notifications"
+
+const mocks = vi.hoisted(() => ({ send: vi.fn() }))
+
+vi.mock("resend", () => ({
+  Resend: class {
+    emails = { send: mocks.send }
+  },
+}))
+
+const LOGO = "https://reporty.com.ar/logos/logoSinBg.png"
+const PRIMARY = "#278c5a"
+
+/** Returns the payload of the only email sent during the test. */
+const sentEmail = () => {
+  expect(mocks.send).toHaveBeenCalledTimes(1)
+  return mocks.send.mock.calls[0][0] as { from: string; to: string[]; subject: string; html: string; text: string }
+}
+
+/** Every app email shares the refreshed layout: logo, brand color, pill button and no legacy gradient. */
+const expectNewStyle = (html: string) => {
+  expect(html).toContain(`src="${LOGO}"`)
+  expect(html).toContain(PRIMARY)
+  expect(html).toContain("border-radius:999px")
+  expect(html).not.toContain("linear-gradient")
+  expect(html).not.toContain("#16a34a")
+}
+
+describe("report notification emails", () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.stubEnv("RESEND_API_KEY", "test-key")
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://reporty.com.ar")
+  })
+
+  it("sends the new comment email with the refreshed layout", async () => {
+    await sendCommentNotificationEmail({
+      ownerEmail: "ana@example.com",
+      ownerUsername: "Ana",
+      commenterUsername: "Beto <b>",
+      reporteId: 42,
+      reporteTitulo: "Bache en Av. Uruguay",
+      comentarioContenido: "Sigue igual <script>alert(1)</script>",
+    })
+
+    const email = sentEmail()
+    expect(email.from).toBe("Reporty <team@notificaciones.reporty.com.ar>")
+    expect(email.to).toEqual(["ana@example.com"])
+    expect(email.subject).toBe("Nuevo comentario en tu reporte: Bache en Av. Uruguay")
+    expectNewStyle(email.html)
+    expect(email.html).toContain("Beto &lt;b&gt;")
+    expect(email.html).toContain("Sigue igual &lt;script&gt;alert(1)&lt;/script&gt;")
+    expect(email.html).not.toContain("<script>")
+    expect(email.html).toContain('href="https://reporty.com.ar/reportes/42"')
+    expect(email.text).toContain("https://reporty.com.ar/reportes/42")
+    expect(email.text).toContain("Sigue igual <script>alert(1)</script>")
+  })
+
+  it.each([
+    ["Reparado", "REPARADO", "Tu reporte ha sido marcado como Reparado"],
+    ["Rechazado", "RECHAZADO", "Tu reporte ha sido Rechazado"],
+  ])("sends the %s status email with its state pill", async (estado, pill, headline) => {
+    await sendStatusNotificationEmail({
+      ownerEmail: "ana@example.com",
+      ownerUsername: "Ana",
+      reporteId: 7,
+      reporteTitulo: "Luminaria apagada",
+      nuevoEstado: estado,
+      comentario: "Revisado por el equipo",
+    })
+
+    const email = sentEmail()
+    expect(email.subject).toBe('Tu reporte "Luminaria apagada" cambió de estado')
+    expectNewStyle(email.html)
+    expect(email.html).toContain(pill)
+    expect(email.html).toContain(headline)
+    expect(email.html).toContain("Revisado por el equipo")
+    expect(email.html).toContain('href="https://reporty.com.ar/reportes/7"')
+    expect(email.text).toContain(headline)
+  })
+
+  it("sends the crew assignment email with the refreshed layout", async () => {
+    await sendCrewAssignedEmail({
+      ownerEmail: "ana@example.com",
+      ownerUsername: null,
+      reporteId: 9,
+      reporteTitulo: "Árbol caído",
+      cuadrillaNombre: "Cuadrilla Norte",
+      detalle: null,
+    })
+
+    const email = sentEmail()
+    expect(email.subject).toBe('Se asignó una cuadrilla a tu reporte "Árbol caído"')
+    expectNewStyle(email.html)
+    expect(email.html).toContain("Hola Usuario")
+    expect(email.html).toContain("Cuadrilla Norte")
+    expect(email.html).toContain('href="https://reporty.com.ar/reportes/9"')
+  })
+})
