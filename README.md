@@ -190,7 +190,7 @@ sequenceDiagram
 
 1. **Clonar el repositorio**
    ```bash
-   git clone https://github.com/Facudominguez7/JackeMate.git
+   git clone https://github.com/Facudominguez7/Reporty.git
    cd Reporty
    ```
 
