@@ -96,6 +96,38 @@ export class TestData {
     return data as { id: number; titulo: string }
   }
 
+  /**
+   * Tracks a report created through the app, and its owner, by its unique title. Covers guests,
+   * whose anonymous identity is created in the browser.
+   */
+  async trackReportByTitle(titulo: string) {
+    const { data, error } = await this.supabase.from("reportes").select("id, usuario_id").eq("titulo", titulo).single()
+    if (error) throw error
+    this.reportIds.add(data.id)
+    this.trackUser(data.usuario_id)
+    return data as { id: number; usuario_id: string }
+  }
+
+  /** Size in bytes of each stored photo of a report and its thumbnail. */
+  async storedPhotoSizes(reportId: number) {
+    const { data, error } = await this.supabase
+      .from("fotos_reporte")
+      .select("path, thumbnail_path")
+      .eq("reporte_id", reportId)
+    if (error) throw error
+
+    const sizeOf = async (path: string | null) => {
+      if (!path) return null
+      const { data: file, error: downloadError } = await this.supabase.storage.from("reportes").download(path)
+      if (downloadError) throw downloadError
+      return file.size
+    }
+
+    return Promise.all(
+      data.map(async (photo) => ({ photo: await sizeOf(photo.path), thumbnail: await sizeOf(photo.thumbnail_path) })),
+    )
+  }
+
   /** Tracks reports created through the app, by their owner. */
   async trackReportsOf(userId: string) {
     const { data, error } = await this.supabase.from("reportes").select("id").eq("usuario_id", userId)
