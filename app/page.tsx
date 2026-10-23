@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
-    <section className="flex min-h-0 flex-1 items-center justify-center p-3 sm:p-6" aria-labelledby="welcome-title">
+    <section className="welcome-screen flex min-h-0 flex-1 items-center justify-center p-3 sm:p-6" aria-labelledby="welcome-title">
       <div className="page-container w-full max-w-3xl items-center justify-center gap-4 px-5 py-6 text-center sm:gap-6 sm:px-10 sm:py-10">
         <Image
           src="/logos/logoSinBg.png"
@@ -21,7 +21,7 @@ export default function HomePage() {
           </h1>
           <p className="section-copy mx-auto">
             Encontrá problemas de la ciudad en el mapa o contá qué está pasando en tu barrio.
-            Entre todos, es más fácil que se vea.
+            Entre todos, es más fácil que se vea. <span className="text-primary">Es gratis.</span>
           </p>
         </div>
         <Link href="/mapa" className={buttonVariants({ size: "lg", className: "mt-1" })}>
