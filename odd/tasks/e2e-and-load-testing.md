@@ -1,7 +1,7 @@
 # E2E and load testing (#144)
 
 Objective: automated end-to-end tests of Reporty's main flows, email checks without real sends, and a load test of the public pages, all against the local Supabase stack.
-Branches: `test/e2e-0N-*`, one per slice · Delivery: ask-on-risk → user chose stacked PRs to main (forecast ~990 authored lines, over the 400-line budget) · Test runners: Vitest (`npx vitest run`) and Playwright (`npx playwright test`, system Chrome).
+Branches: `chore/e2e-0N-*` (`test/…` is impossible: a remote branch named `test` exists), one per slice · Delivery: ask-on-risk → user chose stacked PRs to main (forecast ~990 authored lines, over the 400-line budget) · Test runners: Vitest (`npx vitest run`) and Playwright (`npx playwright test`, system Chrome).
 
 ## Specs
 
@@ -21,7 +21,7 @@ Branches: `test/e2e-0N-*`, one per slice · Delivery: ask-on-risk → user chose
 
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
-| T1 | S2, S4, S6 | inline | done (commit "test(e2e): set up Playwright against local Supabase…" on test/e2e-01-setup) | Playwright setup, web server, data factory and cleanup, fake Resend; public-browsing spec (Mailpit client moves to T2, its first user) |
+| T1 | S2, S4, S6 | inline | done (commit "test(e2e): set up Playwright against local Supabase…" on chore/e2e-01-setup) | Playwright setup, web server, data factory and cleanup, fake Resend; public-browsing spec (Mailpit client moves to T2, its first user) |
 | T2 | S2, S4, S6 | inline | pending | account specs: sign-up + confirmation, login, logout, recovery |
 | T3 | S2, S3, S6 | inline | pending | report specs: registered and guest creation with a heavy photo, delete own report |
 | T4 | S2, S4, S6 | inline | pending | community specs: comment + notification email, vote, admin state change + email |
@@ -32,11 +32,11 @@ Branches: `test/e2e-0N-*`, one per slice · Delivery: ask-on-risk → user chose
 
 | PR | Branch | Tasks | Forecast | Depends on |
 |----|--------|-------|----------|------------|
-| 1 | `test/e2e-01-setup` | T1 + E2E docs | ~370 | none |
-| 2 | `test/e2e-02-accounts` | T2 | ~150 | PR 1 |
-| 3 | `test/e2e-03-reports` | T3 | ~180 | PR 1 |
-| 4 | `test/e2e-04-community` | T4 | ~200 | PR 1 |
-| 5 | `test/e2e-05-load` | T5 + load-test docs | ~90 | none |
+| 1 | `chore/e2e-01-setup` | T1 + E2E docs | ~370 | none |
+| 2 | `chore/e2e-02-accounts` | T2 | ~150 | PR 1 |
+| 3 | `chore/e2e-03-reports` | T3 | ~180 | PR 1 |
+| 4 | `chore/e2e-04-community` | T4 | ~200 | PR 1 |
+| 5 | `chore/e2e-05-load` | T5 + load-test docs | ~90 | none |
 
 Each branch starts from `main` once its parent merged, or from the parent branch while it is still open (then it is rebased onto `main` after the parent merges).
 
@@ -47,5 +47,5 @@ Route evidence: one writer (the parent) works inline; no Writer trigger (no para
 - **L1** (2026-10-23) User: "con que seguimos" → recommended #144 with the three-part approach (automated end-to-end tests of the main flows, email checks without real sends, a load test of the public pages, all on the local Supabase). User: "si".
 - **L2** Findings: no Playwright, load tool or CI exists. `resend@6.20.0` reads `RESEND_BASE_URL`. Local Mailpit at `http://127.0.0.1:54324`. `next build` uses `--webpack`. `.env` points to production, so every run overrides the `NEXT_PUBLIC_SUPABASE_*` values and `RESEND_API_KEY`.
 - **L3** User asked "por que calculas tantas lineas?" and "osea son todos tests": explained the per-task estimate and that no app code changes (only an accessibility fix if a test finds an unlabeled control, reported separately).
-- **L4** User: "prs encadenadas a main". Next step: T1 on `test/e2e-01-setup`.
-- **L5** 2026-10-23 T1 verified: `npx playwright test` 4 passed twice (map markers, list search → detail, state filter, not-found); first run failed on 2 selectors (the detail page title is not a heading; "Reporte no encontrado" also matches `<title>`), fixed. Vitest 146 passed, tsc clean, eslint clean on `e2e/`. No `e2e-` users, reports or storage objects left in the local DB. Docs: README "Pruebas", `npm run test:e2e`, `.gitignore` for Playwright output. Next: PR 1 push/PR after user approval, then T2 on `test/e2e-02-accounts`.
+- **L4** User: "prs encadenadas a main". Next step: T1 on `chore/e2e-01-setup`.
+- **L5** 2026-10-23 T1 verified: `npx playwright test` 4 passed twice (map markers, list search → detail, state filter, not-found); first run failed on 2 selectors (the detail page title is not a heading; "Reporte no encontrado" also matches `<title>`), fixed. Vitest 146 passed, tsc clean, eslint clean on `e2e/`. No `e2e-` users, reports or storage objects left in the local DB. Docs: README "Pruebas", `npm run test:e2e`, `.gitignore` for Playwright output. Next: PR 1 push/PR after user approval, then T2 on `chore/e2e-02-accounts`.
