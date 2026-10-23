@@ -344,7 +344,7 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
     })
 
     const clusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 36,
+      maxClusterRadius: 56,
       animate: true,
       showCoverageOnHover: false,
       zoomToBoundsOnClick: true,
