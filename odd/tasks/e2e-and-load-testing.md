@@ -22,7 +22,7 @@ Branches: `chore/e2e-0N-*` (`test/…` is impossible: a remote branch named `tes
 | ID | Specs | Route | Status | Evidence |
 |----|-------|-------|--------|----------|
 | T1 | S2, S4, S6 | inline | done (commit "test(e2e): set up Playwright against local Supabase…" on chore/e2e-01-setup) | Playwright setup, web server, data factory and cleanup, fake Resend; public-browsing spec (Mailpit client moves to T2, its first user) |
-| T2 | S2, S4, S6 | inline | pending | account specs: sign-up + confirmation, login, logout, recovery |
+| T2 | S2, S4, S6 | inline | done (commit "test(e2e): cover sign-up, sign-in, sign-out and password recovery" on chore/e2e-02-accounts) | account specs: sign-up + confirmation, login, logout, recovery; Mailpit client |
 | T3 | S2, S3, S6 | inline | pending | report specs: registered and guest creation with a heavy photo, delete own report |
 | T4 | S2, S4, S6 | inline | pending | community specs: comment + notification email, vote, admin state change + email |
 | T5 | S5 | inline | pending | k6 script and recorded results |
@@ -49,3 +49,4 @@ Route evidence: one writer (the parent) works inline; no Writer trigger (no para
 - **L3** User asked "por que calculas tantas lineas?" and "osea son todos tests": explained the per-task estimate and that no app code changes (only an accessibility fix if a test finds an unlabeled control, reported separately).
 - **L4** User: "prs encadenadas a main". Next step: T1 on `chore/e2e-01-setup`.
 - **L5** 2026-10-23 T1 verified: `npx playwright test` 4 passed twice (map markers, list search → detail, state filter, not-found); first run failed on 2 selectors (the detail page title is not a heading; "Reporte no encontrado" also matches `<title>`), fixed. Vitest 146 passed, tsc clean, eslint clean on `e2e/`. No `e2e-` users, reports or storage objects left in the local DB. Docs: README "Pruebas", `npm run test:e2e`, `.gitignore` for Playwright output. Next: PR 1 push/PR after user approval, then T2 on `chore/e2e-02-accounts`.
+- **L6** 2026-10-23 PR 1 opened as #166 on `chore/e2e-01-setup` (a remote branch named `test` makes `test/*` names impossible). T2 verified on `chore/e2e-02-accounts`: full suite 8 passed (4 accounts + 4 public). Auth emails are read from Mailpit; their links point to the stack Site URL (port 3000), so tests open the same path on port 3100; no config change was needed. Logout redirects `/dashboard` to `/auth?next=%2Fdashboard`. No `e2e-` users, reports or Mailpit messages left. eslint and tsc clean. Next: T3 on `chore/e2e-03-reports`.

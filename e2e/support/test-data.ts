@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto"
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
+import { deleteAuthEmailsTo } from "./mailpit"
+
 /** Posadas downtown, so test reports land inside the map's area. */
 export const POSADAS = { lat: -27.3671, lon: -55.8961 }
 
@@ -24,16 +26,29 @@ export type TestUser = { id: string; email: string; password: string; username: 
 /**
  * Creates the users and reports a test needs and, once the test ends, hard-deletes every row and
  * storage object it created: reports (with their photos, votes and history), then auth users
- * (which removes their profiles). Pre-existing rows are never touched.
+ * (which removes their profiles), then the auth emails they got. Pre-existing rows are never touched.
  */
 export class TestData {
   private readonly supabase = adminClient()
   private readonly userIds = new Set<string>()
   private readonly reportIds = new Set<number>()
+  private readonly mailboxes = new Set<string>()
 
   /** Tracks a user created through the app itself, such as one who signs up in a test. */
   trackUser(id: string) {
     this.userIds.add(id)
+  }
+
+  /** Remembers an address whose auth emails must be deleted from Mailpit. */
+  trackMailbox(email: string) {
+    this.mailboxes.add(email)
+  }
+
+  /** An address no account uses yet, for tests that sign up through the app. */
+  newEmail() {
+    const email = `${uniqueTag()}@e2e.reporty.test`
+    this.trackMailbox(email)
+    return email
   }
 
   async trackUserByEmail(email: string) {
@@ -52,6 +67,7 @@ export class TestData {
     })
     if (error || !data.user) throw error ?? new Error("Could not create the test user")
     this.trackUser(data.user.id)
+    this.trackMailbox(email)
 
     const username = tag.replace("-", "_")
     const { error: profileError } = await this.supabase.from("profiles").update({ username }).eq("id", data.user.id)
@@ -113,7 +129,10 @@ export class TestData {
       if (error && !/not found/i.test(error.message)) throw error
     }
 
+    for (const email of this.mailboxes) await deleteAuthEmailsTo(email)
+
     this.reportIds.clear()
     this.userIds.clear()
+    this.mailboxes.clear()
   }
 }
