@@ -24,3 +24,7 @@ SELECT pg_catalog.setval('public.categorias_id_seq', 7, true);
 SELECT pg_catalog.setval('public.estados_id_seq', 2, true);
 SELECT pg_catalog.setval('public.prioridades_id_seq', 3, true);
 SELECT pg_catalog.setval('public.roles_id_seq', 4, true);
+
+-- Public bucket for report photos, as in production: 100 KB per file, images only.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('reportes', 'reportes', true, 102400, ARRAY['image/jpeg', 'image/png', 'image/webp']);

@@ -233,6 +233,22 @@ async function pullProduction() {
   fail("The production dump failed three times.")
 }
 
+/**
+ * Files uploaded before the bucket got its current size limit can be heavier than it. Production
+ * keeps them, so the copy lifts the limit while it uploads and puts it back afterwards.
+ */
+async function withoutBucketSizeLimit(run) {
+  const limit = localSql(`select coalesce(file_size_limit::text, 'null') from storage.buckets where id = '${BUCKET}';`).trim()
+  if (!limit) return run()
+
+  localSql(`update storage.buckets set file_size_limit = null where id = '${BUCKET}';`)
+  try {
+    return await run()
+  } finally {
+    localSql(`update storage.buckets set file_size_limit = ${limit} where id = '${BUCKET}';`)
+  }
+}
+
 async function syncStorage(status) {
   const objects = JSON.parse(
     localSql(
@@ -323,7 +339,7 @@ async function main() {
   } else {
     await loadSqlFile(DATA_FILE)
     console.log(`  Production copy from ${statSync(DATA_FILE).mtime.toLocaleString()} loaded.`)
-    await syncStorage(status)
+    await withoutBucketSizeLimit(() => syncStorage(status))
   }
 
   step("App environment")
