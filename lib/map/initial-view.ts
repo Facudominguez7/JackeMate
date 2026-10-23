@@ -49,7 +49,7 @@ export const INITIAL_MAP_VIEW_CONFIG: InitialMapViewConfig = {
   minZoom: POSADAS_MIN_ZOOM,
   maxZoom: MAP_MAX_ZOOM,
   // Same margin LeafletMap uses when reports change; a smaller margin keeps the initial view closer.
-  padding: 0.05,
+  padding: 0.02,
   maxBounds: POSADAS_BOUNDS,
 }
 

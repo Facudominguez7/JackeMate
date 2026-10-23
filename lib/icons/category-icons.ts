@@ -55,7 +55,13 @@ export const getCategoryIconNode = (category: string): CategoryIconNode =>
 const categoryIconComponents = new Map(
   Object.entries(categoryIconNodes).map(([category, iconNode]) => [
     category,
-    createLucideIcon(`ReportyCategory${category.replace(/\s+/g, "")}`, iconNode),
+    createLucideIcon(
+      `ReportyCategory${category.replace(/\s+/g, "")}`,
+      iconNode.map(([tag, attributes], index) => [
+        tag,
+        { ...attributes, key: `${category}-${index}` },
+      ]),
+    ),
   ])
 )
 

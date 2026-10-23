@@ -152,13 +152,13 @@ export function MapaClient({ reportes, categorias, estados, prioridades, error }
       <div className="absolute bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-4 z-30 flex flex-col items-end gap-3 sm:right-6">
         {showActions && (
           <div className="flex flex-col items-end gap-2">
-            <Link href="/reportes" className={mapActionLinkClassName}>
-              <List className="size-4" aria-hidden="true" />
-              Ver reportes
-            </Link>
             <Link href="/reportes/nuevo" className={mapActionLinkClassName}>
               <FilePlus2 className="size-4" aria-hidden="true" />
               Crear reporte
+            </Link>
+            <Link href="/reportes" className={mapActionLinkClassName}>
+              <List className="size-4" aria-hidden="true" />
+              Ver reportes
             </Link>
           </div>
         )}

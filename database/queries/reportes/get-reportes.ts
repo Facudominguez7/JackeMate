@@ -44,6 +44,12 @@ type ReporteDBRaw = Omit<ReporteDB, "fotos"> & {
   fotos: ReportImageRow[] | null
 }
 
+export type ReportStatusCounts = {
+  all: number
+  resolved: number
+  pending: number
+}
+
 export type FiltrosReportes = {
   search?: string
   categoria?: string
@@ -390,6 +396,52 @@ function adjuntarEstadoOperativo<T extends { id: number }>(
       cuadrillaNombre: estado?.cuadrillaNombre ?? null,
     }
   })
+}
+
+export async function getReportStatusCounts(
+  filtros: Pick<FiltrosReportes, "search" | "categoria" | "prioridad"> = {},
+): Promise<ReportStatusCounts> {
+  const supabase = await createClient()
+  const { search, categoria, prioridad } = filtros
+
+  const buildCountQuery = (estadoId?: number) => {
+    let query = supabase
+      .from("reportes")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null)
+
+    if (search && search.trim() !== "") {
+      query = query.or(`titulo.ilike.%${search}%,descripcion.ilike.%${search}%`)
+    }
+
+    const categoriaId = resolveLookupFilterId(CATEGORY_FILTER_IDS, categoria)
+    if (categoriaId !== null) {
+      query = query.eq("categoria_id", categoriaId)
+    }
+
+    const prioridadId = resolveLookupFilterId(PRIORITY_FILTER_IDS, prioridad)
+    if (prioridadId !== null) {
+      query = query.eq("prioridad_id", prioridadId)
+    }
+
+    if (estadoId !== undefined) {
+      query = query.eq("estado_id", estadoId)
+    }
+
+    return query
+  }
+
+  const [{ count: all }, { count: resolved }, { count: pending }] = await Promise.all([
+    buildCountQuery(),
+    buildCountQuery(REPORT_STATE_IDS.REPARADO),
+    buildCountQuery(REPORT_STATE_IDS.PENDIENTE),
+  ])
+
+  return {
+    all: all ?? 0,
+    resolved: resolved ?? 0,
+    pending: pending ?? 0,
+  }
 }
 
 export async function getReportCardData(filtros: FiltrosReportes = {}) {

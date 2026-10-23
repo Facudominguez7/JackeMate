@@ -2,15 +2,17 @@ import Link from "next/link"
 
 import { badgeVariants } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import type { ReportStatusCounts } from "@/database/queries/reportes/get-reportes"
 
 type EstadoReportesProps = {
   searchParams: Record<string, string | undefined>
+  counts: ReportStatusCounts
 }
 
 const statusOptions = [
-  { label: "Todos", value: null },
-  { label: "Resueltos", value: "Reparado" },
-  { label: "Pendientes", value: "Pendiente" },
+  { label: "Todos", value: null, countKey: "all" },
+  { label: "Resueltos", value: "Reparado", countKey: "resolved" },
+  { label: "Pendientes", value: "Pendiente", countKey: "pending" },
 ] as const
 
 function buildStatusHref(searchParams: Record<string, string | undefined>, value: string | null) {
@@ -27,7 +29,7 @@ function buildStatusHref(searchParams: Record<string, string | undefined>, value
   return query ? `/reportes?${query}` : "/reportes"
 }
 
-export function EstadoReportes({ searchParams }: EstadoReportesProps) {
+export function EstadoReportes({ searchParams, counts }: EstadoReportesProps) {
   const currentStatus = searchParams.estado?.toLowerCase() ?? "all"
 
   return (
@@ -59,6 +61,7 @@ export function EstadoReportes({ searchParams }: EstadoReportesProps) {
               )}
             >
               {option.label}
+              <span className="text-xs font-normal opacity-70">({counts[option.countKey]})</span>
             </Link>
           )
         })}

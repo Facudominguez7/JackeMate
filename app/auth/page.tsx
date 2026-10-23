@@ -273,9 +273,6 @@ export default function AuthPage() {
             <div className="space-y-3 border-t border-border pt-5">
               <div className="space-y-1 text-center">
                 <p className="text-sm font-medium">¿Solo querés reportar un problema?</p>
-                <p className="text-xs text-muted-foreground">
-                  Podés hacerlo sin cuenta. Tus reportes quedan guardados en este navegador y después podés vincular tu correo.
-                </p>
               </div>
               <Button asChild variant="outline" className="w-full">
                 <Link href={GUEST_REPORT_PATH}>

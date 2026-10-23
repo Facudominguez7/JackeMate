@@ -6,7 +6,14 @@ import { ListaReportesClient } from "@/components/lista-reportes-client"
 import { EstadoReportes } from "./estado-reportes"
 import { ReportesClientWrapper } from "./reportes-client"
 import { PageTitleBar } from "@/components/page-title-bar"
-import { getCategorias, getEstados, getPrioridades, getReportCardData } from "@/database/queries/reportes/get-reportes"
+import { ReportesSearch } from "@/components/reportes-search"
+import {
+  getCategorias,
+  getEstados,
+  getPrioridades,
+  getReportCardData,
+  getReportStatusCounts,
+} from "@/database/queries/reportes/get-reportes"
 
 export const dynamic = "force-dynamic"
 
@@ -29,6 +36,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
     { data: categorias },
     { data: estados },
     { data: prioridades },
+    statusCounts,
   ] = await Promise.all([
     getReportCardData({
       search,
@@ -41,6 +49,7 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
     getCategorias(),
     getEstados(),
     getPrioridades(),
+    getReportStatusCounts({ search, categoria, prioridad }),
   ])
 
   return (
@@ -67,7 +76,8 @@ export default async function ReportesPage({ searchParams }: ReportesPageProps) 
               />
             }
           />
-          <EstadoReportes searchParams={params} />
+          <ReportesSearch key={params.search ?? ""} />
+          <EstadoReportes searchParams={params} counts={statusCounts} />
 
           {reports.length > 0 ? (
             <ListaReportesClient initialReports={reports} initialHasMore={hasMore ?? false} variant="compact" />
