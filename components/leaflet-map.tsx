@@ -344,11 +344,13 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
     })
 
     const clusterGroup = L.markerClusterGroup({
-      maxClusterRadius: 56,
+      maxClusterRadius: 36,
       animate: true,
       showCoverageOnHover: false,
       zoomToBoundsOnClick: true,
-      disableClusteringAtZoom: 18,
+      // Keep clustering through the maximum visible zoom so overlapping reports can spiderfy.
+      disableClusteringAtZoom: MAP_MAX_ZOOM + 1,
+      spiderfyOnMaxZoom: true,
       iconCreateFunction: (cluster) => {
         const count = cluster.getChildCount()
         const size = count > 10 ? 50 : count > 5 ? 40 : 30
@@ -363,6 +365,16 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
 
     tileLayer.addTo(map)
     clusterGroup.addTo(map)
+
+    map.on("zoomend", () => {
+      if (map.getZoom() < MAP_MAX_ZOOM) return
+
+      const visibleLayers = clusterGroup.getLayers()
+      for (const layer of visibleLayers) {
+        const spiderfy = (layer as L.Layer & { spiderfy?: () => void }).spiderfy
+        if (spiderfy) spiderfy.call(layer)
+      }
+    })
 
     mapRef.current = map
     tileLayerRef.current = tileLayer
