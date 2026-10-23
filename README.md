@@ -211,9 +211,9 @@ sequenceDiagram
    NEXT_PUBLIC_APP_URL=http://localhost:3000
    # Opcional: habilita la gestión de cuadrillas (desactivada si no se define)
    CUADRILLAS_ENABLED=true
-   # Opcional: ID del contenedor de Google Tag Manager (GTM-XXXXXXX).
+   # Opcional: ID de medición de Google Analytics 4 (G-XXXXXXXXXX).
    # Definilo solo en Production de Vercel para no medir dev ni previews.
-   NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX
+   NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
    ```
 
    La gestión de cuadrillas está desactivada en producción. `CUADRILLAS_ENABLED` se lee en el servidor mientras la app corre: para activarla basta con definirla en `true` y reiniciar, sin volver a compilar.
