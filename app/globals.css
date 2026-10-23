@@ -68,6 +68,7 @@
   --card-shadow: 7px 7px 12px color-mix(in oklab, var(--foreground) 20%, transparent);
 
   --bottom-nav-space: calc(4rem + env(safe-area-inset-bottom));
+  --map-background: url("/mapas/mapaMobile.webp");
 
 }
 
@@ -116,12 +117,15 @@
   body {
     @apply text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    background-image:
-      linear-gradient(180deg, color-mix(in oklab, white 24%, transparent), color-mix(in oklab, white 72%, transparent)),
-      url("/Mapa minimalista costero pastel.png");
+    background-image: var(--map-background);
     background-position: center;
     background-size: cover;
     background-attachment: fixed;
+  }
+
+  body:has(.app-header) {
+    background-color: rgb(255 255 255 / 0.45);
+    background-blend-mode: screen;
   }
 
   body::before {
@@ -150,7 +154,21 @@
   }
 }
 
+@media (min-width: 768px) {
+  :root {
+    --map-background: url("/mapas/mapaDesktop.webp");
+  }
+}
+
 @layer components {
+  body:has(.welcome-screen) {
+    overflow: hidden;
+  }
+
+  body:has(.welcome-screen) .app-main {
+    padding-bottom: 0;
+  }
+
   .page-shell {
     @apply min-h-full px-0;
     display: flex;
@@ -183,11 +201,11 @@
     align-items: center;
     justify-content: safe center;
     overflow-y: auto;
-    background-image:
-      linear-gradient(180deg, color-mix(in oklab, white 30%, transparent), color-mix(in oklab, white 72%, transparent)),
-      url("/Mapa minimalista costero pastel.png");
+    background-image: var(--map-background);
     background-position: center;
     background-size: cover;
+    background-color: rgb(255 255 255 / 0.45);
+    background-blend-mode: screen;
   }
 
   .page-container {

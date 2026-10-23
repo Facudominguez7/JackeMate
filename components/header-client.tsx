@@ -76,13 +76,13 @@ export function HeaderClient({ user }: HeaderClientProps) {
               <BackButton />
             </div>
           )}
-          <Link href="/mapa" className="inline-flex rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-secondary" aria-label="Reporty, ir al mapa">
+          <Link href="/" className="inline-flex rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-secondary" aria-label="Reporty, ir al inicio">
             <Image
               src="/logos/logoSinBg.png"
               alt="Reporty"
               width={136}
               height={34}
-              className="h-16 w-auto object-contain sm:h-18"
+              className="h-8 w-auto object-contain sm:h-10"
               priority
             />
           </Link>
@@ -91,7 +91,7 @@ export function HeaderClient({ user }: HeaderClientProps) {
           </div>
         </header>
       )}
-      <nav aria-label="Navegación principal" className="fixed inset-x-0 bottom-0 z-[60] grid min-h-16 grid-cols-5 rounded-t-[1.5rem] border border-b-0 border-secondary-foreground/15 bg-secondary px-2 pb-[max(env(safe-area-inset-bottom),0.2rem)] pt-0.5 text-secondary-foreground shadow-[0_-10px_30px_rgba(0,0,0,0.2)] sm:px-3">
+      {pathname !== "/" && <nav aria-label="Navegación principal" className="fixed inset-x-0 bottom-0 z-[60] grid min-h-16 grid-cols-5 rounded-t-[1.5rem] border border-b-0 border-secondary-foreground/15 bg-secondary px-2 pb-[max(env(safe-area-inset-bottom),0.2rem)] pt-0.5 text-secondary-foreground shadow-[0_-10px_30px_rgba(0,0,0,0.2)] sm:px-3">
         {bottomItems.map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
 
@@ -116,7 +116,7 @@ export function HeaderClient({ user }: HeaderClientProps) {
             </Link>
           );
         })}
-      </nav>
+      </nav>}
     </>
   );
 }
