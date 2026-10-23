@@ -1,0 +1,67 @@
+import { execSync } from "node:child_process"
+
+import { defineConfig } from "@playwright/test"
+
+const APP_PORT = 3100
+const FAKE_RESEND_PORT = 3199
+
+/** Keys of the local Supabase stack. The suite never runs against production. */
+function localSupabase(): { API_URL: string; ANON_KEY: string; SERVICE_ROLE_KEY: string; MAILPIT_URL: string } {
+  try {
+    const output = execSync("npx supabase status -o json", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })
+    return JSON.parse(output.slice(output.indexOf("{")))
+  } catch {
+    throw new Error("The local Supabase stack is not running. Start it with `npm run db:start` (see supabase/README.md).")
+  }
+}
+
+const supabase = localSupabase()
+
+// Shared with the test workers, which inherit the runner's environment.
+process.env.E2E_SUPABASE_URL = supabase.API_URL
+process.env.E2E_SUPABASE_SERVICE_ROLE_KEY = supabase.SERVICE_ROLE_KEY
+process.env.E2E_MAILPIT_URL = supabase.MAILPIT_URL
+process.env.E2E_FAKE_RESEND_URL = `http://127.0.0.1:${FAKE_RESEND_PORT}`
+
+export default defineConfig({
+  testDir: "./e2e",
+  // Tests share one database, so they run one at a time.
+  workers: 1,
+  fullyParallel: false,
+  timeout: 60_000,
+  reporter: [["list"]],
+  use: {
+    baseURL: `http://127.0.0.1:${APP_PORT}`,
+    // The installed Google Chrome: no browser downloads.
+    channel: "chrome",
+    headless: !process.env.E2E_HEADED,
+    locale: "es-AR",
+    trace: "retain-on-failure",
+  },
+  webServer: [
+    {
+      command: "node e2e/support/fake-resend.mjs",
+      url: `http://127.0.0.1:${FAKE_RESEND_PORT}/health`,
+      env: { PORT: String(FAKE_RESEND_PORT) },
+      reuseExistingServer: true,
+    },
+    {
+      // A production build, like the real site. Variables set here win over `.env`, which points
+      // to production; empty values switch off the captcha and Google Analytics.
+      command: `npm run build && npx next start -p ${APP_PORT}`,
+      url: `http://127.0.0.1:${APP_PORT}/robots.txt`,
+      timeout: 300_000,
+      reuseExistingServer: true,
+      env: {
+        NEXT_PUBLIC_SUPABASE_URL: supabase.API_URL,
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: supabase.ANON_KEY,
+        SUPABASE_SERVICE_ROLE_KEY: supabase.SERVICE_ROLE_KEY,
+        NEXT_PUBLIC_APP_URL: `http://127.0.0.1:${APP_PORT}`,
+        RESEND_API_KEY: "re_e2e_fake_key",
+        RESEND_BASE_URL: `http://127.0.0.1:${FAKE_RESEND_PORT}`,
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: "",
+        NEXT_PUBLIC_GA_ID: "",
+      },
+    },
+  ],
+})

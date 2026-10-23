@@ -225,6 +225,16 @@ sequenceDiagram
 
 5. Abrir [http://localhost:3000](http://localhost:3000)
 
+### Pruebas
+
+- **Unitarias:** `npm test` (Vitest).
+- **De punta a punta:** `npm run test:e2e` (Playwright). Recorren los flujos principales en una build de producción contra el Supabase local, nunca contra producción:
+  1. Levantar Supabase local con `npm run db:start` (ver `supabase/README.md`).
+  2. Ejecutar `npm run test:e2e`. La primera vez compila la app y la sirve en el puerto 3100; los correos de notificación se capturan en un Resend falso del puerto 3199, así que no se envía ningún correo real.
+  3. Para ver el navegador mientras corren: `E2E_HEADED=1 npm run test:e2e`.
+
+  Usan el Google Chrome instalado (no descargan navegadores). Cada prueba borra los usuarios, reportes y fotos que creó, aunque falle. Si una prueba falla, su traza queda en `test-results/` y se abre con `npx playwright show-trace <ruta>/trace.zip`.
+
 ---
 
 ## 📦 Tecnologías Utilizadas

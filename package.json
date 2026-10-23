@@ -11,7 +11,8 @@
     "email:templates": "vitest run --mode templates lib/notifications/auth-email-templates.test.ts",
     "lint": "eslint .",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -75,6 +76,7 @@
     "zod": "3.25.67"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/leaflet": "^1.9.20",
     "@types/node": "^22",
