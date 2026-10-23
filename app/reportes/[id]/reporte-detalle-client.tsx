@@ -38,6 +38,7 @@ import {
   CheckCircle2,
   Clock,
   Shield,
+  Share2,
   Settings,
   Users,
   FileSearch2,
@@ -69,6 +70,7 @@ import { getNameFromRelation, getUserInitials, getUsernameFromRelation } from "@
 import { ChipEstadoOperativo } from "@/components/cuadrillas/chip-estado-operativo";
 import { LineaTiempoOperativa } from "@/components/cuadrillas/linea-tiempo-operativa";
 import { CommentsSection } from "@/components/report-detail/comments-section";
+import { buildReportShareData, shareReport } from "@/lib/share/share-report";
 import {
   cambiarEstadoAdminAction,
   crearComentarioAction,
@@ -253,6 +255,17 @@ export function ReporteDetalleClient({
     }
   };
 
+  const handleShareReport = async () => {
+    if (!reporte) return;
+
+    const outcome = await shareReport(buildReportShareData(reporte.titulo, `${window.location.origin}/reportes/${reporte.id}`), navigator);
+    if (outcome === "copied") {
+      toast.success("Enlace copiado", { description: "Ya podés compartir este reporte." });
+    } else if (outcome === "failed") {
+      toast.error("No se pudo compartir el reporte", { description: "Copiá la dirección desde el navegador." });
+    }
+  };
+
   const handleDeleteReporte = async () => {
     if (!currentUser || !reporte) return;
     setShowDeleteReporteDialog(true);
@@ -420,6 +433,16 @@ export function ReporteDetalleClient({
                 <div className="flex min-w-0 items-start gap-3">
                   <CardTitle className="min-w-0 flex-1 break-words text-xl font-bold tracking-tight md:text-2xl">{reporte.titulo}</CardTitle>
                   <div className="flex shrink-0 items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-8"
+                    onClick={handleShareReport}
+                    aria-label="Compartir reporte"
+                    title="Compartir reporte"
+                  >
+                    <Share2 className="size-4" />
+                  </Button>
                    {currentUser && puedeVotar && !isReporteCerrado && (
                     <>
                       <Button
