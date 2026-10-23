@@ -258,8 +258,9 @@ export default function AuthPage() {
                   <label className="flex items-start gap-2 rounded-md border border-border bg-background p-4 text-sm text-muted-foreground">
                     <input type="checkbox" className="mt-0.5 size-4 rounded border-border" required />
                     <span>
-                      Acepto los <Link href="/" className="text-primary hover:underline">términos y condiciones</Link> y la{" "}
-                      <Link href="/" className="text-primary hover:underline">política de privacidad</Link>.
+                      {/* A new tab keeps what was already typed in the form. */}
+                      Acepto los <Link href="/terminos" target="_blank" className="text-primary hover:underline">términos y condiciones</Link> y la{" "}
+                      <Link href="/privacidad" target="_blank" className="text-primary hover:underline">política de privacidad</Link>.
                     </span>
                   </label>
 
