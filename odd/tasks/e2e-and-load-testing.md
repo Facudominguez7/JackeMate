@@ -1,0 +1,51 @@
+# E2E and load testing (#144)
+
+Objective: automated end-to-end tests of Reporty's main flows, email checks without real sends, and a load test of the public pages, all against the local Supabase stack.
+Branches: `chore/e2e-0N-*` (`test/…` is impossible: a remote branch named `test` exists), one per slice · Delivery: ask-on-risk → user chose stacked PRs to main (forecast ~990 authored lines, over the 400-line budget) · Test runners: Vitest (`npx vitest run`) and Playwright (`npx playwright test`, system Chrome).
+
+## Specs
+
+- **S1** Issue #144: "Realizar pruebas de carga, correos, imágenes y funcionalidades principales". The user accepted ("si") this approach: "Pruebas automáticas de punta a punta de los flujos principales", "Verificación de los emails, sin mandar correos reales", "Una prueba de carga sobre las páginas públicas", "todas contra el Supabase local y sin tocar producción".
+- **S2** E2E suite, committed to the repo, run with Playwright on the installed Google Chrome (`channel: "chrome"`, no browser downloads) against `next build` + `next start` with the local Supabase stack. Assumption: the main flows are:
+  - public browsing: map, report list with filters, report detail;
+  - accounts: sign-up with email confirmation, login, logout, password recovery;
+  - reports: create one as a registered user and as a guest, delete your own report;
+  - community: comment, vote, admin state change.
+- **S3** Images: a heavy photo uploaded through the report form is stored at 100 KB or less with its thumbnail, and shows on the report detail.
+- **S4** Emails, with no real sends: auth emails are read from the local Mailpit; notification emails (new comment, state change) are captured by a local fake of the Resend API through `RESEND_BASE_URL`.
+- **S5** Load test of the public pages (`/`, `/mapa`, `/reportes`, a report detail, `/sitemap.xml`) against the local production build, with the script committed and the results recorded. Assumption: k6 through Docker (`grafana/k6`), so no new npm dependency. Production is never load-tested without explicit authorization.
+- **S6** Test data: every test creates its own users and reports and hard-deletes them afterwards (rows, auth users, storage objects). Pre-existing rows are never touched.
+- **S7** Docs: how to run the E2E suite and the load test.
+
+## Tasks
+
+| ID | Specs | Route | Status | Evidence |
+|----|-------|-------|--------|----------|
+| T1 | S2, S4, S6 | inline | done (commit "test(e2e): set up Playwright against local Supabase…" on chore/e2e-01-setup) | Playwright setup, web server, data factory and cleanup, fake Resend; public-browsing spec (Mailpit client moves to T2, its first user) |
+| T2 | S2, S4, S6 | inline | pending | account specs: sign-up + confirmation, login, logout, recovery |
+| T3 | S2, S3, S6 | inline | pending | report specs: registered and guest creation with a heavy photo, delete own report |
+| T4 | S2, S4, S6 | inline | pending | community specs: comment + notification email, vote, admin state change + email |
+| T5 | S5 | inline | pending | k6 script and recorded results |
+| T6 | S7 | inline | folded | docs ship with the slice they document: E2E docs in PR 1, load-test docs in PR 5 |
+
+## Slices (stacked PRs to main)
+
+| PR | Branch | Tasks | Forecast | Depends on |
+|----|--------|-------|----------|------------|
+| 1 | `chore/e2e-01-setup` | T1 + E2E docs | ~370 | none |
+| 2 | `chore/e2e-02-accounts` | T2 | ~150 | PR 1 |
+| 3 | `chore/e2e-03-reports` | T3 | ~180 | PR 1 |
+| 4 | `chore/e2e-04-community` | T4 | ~200 | PR 1 |
+| 5 | `chore/e2e-05-load` | T5 + load-test docs | ~90 | none |
+
+Each branch starts from `main` once its parent merged, or from the parent branch while it is still open (then it is rebased onto `main` after the parent merges).
+
+Route evidence: one writer (the parent) works inline; no Writer trigger (no parallel units with disjoint surfaces, no context backstop).
+
+## Log
+
+- **L1** (2026-10-23) User: "con que seguimos" → recommended #144 with the three-part approach (automated end-to-end tests of the main flows, email checks without real sends, a load test of the public pages, all on the local Supabase). User: "si".
+- **L2** Findings: no Playwright, load tool or CI exists. `resend@6.20.0` reads `RESEND_BASE_URL`. Local Mailpit at `http://127.0.0.1:54324`. `next build` uses `--webpack`. `.env` points to production, so every run overrides the `NEXT_PUBLIC_SUPABASE_*` values and `RESEND_API_KEY`.
+- **L3** User asked "por que calculas tantas lineas?" and "osea son todos tests": explained the per-task estimate and that no app code changes (only an accessibility fix if a test finds an unlabeled control, reported separately).
+- **L4** User: "prs encadenadas a main". Next step: T1 on `chore/e2e-01-setup`.
+- **L5** 2026-10-23 T1 verified: `npx playwright test` 4 passed twice (map markers, list search → detail, state filter, not-found); first run failed on 2 selectors (the detail page title is not a heading; "Reporte no encontrado" also matches `<title>`), fixed. Vitest 146 passed, tsc clean, eslint clean on `e2e/`. No `e2e-` users, reports or storage objects left in the local DB. Docs: README "Pruebas", `npm run test:e2e`, `.gitignore` for Playwright output. Next: PR 1 push/PR after user approval, then T2 on `chore/e2e-02-accounts`.
