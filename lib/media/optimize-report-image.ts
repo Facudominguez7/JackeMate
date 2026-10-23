@@ -1,18 +1,15 @@
+import { compressToFit, type Encoder, type OutputFormat } from "@/lib/media/compress-to-fit"
 import {
   REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION,
-  REPORT_IMAGE_FALLBACK_OUTPUT_QUALITY,
   REPORT_IMAGE_FALLBACK_OUTPUT_TYPE,
   REPORT_IMAGE_MAX_BYTES,
   REPORT_IMAGE_MAX_DIMENSION,
   REPORT_IMAGE_MAX_SOURCE_BYTES,
-  REPORT_IMAGE_MIN_QUALITY,
   REPORT_IMAGE_OUTPUT_EXTENSION,
-  REPORT_IMAGE_OUTPUT_QUALITY,
   REPORT_IMAGE_OUTPUT_TYPE,
   REPORT_IMAGE_THUMBNAIL_MAX_BYTES,
   REPORT_IMAGE_THUMBNAIL_MAX_DIMENSION,
   REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION,
-  REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY,
   REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE,
   isAcceptedReportImageType,
 } from "@/lib/media/report-images"
@@ -22,11 +19,15 @@ type OptimizeReportImageResult = {
   wasOptimized: boolean
 }
 
-type OutputFormat = {
-  type: string
-  extension: string
-  quality: number
-}
+// WebP first; Safari cannot encode it from a canvas, so JPEG is the fallback.
+const PHOTO_FORMATS: OutputFormat[] = [
+  { type: REPORT_IMAGE_OUTPUT_TYPE, extension: REPORT_IMAGE_OUTPUT_EXTENSION },
+  { type: REPORT_IMAGE_FALLBACK_OUTPUT_TYPE, extension: REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION },
+]
+const THUMBNAIL_FORMATS: OutputFormat[] = [
+  { type: REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE, extension: REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION },
+  { type: REPORT_IMAGE_FALLBACK_OUTPUT_TYPE, extension: REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION },
+]
 
 function loadImage(file: File) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -79,45 +80,29 @@ function canvasToBlobWithType(canvas: HTMLCanvasElement, type: string, quality: 
   })
 }
 
-/**
- * Safari ignores unsupported `toBlob` types (such as WebP) and returns PNG,
- * so callers must skip a format whose blob does not match the requested type.
- */
-function isBlobOfRequestedType(blob: Blob, type: string) {
-  return blob.type === type
-}
-
-function createOutputFormats(): OutputFormat[] {
-  return [
-    {
-      type: REPORT_IMAGE_OUTPUT_TYPE,
-      extension: REPORT_IMAGE_OUTPUT_EXTENSION,
-      quality: REPORT_IMAGE_OUTPUT_QUALITY,
-    },
-    {
-      type: REPORT_IMAGE_FALLBACK_OUTPUT_TYPE,
-      extension: REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION,
-      quality: REPORT_IMAGE_FALLBACK_OUTPUT_QUALITY,
-    },
-  ]
-}
-
-function getScaleSteps() {
-  return [1, 0.9, 0.82] as const
-}
-
-function getQualitySteps(initialQuality: number) {
-  const steps: number[] = []
-
-  for (let quality = initialQuality; quality >= REPORT_IMAGE_MIN_QUALITY; quality -= 0.06) {
-    steps.push(Number(quality.toFixed(2)))
+/** Draws the image on a canvas at each requested size and encodes it there. */
+function createCanvasEncoder(image: HTMLImageElement, errorMessage: string): Encoder<Blob> {
+  const canvas = document.createElement("canvas")
+  const context = canvas.getContext("2d")
+  if (!context) {
+    throw new Error(errorMessage)
   }
 
-  if (steps[steps.length - 1] !== REPORT_IMAGE_MIN_QUALITY) {
-    steps.push(REPORT_IMAGE_MIN_QUALITY)
-  }
+  let drawnSize = ""
 
-  return steps
+  return async ({ width, height, type, quality }) => {
+    if (drawnSize !== `${width}x${height}`) {
+      canvas.width = width
+      canvas.height = height
+      context.clearRect(0, 0, width, height)
+      context.drawImage(image, 0, 0, width, height)
+      drawnSize = `${width}x${height}`
+    }
+
+    const blob = await canvasToBlobWithType(canvas, type, quality)
+    // Safari ignores unsupported `toBlob` types (such as WebP) and returns PNG.
+    return blob.type === type ? { size: blob.size, result: blob } : null
+  }
 }
 
 function buildOptimizedFile(blob: Blob, fileName: string) {
@@ -127,22 +112,18 @@ function buildOptimizedFile(blob: Blob, fileName: string) {
   })
 }
 
-function shouldKeepOriginalFile(file: File, image: HTMLImageElement) {
+function fitsAsIs(file: File, image: HTMLImageElement) {
   return (
     file.size <= REPORT_IMAGE_MAX_BYTES &&
     image.naturalWidth <= REPORT_IMAGE_MAX_DIMENSION &&
-    image.naturalHeight <= REPORT_IMAGE_MAX_DIMENSION &&
-    file.type === REPORT_IMAGE_OUTPUT_TYPE
+    image.naturalHeight <= REPORT_IMAGE_MAX_DIMENSION
   )
 }
 
-function getScaledDimensions(width: number, height: number, scale: number) {
-  return {
-    width: Math.max(1, Math.round(width * scale)),
-    height: Math.max(1, Math.round(height * scale)),
-  }
-}
-
+/**
+ * Takes the photo as the person chose it and brings it under REPORT_IMAGE_MAX_BYTES by lowering
+ * quality and then resolution. Nobody is asked for a lighter photo.
+ */
 export async function optimizeReportImage(file: File): Promise<OptimizeReportImageResult> {
   if (!isAcceptedReportImageType(file.type)) {
     throw new Error("La imagen debe estar en formato JPG, PNG o WebP.")
@@ -154,89 +135,32 @@ export async function optimizeReportImage(file: File): Promise<OptimizeReportIma
 
   const image = await loadImage(file)
 
-  if (shouldKeepOriginalFile(file, image)) {
-    return {
-      file,
-      wasOptimized: false,
-    }
+  if (fitsAsIs(file, image) && file.type === REPORT_IMAGE_OUTPUT_TYPE) {
+    return { file, wasOptimized: false }
   }
 
   const { width, height } = getResizedDimensions(image.naturalWidth, image.naturalHeight, REPORT_IMAGE_MAX_DIMENSION)
-  const canvas = document.createElement("canvas")
+  const fitted = await compressToFit({
+    width,
+    height,
+    formats: PHOTO_FORMATS,
+    maxBytes: REPORT_IMAGE_MAX_BYTES,
+    encode: createCanvasEncoder(image, "Tu navegador no permitió optimizar la imagen."),
+  })
 
-  const context = canvas.getContext("2d")
-  if (!context) {
-    throw new Error("Tu navegador no permitió optimizar la imagen.")
+  if (!fitted) {
+    throw new Error("No pudimos procesar esta foto. Probá con otra.")
   }
 
-  const originalBaseName = file.name.replace(/\.[^.]+$/, "") || "reporte"
-  const scaleSteps = getScaleSteps()
-  const outputFormats = createOutputFormats()
-
-  let bestAttempt: File | null = null
-
-  for (const scaleStep of scaleSteps) {
-    const scaledDimensions = getScaledDimensions(width, height, scaleStep)
-    canvas.width = scaledDimensions.width
-    canvas.height = scaledDimensions.height
-    context.clearRect(0, 0, scaledDimensions.width, scaledDimensions.height)
-    context.drawImage(image, 0, 0, scaledDimensions.width, scaledDimensions.height)
-
-    for (const outputFormat of outputFormats) {
-      for (const quality of getQualitySteps(outputFormat.quality)) {
-        const blob = await canvasToBlobWithType(canvas, outputFormat.type, quality)
-
-        if (!isBlobOfRequestedType(blob, outputFormat.type)) {
-          break
-        }
-
-        const attemptedFile = buildOptimizedFile(blob, `${originalBaseName}.${outputFormat.extension}`)
-
-        if (!bestAttempt || attemptedFile.size < bestAttempt.size) {
-          bestAttempt = attemptedFile
-        }
-
-        if (attemptedFile.size <= REPORT_IMAGE_MAX_BYTES) {
-          const shouldPreserveOriginalQuality =
-            file.size <= REPORT_IMAGE_MAX_BYTES &&
-            file.size <= Math.round(attemptedFile.size * 1.1) &&
-            image.naturalWidth <= REPORT_IMAGE_MAX_DIMENSION &&
-            image.naturalHeight <= REPORT_IMAGE_MAX_DIMENSION
-
-          if (shouldPreserveOriginalQuality) {
-            return {
-              file,
-              wasOptimized: false,
-            }
-          }
-
-          return {
-            file: attemptedFile,
-            wasOptimized:
-              attemptedFile.size !== file.size ||
-              attemptedFile.type !== file.type ||
-              scaledDimensions.width !== image.naturalWidth ||
-              scaledDimensions.height !== image.naturalHeight,
-          }
-        }
-      }
-    }
+  // A small original that is barely heavier than its re-encoding keeps its own quality.
+  if (fitsAsIs(file, image) && file.size <= Math.round(fitted.result.size * 1.1)) {
+    return { file, wasOptimized: false }
   }
 
-  const optimizedFile = bestAttempt
+  const extension = PHOTO_FORMATS.find((format) => format.type === fitted.type)!.extension
+  const baseName = file.name.replace(/\.[^.]+$/, "") || "reporte"
 
-  if (!optimizedFile || optimizedFile.size > REPORT_IMAGE_MAX_BYTES) {
-    throw new Error("No pudimos reducir la imagen lo suficiente. Probá con una foto más liviana.")
-  }
-
-  return {
-    file: optimizedFile,
-    wasOptimized:
-      optimizedFile.size !== file.size ||
-      optimizedFile.type !== file.type ||
-      width !== image.naturalWidth ||
-      height !== image.naturalHeight,
-  }
+  return { file: buildOptimizedFile(fitted.result, `${baseName}.${extension}`), wasOptimized: true }
 }
 
 export async function createReportImageThumbnail(file: File) {
@@ -250,47 +174,20 @@ export async function createReportImageThumbnail(file: File) {
     image.naturalHeight,
     REPORT_IMAGE_THUMBNAIL_MAX_DIMENSION,
   )
-  const canvas = document.createElement("canvas")
-  const context = canvas.getContext("2d")
+  const fitted = await compressToFit({
+    width,
+    height,
+    formats: THUMBNAIL_FORMATS,
+    maxBytes: REPORT_IMAGE_THUMBNAIL_MAX_BYTES,
+    encode: createCanvasEncoder(image, "Tu navegador no permitió preparar la miniatura."),
+  })
 
-  if (!context) {
-    throw new Error("Tu navegador no permitió preparar la miniatura.")
+  if (!fitted) {
+    throw new Error("No pudimos preparar una miniatura liviana para la imagen.")
   }
 
-  canvas.width = width
-  canvas.height = height
-  context.clearRect(0, 0, width, height)
-  context.drawImage(image, 0, 0, width, height)
-
+  const extension = THUMBNAIL_FORMATS.find((format) => format.type === fitted.type)!.extension
   const baseName = file.name.replace(/\.[^.]+$/, "") || "reporte"
-  const thumbnailFormats: OutputFormat[] = [
-    {
-      type: REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE,
-      extension: REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION,
-      quality: REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY,
-    },
-    {
-      type: REPORT_IMAGE_FALLBACK_OUTPUT_TYPE,
-      extension: REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION,
-      quality: REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY,
-    },
-  ]
 
-  for (const outputFormat of thumbnailFormats) {
-    for (const quality of getQualitySteps(outputFormat.quality)) {
-      const blob = await canvasToBlobWithType(canvas, outputFormat.type, quality)
-
-      if (!isBlobOfRequestedType(blob, outputFormat.type)) {
-        break
-      }
-
-      if (blob.size > REPORT_IMAGE_THUMBNAIL_MAX_BYTES) {
-        continue
-      }
-
-      return buildOptimizedFile(blob, `${baseName}-thumbnail.${outputFormat.extension}`)
-    }
-  }
-
-  throw new Error("No pudimos preparar una miniatura liviana para la imagen.")
+  return buildOptimizedFile(fitted.result, `${baseName}-thumbnail.${extension}`)
 }

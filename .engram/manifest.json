@@ -176,6 +176,22 @@
       "sessions": 1,
       "memories": 1,
       "prompts": 0
+    },
+    {
+      "id": "59ad1707",
+      "created_by": "facu",
+      "created_at": "2026-10-23T12:37:50.618796461Z",
+      "sessions": 1,
+      "memories": 2,
+      "prompts": 0
+    },
+    {
+      "id": "f105d526",
+      "created_by": "facu",
+      "created_at": "2026-10-23T13:17:13.960404611Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 0
     }
   ]
 }

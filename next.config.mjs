@@ -15,8 +15,8 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      // Optimized photo (2.5 MB) + thumbnail (512 KB) + multipart overhead; Vercel caps requests at 4.5 MB.
-      bodySizeLimit: '4mb',
+      // Optimized photo (100 KB) + thumbnail (100 KB) + the form fields and multipart overhead.
+      bodySizeLimit: '1mb',
     },
   },
 }

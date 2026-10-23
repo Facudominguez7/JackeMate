@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import type { User } from "@supabase/supabase-js"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
@@ -59,6 +60,7 @@ export function CommentsSection({
   const [adminDeleteDialogOpen, setAdminDeleteDialogOpen] = useState(false)
   const [commentToDelete, setCommentToDelete] = useState<number | null>(null)
 
+  const pathname = usePathname()
   const selectedComment = comments.find((comment) => comment.id === commentToDelete)
   // Guests (anonymous identities) can read but not comment; the server enforces it too.
   const isGuest = currentUser?.is_anonymous === true
@@ -148,7 +150,16 @@ export function CommentsSection({
               y guardá tu cuenta de invitado.
             </p>
           )}
-          {!isClosed && !isGuest && (
+          {!isClosed && !currentUser && (
+            <p className="rounded-xl border border-border/70 bg-muted/60 p-3 text-xs text-muted-foreground">
+              Para comentar,{" "}
+              <Link href={`/auth?next=${encodeURIComponent(pathname)}`} className="font-medium text-primary hover:underline">
+                iniciá sesión
+              </Link>
+              .
+            </p>
+          )}
+          {!isClosed && currentUser && !isGuest && (
             <form onSubmit={handleSubmit} className="space-y-2 md:space-y-3 lg:space-y-4">
               <Textarea
                 placeholder="Ej: 'Llamé a la municipalidad', 'Vi personal trabajando en el lugar', etc."
