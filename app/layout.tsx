@@ -5,6 +5,7 @@ import "./globals.css";
 import Header from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
 import { gaIdFromEnv } from "@/lib/analytics/google-analytics";
+import { BASE_OPEN_GRAPH, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo/site";
 
 const gaId = gaIdFromEnv(process.env.NEXT_PUBLIC_GA_ID);
 
@@ -13,8 +14,12 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Reporty",
-  description: "Plataforma ciudadana para reportar problemas urbanos en Posadas, Misiones.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: { ...BASE_OPEN_GRAPH, title: SITE_NAME, description: SITE_DESCRIPTION },
+  twitter: { card: "summary_large_image", title: SITE_NAME, description: SITE_DESCRIPTION },
   icons: {
     icon: [
       { url: "/favicon_io/favicon-16x16.png", sizes: "16x16", type: "image/png" },

@@ -8,9 +8,18 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PageTitleBar } from "@/components/page-title-bar"
+import type { Metadata } from "next"
+import { pageMetadata } from "@/lib/seo/site"
 
 const rankingVariants = ["ranking-first", "ranking-second", "ranking-third"] as const
 const rankingIcons = [Trophy, Medal, Award] as const
+
+export const metadata: Metadata = pageMetadata({
+  title: "Comunidad",
+  description:
+    "Los vecinos que más aportan a Reporty y cuántos problemas de Posadas, Misiones, ya se reportaron y se resolvieron.",
+  path: "/comunidad",
+})
 
 export default async function ComunidadPage() {
   const data = await getComunidadPageData()
