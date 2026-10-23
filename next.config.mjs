@@ -10,6 +10,17 @@ const nextConfig = {
   allowedDevOrigins: ['192.168.0.107'],
   // The home is the map. Serving it at `/` with a rewrite saves the browser the
   // extra round trip of a redirect before the page starts loading.
+  // One host for search engines: www.reporty.com.ar would otherwise serve the same pages twice.
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.reporty.com.ar' }],
+        destination: 'https://reporty.com.ar/:path*',
+        permanent: true,
+      },
+    ]
+  },
   async rewrites() {
     return [{ source: '/', destination: '/mapa' }]
   },
