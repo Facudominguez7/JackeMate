@@ -1,8 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { GoogleTagManager } from "@next/third-parties/google";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import Header from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
+import { gtmIdFromEnv } from "@/lib/analytics/gtm";
+
+const gtmId = gtmIdFromEnv(process.env.NEXT_PUBLIC_GTM_ID);
 
 export const viewport: Viewport = {
   viewportFit: "cover",
@@ -29,6 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" data-scroll-behavior="smooth">
+      {gtmId && <GoogleTagManager gtmId={gtmId} />}
       <body className={`flex min-h-dvh flex-col font-sans ${GeistSans.variable}`}>
         <a
           href="#main-content"
