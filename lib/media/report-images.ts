@@ -7,24 +7,22 @@ export const REPORT_IMAGE_ACCEPT_ATTR = REPORT_IMAGE_ACCEPTED_TYPES.join(",")
 export const REPORT_IMAGE_MAX_DIMENSION = 1536
 export const REPORT_IMAGE_OUTPUT_TYPE = "image/webp" as const
 export const REPORT_IMAGE_OUTPUT_EXTENSION = "webp" as const
-export const REPORT_IMAGE_OUTPUT_QUALITY = 0.82
 export const REPORT_IMAGE_THUMBNAIL_MAX_DIMENSION = 384
 export const REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE = "image/webp" as const
 export const REPORT_IMAGE_THUMBNAIL_OUTPUT_EXTENSION = "webp" as const
-export const REPORT_IMAGE_THUMBNAIL_OUTPUT_QUALITY = 0.74
 export const REPORT_IMAGE_FALLBACK_OUTPUT_TYPE = "image/jpeg" as const
 export const REPORT_IMAGE_FALLBACK_OUTPUT_EXTENSION = "jpg" as const
-export const REPORT_IMAGE_FALLBACK_OUTPUT_QUALITY = 0.8
 // Safari cannot encode WebP from a canvas, so thumbnails fall back to JPEG there.
 export const REPORT_IMAGE_THUMBNAIL_ACCEPTED_TYPES: readonly string[] = [
   REPORT_IMAGE_THUMBNAIL_OUTPUT_TYPE,
   REPORT_IMAGE_FALLBACK_OUTPUT_TYPE,
 ]
-export const REPORT_IMAGE_MIN_QUALITY = 0.68
-export const REPORT_IMAGE_MAX_BYTES = Math.floor(2.5 * 1024 * 1024)
+// Every stored photo and thumbnail stays under 100 KB: the optimizer in the browser gets there on
+// its own, and the server rejects anything heavier.
+export const REPORT_IMAGE_MAX_BYTES = 100 * 1024
 export const REPORT_IMAGE_MAX_SOURCE_BYTES = 15 * 1024 * 1024
-export const REPORT_IMAGE_THUMBNAIL_MAX_BYTES = 512 * 1024
-export const REPORT_IMAGE_MAX_BYTES_LABEL = "2.5 MB"
+export const REPORT_IMAGE_THUMBNAIL_MAX_BYTES = 100 * 1024
+export const REPORT_IMAGE_MAX_BYTES_LABEL = "100 KB"
 
 export type ReportImageRef = {
   bucket: ReportImageBucket
