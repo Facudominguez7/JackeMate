@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { GoogleTagManager } from "@next/third-parties/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import Header from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
-import { gtmIdFromEnv } from "@/lib/analytics/gtm";
+import { gaIdFromEnv } from "@/lib/analytics/google-analytics";
 
-const gtmId = gtmIdFromEnv(process.env.NEXT_PUBLIC_GTM_ID);
+const gaId = gaIdFromEnv(process.env.NEXT_PUBLIC_GA_ID);
 
 export const viewport: Viewport = {
   viewportFit: "cover",
@@ -33,7 +33,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" data-scroll-behavior="smooth">
-      {gtmId && <GoogleTagManager gtmId={gtmId} />}
       <body className={`flex min-h-dvh flex-col font-sans ${GeistSans.variable}`}>
         <a
           href="#main-content"
@@ -45,6 +44,7 @@ export default function RootLayout({
         <main id="main-content" className="app-main">{children}</main>
         <Toaster richColors position="top-center" />
       </body>
+      {gaId && <GoogleAnalytics gaId={gaId} />}
     </html>
   );
 }
