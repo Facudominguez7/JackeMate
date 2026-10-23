@@ -1,7 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import type { Metadata } from "next";
 import { buttonVariants } from "@/components/ui/button";
+import { pageMetadata, SITE_DESCRIPTION } from "@/lib/seo/site";
+
+export const metadata: Metadata = {
+  ...pageMetadata({ title: "Reportá problemas urbanos en Posadas", description: SITE_DESCRIPTION, path: "/" }),
+  // The root layout's title template only reaches child segments, not this page.
+  title: { absolute: "Reporty · Reportá problemas urbanos en Posadas" },
+};
 
 export default function HomePage() {
   return (

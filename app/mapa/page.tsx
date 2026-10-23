@@ -10,8 +10,17 @@
 
 import { MapaClient } from "./mapa-client"
 import { getReportMapData, getCategorias, getPrioridades } from "@/database/queries/reportes/get-reportes"
+import type { Metadata } from "next"
+import { pageMetadata } from "@/lib/seo/site"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = pageMetadata({
+  title: "Mapa de problemas urbanos en Posadas",
+  description:
+    "Mirá en el mapa los problemas urbanos pendientes que vecinos de Posadas, Misiones, reportaron cerca tuyo.",
+  path: "/mapa",
+})
 
 /**
  * Props del componente - searchParams de Next.js para filtros

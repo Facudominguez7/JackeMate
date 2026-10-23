@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { unstable_rethrow } from "next/navigation";
 
 import { createClient } from "@/utils/supabase/server";
+import { getReporteSeo } from "@/database/queries/reportes/seo";
+import { buildReportMetadata } from "@/lib/seo/report-metadata";
 import {
   getReporteDetalle,
   getComentariosReporte,
@@ -125,6 +128,18 @@ async function cargarDetalle(id: string): Promise<ReporteDetalleInicial> {
     console.error("Error fetching data:", error);
     return SIN_REPORTE;
   }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const { reporte, error } = await getReporteSeo(id);
+
+  // A failed lookup keeps the site-wide defaults instead of marking a real report as missing.
+  if (error) {
+    console.error("Error al cargar la metadata del reporte:", error);
+    return {};
+  }
+  return buildReportMetadata(reporte);
 }
 
 /**

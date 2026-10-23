@@ -14,8 +14,17 @@ import {
   getReportCardData,
   getReportStatusCounts,
 } from "@/database/queries/reportes/get-reportes"
+import type { Metadata } from "next"
+import { pageMetadata } from "@/lib/seo/site"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = pageMetadata({
+  title: "Reportes ciudadanos de Posadas",
+  description:
+    "Baches, luminarias, basurales y otros problemas urbanos que vecinos de Posadas, Misiones, reportaron. Filtrá por categoría, estado y prioridad.",
+  path: "/reportes",
+})
 
 type ReportesPageProps = {
   searchParams: Promise<{
