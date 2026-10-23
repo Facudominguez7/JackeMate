@@ -13,6 +13,7 @@ import "leaflet.markercluster"
 
 import { getCategoryColor, getPriorityColor, getStatusColor } from "@/components/report-card"
 import { ETIQUETAS_ESTADO_OPERATIVO, type EstadoOperativo } from "@/lib/authz/catalog"
+import { categoryIconNodes, getCategoryIconNode, iconNodeToSvgMarkup } from "@/lib/icons/category-icons"
 import {
   computeInitialMapView,
   getMapBounds,
@@ -100,11 +101,11 @@ const toSafeImageUrl = (value: string | null | undefined): string | null => {
   }
 }
 
-const createLucideIconMarkup = (innerMarkup: string): string => `
+const createLucideIconMarkup = (innerMarkup: string, size = 14): string => `
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="14"
-    height="14"
+    width="${size}"
+    height="${size}"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -117,6 +118,9 @@ const createLucideIconMarkup = (innerMarkup: string): string => `
     ${innerMarkup}
   </svg>
 `
+
+const createCategoryIconMarkup = (category: string): string =>
+  createLucideIconMarkup(iconNodeToSvgMarkup(getCategoryIconNode(category)), 22)
 
 const popupIcons = {
   location: createLucideIconMarkup('<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" />'),
@@ -259,50 +263,49 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
   const hasInitialViewRef = useRef(false)
 
   const iconsByPriority = useMemo(() => {
-    const mk = (color: string, hasCrew = false) =>
+    const mk = (color: string, category: string, hasCrew = false) =>
       L.divIcon({
         className: "custom-marker",
         html: `
-          <div style="position:relative;width:24px;height:24px;">
+          <div style="position:relative;width:36px;height:36px;">
           <div style="
             background-color: ${color};
-            width: 24px;
-            height: 24px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             border: 3px solid var(--map-marker-stroke);
             box-shadow: var(--elevation-soft);
             display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--map-marker-foreground);
             ${hasCrew ? "opacity:0.5;" : ""}
           ">
-            <div style="
-              width: 8px;
-              height: 8px;
-              background-color: var(--map-marker-foreground);
-              border-radius: 50%;
-            "></div>
+            ${createCategoryIconMarkup(category)}
           </div>
           ${hasCrew ? '<div title="Con cuadrilla asignada" style="position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background-color:var(--semantic-admin);border:2px solid var(--map-marker-stroke);"></div>' : ""}
           </div>
         `,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
       })
 
     const icons = new Map<string, L.DivIcon>()
     for (const priority of ["Alta", "Media", "Baja", "default"]) {
       const color = priority === "default" ? "var(--map-heat-neutral)" : getPriorityColor(priority)
-      icons.set(`${priority}|free`, mk(color))
-      icons.set(`${priority}|assigned`, mk(color, true))
+      for (const category of Object.keys(categoryIconNodes)) {
+        icons.set(`${priority}|${category}|free`, mk(color, category))
+        icons.set(`${priority}|${category}|assigned`, mk(color, category, true))
+      }
     }
     return icons
   }, [])
 
   const getIcon = useCallback(
-    (priority: string, hasCrew = false) => {
+    (priority: string, category: string, hasCrew = false) => {
       const normalized = priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase()
-      return iconsByPriority.get(`${normalized}|${hasCrew ? "assigned" : "free"}`) ?? iconsByPriority.get(`default|${hasCrew ? "assigned" : "free"}`)!
+      const normalizedCategory = categoryIconNodes[category] ? category : "default"
+      return iconsByPriority.get(`${normalized}|${normalizedCategory}|${hasCrew ? "assigned" : "free"}`) ?? iconsByPriority.get(`default|default|${hasCrew ? "assigned" : "free"}`)!
     },
     [iconsByPriority]
   )
@@ -394,7 +397,7 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
 
     for (const report of reports) {
       const marker = L.marker([report.coordinates[0], report.coordinates[1]], {
-        icon: getIcon(report.priority, Boolean(report.estadoOperativo)),
+        icon: getIcon(report.priority, report.category, Boolean(report.estadoOperativo)),
       })
 
       const popupContent = createPopupContent(
@@ -440,7 +443,7 @@ export default function LeafletMap({ reports, onSeleccionarReporte }: LeafletMap
       return
     }
 
-    map.fitBounds(bounds.pad(0.1))
+    map.fitBounds(bounds.pad(INITIAL_MAP_VIEW_CONFIG.padding))
   }, [getIcon, onSeleccionarReporte, reports])
 
   return <div ref={containerRef} className="h-full w-full" style={{ zIndex: 0 }} />

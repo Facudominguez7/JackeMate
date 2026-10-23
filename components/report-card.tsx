@@ -3,19 +3,13 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { ChipEstadoOperativo } from "@/components/cuadrillas/chip-estado-operativo"
 import type { EstadoOperativo } from "@/lib/authz/catalog"
+import { getCategoryIconComponent } from "@/lib/icons/category-icons"
 import {
   AlertCircle,
   AlertTriangle,
   ArrowDown,
   Calendar,
   CheckCircle,
-  Construction,
-  Lightbulb,
-  MoreHorizontal,
-  ShieldAlert,
-  TrafficCone,
-  Trash2,
-  Trees,
   User,
   X,
 } from "lucide-react"
@@ -87,22 +81,8 @@ export const getPriorityIcon = (priority: string, className = "w-3 h-3") => {
 }
 
 export const getCategoryIcon = (category: string, className = "w-3 h-3") => {
-  switch (category) {
-    case "Bache":
-      return <Construction className={className} />
-    case "Semaforo":
-      return <TrafficCone className={className} />
-    case "Arbol caido":
-      return <Trees className={className} />
-    case "Alumbrado":
-      return <Lightbulb className={className} />
-    case "Residuos":
-      return <Trash2 className={className} />
-    case "Seguridad":
-      return <ShieldAlert className={className} />
-    default:
-      return <MoreHorizontal className={className} />
-  }
+  const CategoryIcon = getCategoryIconComponent(category)
+  return <CategoryIcon className={className} />
 }
 
 export const getPriorityColor = (priority: string): string => {
