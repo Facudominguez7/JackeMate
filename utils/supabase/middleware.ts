@@ -49,16 +49,15 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Define which paths require authentication.
-  // /reportes, /mapa and /mis-reportes stay public. /reportes/nuevo sends visitors without
-  // a session to /auth so they choose between signing in and continuing as a guest; the
-  // guest choice returns with ?modo=invitado and the browser opens the anonymous session
-  // only on submit. The report detail still requires a session (guest or permanent).
+  // /reportes, the report detail, /mapa and /mis-reportes stay public: anyone can read a
+  // report, and the detail page asks for a session only for actions such as voting.
+  // /reportes/nuevo sends visitors without a session to /auth so they choose between signing
+  // in and continuing as a guest; the guest choice returns with ?modo=invitado and the browser
+  // opens the anonymous session only on submit.
   const protectedPaths = ['/dashboard']
-  const isReportDetail = /^\/reportes\/[^/]+$/.test(pathname) && pathname !== NEW_REPORT_PATH
   const isNewReportWithoutGuestChoice =
     pathname === NEW_REPORT_PATH && request.nextUrl.searchParams.get(GUEST_MODE_PARAM) !== GUEST_MODE_VALUE
-  const isProtected =
-    protectedPaths.some((p) => pathname.startsWith(p)) || isReportDetail || isNewReportWithoutGuestChoice
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p)) || isNewReportWithoutGuestChoice
 
   if (!user && isProtected) {
     // no user and trying to access a protected route -> redirect to login
